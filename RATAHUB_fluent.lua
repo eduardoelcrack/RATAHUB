@@ -821,7 +821,6 @@ SaveManager:IgnoreThemeSettings()
 SaveManager:SetFolder("RATAHUB")
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
-Window:SelectTab(1)
 SaveManager:LoadAutoloadConfig()
 
 print("RATAHUB gg")
