@@ -3,6 +3,8 @@
 -- ============================================================
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
 repeat task.wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer.Character
 
@@ -41,6 +43,7 @@ local Tabs = {
 	Main    = Window:AddTab({ Title = "Main",    Icon = "zap" }),
 	Aimlock = Window:AddTab({ Title = "Aimlock", Icon = "crosshair" }),
 	Scripts = Window:AddTab({ Title = "Scripts", Icon = "code" }),
+	Settings = Window:AddTab({ Title = "Settings", Icon = "settings" }),
 }
 
 local Options = Fluent.Options
@@ -811,6 +814,15 @@ Tabs.Scripts:AddButton({
 })
 
 Window:SelectTab(1)
+
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetFolder("RATAHUB")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+Window:SelectTab(1)
+SaveManager:LoadAutoloadConfig()
 
 print("RATAHUB gg")
 Fluent:Notify({Title="RATAHUB", Content="maldito 😝", Duration=4})
