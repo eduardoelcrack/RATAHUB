@@ -339,8 +339,11 @@ Tabs.Main:AddToggle("ESPNombres", {
 local ESPEnabled    = false
 local ESPObjects    = {}
 local ESPConnection = nil
+local ESPStudsConns = {} -- Aquí guardamos la caché para borrarla
 local function createDistESP(player)
 	if player == LocalPlayer then return end
+	if ESPObjects[player] then ESPObjects[player].Gui:Destroy(); ESPObjects[player] = nil end
+	
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size        = UDim2.new(0,120,0,36)
 	billboard.AlwaysOnTop = true
@@ -366,20 +369,38 @@ Tabs.Main:AddToggle("ESPStuds", {
 	Default = false,
 	Callback = function(v)
 		ESPEnabled = v
+		
+		-- ⚠️ ESTO ES LO QUE ARREGLA TUS FPS ⚠️
+		-- Limpiamos todas las conexiones viejas para que no se acumulen
+		for _, c in ipairs(ESPStudsConns) do c:Disconnect() end
+		ESPStudsConns = {}
+		
 		for _, p in pairs(Players:GetPlayers()) do
 			if v then
 				createDistESP(p)
-				p.CharacterAdded:Connect(function()
+				table.insert(ESPStudsConns, p.CharacterAdded:Connect(function()
 					task.wait(0.5)
-					if ESPEnabled then
-						if ESPObjects[p] then ESPObjects[p].Gui:Destroy(); ESPObjects[p] = nil end
-						createDistESP(p)
-					end
-				end)
+					if ESPEnabled then createDistESP(p) end
+				end))
 			else
 				if ESPObjects[p] then ESPObjects[p].Gui:Destroy(); ESPObjects[p] = nil end
 			end
 		end
+		
+		table.insert(ESPStudsConns, Players.PlayerAdded:Connect(function(p)
+			if ESPEnabled then
+				createDistESP(p)
+				table.insert(ESPStudsConns, p.CharacterAdded:Connect(function()
+					task.wait(0.5)
+					if ESPEnabled then createDistESP(p) end
+				end))
+			end
+		end))
+		
+		table.insert(ESPStudsConns, Players.PlayerRemoving:Connect(function(p)
+			if ESPObjects[p] then ESPObjects[p].Gui:Destroy(); ESPObjects[p] = nil end
+		end))
+		
 		if v and not ESPConnection then
 			ESPConnection = RunService.RenderStepped:Connect(function()
 				local myChar = LocalPlayer.Character
@@ -405,7 +426,6 @@ Tabs.Main:AddToggle("ESPStuds", {
 		end
 	end
 })
-
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║             HITBOX EXPANDER + ANTI WALL                 ║
 -- ╚══════════════════════════════════════════════════════════╝
@@ -692,24 +712,33 @@ local function UpdateSmartESP()
 	FrameCounter += 1
 	if FrameCounter % 3 == 0 then
 		local origin = Camera.CFrame.Position
-		-- Calculamos la distancia y dirección EXACTA hacia la cabeza de tu objetivo
-		local dir = head.Position - origin 
+		local dir = (head.Position - origin).Unit * 1500 -- Rayo súper largo
 		
 		local params = RaycastParams.new()
 		params.FilterDescendantsInstances = {LocalPlayer.Character}
-		params.FilterType = Enum.RaycastFilterType.Exclude -- Usamos Exclude porque Blacklist ya caducó
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.IgnoreWater = true
 		
 		local r = workspace:Raycast(origin, dir, params)
 		
-		-- Si el rayo choca con el enemigo directamente, está verde. Si choca con una pared antes, está rojo.
-		if r and r.Instance and r.Instance:IsDescendantOf(char) then
-			SmartHighlight.FillColor = Color3.fromRGB(0, 255, 0) -- Verde (Vía libre)
+		if r then
+			if r.Instance:IsDescendantOf(char) then
+				SmartHighlight.FillColor = Color3.fromRGB(0, 255, 0) -- Verde: Le diste al jugador
+			else
+				-- ⚠️ ESTE ES EL TRUCO PARA QUE FUNCIONE EL VERDE EN JUEGOS CON HITBOXES FALSOS ⚠️
+				-- Si chocó con algo, pero ese algo es invisible (como un borde del mapa) o no tiene colisión...
+				-- Lo ignoramos y lo pintamos verde porque significa que tú puedes ver al jugador de todas formas.
+				if r.Instance.Transparency == 1 or r.Instance.CanCollide == false then
+					SmartHighlight.FillColor = Color3.fromRGB(0, 255, 0) -- Verde
+				else
+					SmartHighlight.FillColor = Color3.fromRGB(255, 0, 0) -- Rojo: Es una pared real
+				end
+			end
 		else
-			SmartHighlight.FillColor = Color3.fromRGB(255, 0, 0) -- Rojo (Bloqueado)
+			SmartHighlight.FillColor = Color3.fromRGB(0, 255, 0) -- Verde: El rayo no chocó con ninguna pared
 		end
 	end
 end
-
 
 local FOVCircle     = Drawing.new("Circle")
 FOVCircle.Color     = Color3.fromRGB(175,25,255)
