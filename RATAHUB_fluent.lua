@@ -9,7 +9,7 @@ local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.
 repeat task.wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer.Character
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║                      SERVICIOS                          ║
+-- ║                      SERVICIOS                           ║
 -- ╚══════════════════════════════════════════════════════════╝
 local Players          = game:GetService("Players")
 local RunService       = game:GetService("RunService")
@@ -493,10 +493,16 @@ Tabs.Main:AddSlider("HBESize", {
 -- ╚══════════════════════════════════════════════════════════╝
 local noclipEnabled    = false
 local noclipConnection = nil
+local OriginalCanCollide = {}
 
 local function applyNoclip(char)
 	for _, part in pairs(char:GetDescendants()) do
-		if part:IsA("BasePart") then part.CanCollide = false end
+		if part:IsA("BasePart") then 
+			if OriginalCanCollide[part] == nil then
+				OriginalCanCollide[part] = part.CanCollide
+			end
+			part.CanCollide = false 
+		end
 	end
 end
 
@@ -507,7 +513,6 @@ local function startNoclip()
 		local c = LocalPlayer.Character
 		if c then pcall(applyNoclip, c) end
 	end)
-	applyNoclip(char)
 end
 
 local function stopNoclip()
@@ -515,9 +520,12 @@ local function stopNoclip()
 	local char = LocalPlayer.Character
 	if char then
 		for _, part in pairs(char:GetDescendants()) do
-			if part:IsA("BasePart") then part.CanCollide = true end
+			if part:IsA("BasePart") and OriginalCanCollide[part] ~= nil then 
+				part.CanCollide = OriginalCanCollide[part]
+			end
 		end
 	end
+	OriginalCanCollide = {}
 end
 
 Tabs.Main:AddToggle("Noclip", {
@@ -531,7 +539,8 @@ Tabs.Main:AddToggle("Noclip", {
 
 LocalPlayer.CharacterAdded:Connect(function(char)
 	task.wait(0.1)
-	if noclipEnabled then applyNoclip(char) end
+	OriginalCanCollide = {}
+	if noclipEnabled then startNoclip() end
 end)
 
 -- ╔══════════════════════════════════════════════════════════╗
@@ -574,6 +583,7 @@ local AimConfig = {
 	FOVRadius      = 150,
 	AimPart        = "Head",
 	UseMaxDistance = true,
+	Smoothness     = 1 -- Nuevo para el Aimlock Suave
 }
 
 local LockedTarget  = nil
@@ -731,7 +741,10 @@ local function StartAimlock()
 			end
 		else
 			local part = GetAimPart(LockedTarget.Character)
-			if part then Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, part.Position) end
+			if part then 
+				local targetCFrame = CFrame.lookAt(Camera.CFrame.Position, part.Position)
+				Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, AimConfig.Smoothness)
+			end
 		end
 	end)
 
@@ -801,6 +814,15 @@ Tabs.Aimlock:AddToggle("UseFOV", {
 	Title   = "Use FOV",
 	Default = false,
 	Callback = function(v) AimConfig.UseFOV = v end
+})
+
+Tabs.Aimlock:AddSlider("AimSmooth", {
+	Title    = "Aimlock Smoothness",
+	Min      = 0.01,
+	Max      = 1,
+	Default  = 1,
+	Rounding = 2,
+	Callback = function(v) AimConfig.Smoothness = v end
 })
 
 -- ╔══════════════════════════════════════════════════════════╗
