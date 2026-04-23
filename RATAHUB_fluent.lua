@@ -895,54 +895,10 @@ Tabs.Troll:AddButton({
 	end
 })
 
--- ==========================================
--- GHOST MODE (ARREGLADO - NO TE MUERES)
--- ==========================================
-local GhostModeEnabled = false
-local FakeChar = nil
-local RealChar = nil
-
-Tabs.Main:AddToggle("GhostMode", {
-	Title = "Ghost Mode (Invisible)",
-	Default = false,
-	Callback = function(v)
-		GhostModeEnabled = v
-		if GhostModeEnabled then
-			RealChar = LocalPlayer.Character
-			if not RealChar then return end
-			
-			RealChar.Archivable = true
-			FakeChar = RealChar:Clone()
-			FakeChar.Parent = workspace
-			
-			for _, part in pairs(FakeChar:GetDescendants()) do
-				if part:IsA("BasePart") or part:IsA("Decal") then
-					part.Transparency = 0.5
-				end
-			end
-			
-			if RealChar:FindFirstChild("HumanoidRootPart") then
-				-- Lo anclamos para que no caiga al vacío y muera
-				RealChar.HumanoidRootPart.Anchored = true 
-				RealChar.HumanoidRootPart.CFrame = CFrame.new(99999, 100, 99999)
-			end
-			
-			Camera.CameraSubject = FakeChar:FindFirstChild("Humanoid")
-			LocalPlayer.Character = FakeChar
-			Fluent:Notify({Title="Ghost Mode", Content="Eres invisible para los demás.", Duration=2})
-		else
-			if RealChar and FakeChar and RealChar:FindFirstChild("HumanoidRootPart") and FakeChar:FindFirstChild("HumanoidRootPart") then
-				-- Lo traemos de vuelta a donde está el fantasma
-				RealChar.HumanoidRootPart.CFrame = FakeChar.HumanoidRootPart.CFrame
-				-- Lo desanclamos para que puedas volver a caminar
-				RealChar.HumanoidRootPart.Anchored = false 
-				
-				FakeChar:Destroy()
-				LocalPlayer.Character = RealChar
-				Camera.CameraSubject = RealChar:FindFirstChild("Humanoid")
-				Fluent:Notify({Title="Ghost Mode", Content="Apareciste de nuevo.", Duration=2})
-			end
-		end
+Tabs.Troll:AddButton({
+	Title    = "Fling",
+	Callback = function()
+		loadstring(game:HttpGet('https://pastebin.com/raw/3Rnd9rHf'))()
 	end
 })
 
@@ -986,7 +942,7 @@ local function StopFling()
 	end
 end
 
-Tabs.Scripts:AddToggle("TouchFling", {
+Tabs.Troll:AddToggle("TouchFling", {
 	Title = "Touch Fling (Toca a alguien)",
 	Default = false,
 	Callback = function(v)
