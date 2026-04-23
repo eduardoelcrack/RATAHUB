@@ -9,7 +9,7 @@ local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.
 repeat task.wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer.Character
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║                      SERVICIOS                           ║
+-- ║                      SERVICIOS                          ║
 -- ╚══════════════════════════════════════════════════════════╝
 local Players          = game:GetService("Players")
 local RunService       = game:GetService("RunService")
