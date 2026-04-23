@@ -432,6 +432,7 @@ Tabs.Main:AddToggle("ESPStuds", {
 		elseif not v and ESPConnection then
 			ESPConnection:Disconnect(); ESPConnection = nil
 		end
+		end		
 })
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║             HITBOX EXPANDER + ANTI WALL                 ║
