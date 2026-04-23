@@ -619,6 +619,32 @@ Tabs.Main:AddButton({
 -- ║                       BOTONES                           ║
 -- ╚══════════════════════════════════════════════════════════╝
 Tabs.Main:AddButton({
+	Title = "Click Teleport Tool",
+	Callback = function()
+		-- Creamos una herramienta vacía y se la ponemos en la mano
+		local tool = Instance.new("Tool")
+		tool.RequiresHandle = false
+		tool.Name = "Click TP"
+		tool.ToolTip = "Haz click en cualquier lado para teletransportarte"
+		
+		tool.Activated:Connect(function()
+			local mouse = LocalPlayer:GetMouse()
+			local pos = mouse.Hit.Position
+			local char = LocalPlayer.Character
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				-- Nos teletransportamos donde apuntó el mouse.
+				-- Le sumamos +3 arriba para que no caigas enterrado en el piso.
+				char:PivotTo(CFrame.new(pos + Vector3.new(0, 3, 0)))
+			end
+		end)
+		
+		tool.Parent = LocalPlayer.Backpack
+		Fluent:Notify({Title="Herramienta", Content="Click TP añadido a tu inventario", Duration=2})
+	end
+})
+
+
+Tabs.Main:AddButton({
 	Title    = "Force Reset",
 	Callback = function() pcall(function() LocalPlayer.Character:BreakJoints() end) end
 })
@@ -640,6 +666,37 @@ Tabs.Main:AddButton({
 				game:GetService("VirtualUser"):ClickButton2(Vector2.new())
 			end)
 			Fluent:Notify({Title="Anti-AFK", Content="Activado", Duration=1.5})
+		end
+	end
+})
+
+local OriginalLighting = {}
+local Lighting = game:GetService("Lighting")
+
+Tabs.Main:AddToggle("Fullbright", {
+	Title   = "Fullbright (Visión Nocturna)",
+	Default = false,
+	Callback = function(v)
+		if v then
+			-- Guardamos cómo estaba el juego
+			OriginalLighting.Ambient = Lighting.Ambient
+			OriginalLighting.OutdoorAmbient = Lighting.OutdoorAmbient
+			OriginalLighting.Brightness = Lighting.Brightness
+			OriginalLighting.GlobalShadows = Lighting.GlobalShadows
+			
+			-- Ponemos todo al máximo de luz
+			Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+			Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+			Lighting.Brightness = 1
+			Lighting.GlobalShadows = false
+		else
+			-- Restauramos si lo apagas
+			if OriginalLighting.Ambient then
+				Lighting.Ambient = OriginalLighting.Ambient
+				Lighting.OutdoorAmbient = OriginalLighting.OutdoorAmbient
+				Lighting.Brightness = OriginalLighting.Brightness
+				Lighting.GlobalShadows = OriginalLighting.GlobalShadows
+			end
 		end
 	end
 })
@@ -919,22 +976,73 @@ Tabs.Aimlock:AddToggle("UseFOV", {
 	Callback = function(v) AimConfig.UseFOV = v end
 })
 
+-- [ TRIGGERBOT ]
+local TriggerbotLoop = nil
+local isShooting = false
+
+Tabs.Aimlock:AddToggle("Triggerbot", {
+	Title   = "Triggerbot (Auto Disparo)",
+	Default = false,
+	Callback = function(v)
+		if v then
+			TriggerbotLoop = RunService.RenderStepped:Connect(function()
+				if isShooting then return end
+				local mouse = LocalPlayer:GetMouse()
+				local target = mouse.Target
+				
+				if target and target.Parent then
+					local model = target.Parent
+					-- Si el mouse apuntó a un sombrero o accesorio, buscamos al personaje real
+					if model:IsA("Accessory") then model = model.Parent end
+					
+					-- Si es un jugador y no somos nosotros mismos, dispara
+					if model:FindFirstChildOfClass("Humanoid") and model.Name ~= LocalPlayer.Name then
+						isShooting = true
+						task.spawn(function()
+							if mouse1click then pcall(mouse1click) end
+							task.wait(0.1) -- Pausa de 0.1 segundos entre disparos
+							isShooting = false
+						end)
+					end
+				end
+			end)
+		else
+			if TriggerbotLoop then TriggerbotLoop:Disconnect(); TriggerbotLoop = nil end
+		end
+	end
+})
+
+
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                    SCRIPTS TAB                          ║
 -- ╚══════════════════════════════════════════════════════════╝
 Tabs.Troll:AddButton({
-	Title    = "invisible",
+	Title    = "flingmierda",
 	Callback = function()
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt"))()
 	end
 })
 
 Tabs.Troll:AddButton({
-	Title    = "Fling",
+	Title    = "invisible",
 	Callback = function()
 		loadstring(game:HttpGet('https://pastebin.com/raw/3Rnd9rHf'))()
 	end
 })
+
+Tabs.Troll:AddButton({
+	Title = "Dar BTools (Martillo Borrador)",
+	Callback = function()
+		-- Roblox tiene una herramienta escondida llamada HopperBin
+		-- Si le pones "Hammer" te deja darle click a las cosas y borrarlas
+		local btools = Instance.new("HopperBin")
+		btools.Name = "BTools"
+		btools.BinType = Enum.BinType.Hammer 
+		btools.Parent = LocalPlayer.Backpack
+		Fluent:Notify({Title="Troll", Content="Martillo BTools añadido a tu inventario", Duration=2})
+	end
+})
+
 
 Window:SelectTab(1)
 
