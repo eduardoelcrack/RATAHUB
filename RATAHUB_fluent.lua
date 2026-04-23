@@ -896,13 +896,13 @@ Tabs.Troll:AddButton({
 })
 
 -- ==========================================
--- GHOST MODE (INVISIBLE)
+-- GHOST MODE (ARREGLADO - NO TE MUERES)
 -- ==========================================
 local GhostModeEnabled = false
 local FakeChar = nil
 local RealChar = nil
 
-Tabs.Troll:AddToggle("GhostMode", {
+Tabs.Main:AddToggle("GhostMode", {
 	Title = "Ghost Mode (Invisible)",
 	Default = false,
 	Callback = function(v)
@@ -915,29 +915,28 @@ Tabs.Troll:AddToggle("GhostMode", {
 			FakeChar = RealChar:Clone()
 			FakeChar.Parent = workspace
 			
-			-- Hacemos al fantasma transparente para que sepas que estás en Ghost Mode
 			for _, part in pairs(FakeChar:GetDescendants()) do
 				if part:IsA("BasePart") or part:IsA("Decal") then
 					part.Transparency = 0.5
 				end
 			end
 			
-			-- Mover tu personaje real muy lejos (Nadie te ve ni te toca)
 			if RealChar:FindFirstChild("HumanoidRootPart") then
-				RealChar.HumanoidRootPart.CFrame = CFrame.new(0, 99999, 0)
+				-- Lo anclamos para que no caiga al vacío y muera
+				RealChar.HumanoidRootPart.Anchored = true 
+				RealChar.HumanoidRootPart.CFrame = CFrame.new(99999, 100, 99999)
 			end
 			
-			-- Le pasamos el control de tu cámara y teclado al clon
 			Camera.CameraSubject = FakeChar:FindFirstChild("Humanoid")
 			LocalPlayer.Character = FakeChar
 			Fluent:Notify({Title="Ghost Mode", Content="Eres invisible para los demás.", Duration=2})
 		else
-			-- Cuando lo apagas, volvemos a la normalidad
 			if RealChar and FakeChar and RealChar:FindFirstChild("HumanoidRootPart") and FakeChar:FindFirstChild("HumanoidRootPart") then
-				-- Teletransporta el real a donde caminaste con el fantasma
+				-- Lo traemos de vuelta a donde está el fantasma
 				RealChar.HumanoidRootPart.CFrame = FakeChar.HumanoidRootPart.CFrame
+				-- Lo desanclamos para que puedas volver a caminar
+				RealChar.HumanoidRootPart.Anchored = false 
 				
-				-- Destruimos el clon y te devolvemos el control
 				FakeChar:Destroy()
 				LocalPlayer.Character = RealChar
 				Camera.CameraSubject = RealChar:FindFirstChild("Humanoid")
@@ -946,53 +945,58 @@ Tabs.Troll:AddToggle("GhostMode", {
 		end
 	end
 })
+
 -- ==========================================
--- TOUCH FLING
+-- TOUCH FLING (ARREGLADO - WALKABLE)
 -- ==========================================
 local FlingActive = false
-local FlingVelocity = nil
-local FlingGyro = nil
+local FlingLoop = nil
 
 local function StartFling()
 	local char = LocalPlayer.Character
 	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-	local root = char.HumanoidRootPart
 	
-	FlingVelocity = Instance.new("BodyAngularVelocity")
-	FlingVelocity.AngularVelocity = Vector3.new(0, 99999, 0) -- Girar a velocidad infinita
-	FlingVelocity.MaxTorque = Vector3.new(0, math.huge, 0)
-	FlingVelocity.P = math.huge
-	FlingVelocity.Parent = root
-	
+	-- Hacemos tu personaje pesado para evitar que rebotes
 	for _, part in pairs(char:GetDescendants()) do
 		if part:IsA("BasePart") then
 			part.CustomPhysicalProperties = PhysicalProperties.new(100, 0.3, 0.5)
 		end
 	end
+	
+	-- Frame a frame le inyectamos rotación infinita
+	FlingLoop = RunService.Stepped:Connect(function()
+		local c = LocalPlayer.Character
+		if c and c:FindFirstChild("HumanoidRootPart") then
+			-- Gira violentamente en el eje Y (50,000 grados)
+			c.HumanoidRootPart.RotVelocity = Vector3.new(0, 50000, 0)
+		end
+	end)
 end
 
 local function StopFling()
-	if FlingVelocity then FlingVelocity:Destroy(); FlingVelocity = nil end
+	if FlingLoop then FlingLoop:Disconnect(); FlingLoop = nil end
 	local char = LocalPlayer.Character
 	if char then
 		for _, part in pairs(char:GetDescendants()) do
 			if part:IsA("BasePart") then
+				-- Restauramos el peso normal
 				part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
 			end
 		end
 	end
 end
 
-Tabs.Troll:AddToggle("TouchFling", {
-	Title = "Touch Fling (Toca a alguien y volará)",
+Tabs.Scripts:AddToggle("TouchFling", {
+	Title = "Touch Fling (Toca a alguien)",
 	Default = false,
 	Callback = function(v)
 		FlingActive = v
 		if FlingActive then
 			StartFling()
-			Fluent:Notify({Title="Touch Fling", Content="Acércate a alguien para lanzarlo.", Duration=2})
+			Fluent:Notify({Title="Touch Fling", Content="Activado. Acércate a alguien.", Duration=2})
 		else
 			StopFling()
+			Fluent:Notify({Title="Touch Fling", Content="Desactivado.", Duration=2})
 		end
 	end
 })
