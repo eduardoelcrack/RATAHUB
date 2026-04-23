@@ -602,12 +602,20 @@ end
 
 local function GetAimPart(char)
 	if not char then return nil end
-	for _, name in ipairs({"Head","HumanoidRootPart","UpperTorso","Torso"}) do
-		local part = char:FindFirstChild(name)
-		if part then return part end
+	
+	if AimConfig.AimPart == "Head" then
+		return char:FindFirstChild("Head") or char:FindFirstChildWhichIsA("BasePart")
+	elseif AimConfig.AimPart == "Torso" then
+		return char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart") or char:FindFirstChildWhichIsA("BasePart")
+	else -- Esto es para la opción "Auto"
+		for _, name in ipairs({"Head", "UpperTorso", "Torso", "HumanoidRootPart"}) do
+			local p = char:FindFirstChild(name)
+			if p then return p end
+		end
+		return char:FindFirstChildWhichIsA("BasePart")
 	end
-	return char:FindFirstChildWhichIsA("BasePart")
 end
+
 
 local function CreateNormalESP(plr)
 	ClearESP()
