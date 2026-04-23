@@ -431,34 +431,18 @@ Tabs.Main:AddToggle("ESPStuds", {
 })
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║             HITBOX EXPANDER + ANTI WALL                 ║
+-- ║                  HITBOX EXPANDER                        ║
 -- ╚══════════════════════════════════════════════════════════╝
-getgenv().HBE            = false
-getgenv().AntiWallHitbox = false
-getgenv().HitboxSize     = 5
+getgenv().HBE        = false
+getgenv().HitboxSize = 5
 
 local OriginalSizes = {}
-local RayParams     = RaycastParams.new()
-RayParams.FilterType = Enum.RaycastFilterType.Blacklist
-local tickCounter = 0
-
-local function CanSeeTarget(char)
-	local head = char:FindFirstChild("Head")
-	if not head then return false end
-	if RayParams.FilterDescendantsInstances[1] ~= LocalPlayer.Character then
-		RayParams.FilterDescendantsInstances = {LocalPlayer.Character}
-	end
-	local origin = Camera.CFrame.Position
-	local dir    = head.Position - origin
-	local ray    = workspace:Raycast(origin, dir, RayParams)
-	return ray and ray.Instance and ray.Instance:IsDescendantOf(char)
-end
 
 local function RestoreHitbox(plr)
 	local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 	if hrp and OriginalSizes[plr] then
-		hrp.Size        = OriginalSizes[plr]
-		hrp.Transparency= 1
+		hrp.Size         = OriginalSizes[plr]
+		hrp.Transparency = 1
 		hrp:SetAttribute("IsExpandedHitbox", false)
 		OriginalSizes[plr] = nil
 	end
@@ -468,24 +452,21 @@ local function ApplyHitbox(plr)
 	if plr == LocalPlayer or not IsAlive(plr) then return end
 	local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
-	OriginalSizes[plr]  = OriginalSizes[plr] or hrp.Size
-	hrp.Size            = Vector3.new(getgenv().HitboxSize,getgenv().HitboxSize,getgenv().HitboxSize)
-	hrp.Transparency    = 0.5
-	hrp.Material        = Enum.Material.Neon
-	hrp.Color           = Color3.fromRGB(175,25,255)
-	hrp.CanCollide      = false
+	
+	OriginalSizes[plr] = OriginalSizes[plr] or hrp.Size
+	hrp.Size           = Vector3.new(getgenv().HitboxSize, getgenv().HitboxSize, getgenv().HitboxSize)
+	hrp.Transparency   = 0.5
+	hrp.Material       = Enum.Material.Neon
+	hrp.Color          = Color3.fromRGB(175,25,255)
+	hrp.CanCollide     = false
 	hrp:SetAttribute("IsExpandedHitbox", true)
 end
 
 RunService.Heartbeat:Connect(function()
-	tickCounter = tickCounter + 1
-	if tickCounter % 3 ~= 0 then return end 
 	for _, p in pairs(Players:GetPlayers()) do
 		if p ~= LocalPlayer and IsAlive(p) then
-			if getgenv().HBE and not getgenv().AntiWallHitbox then
+			if getgenv().HBE then
 				ApplyHitbox(p)
-			elseif getgenv().HBE and getgenv().AntiWallHitbox then
-				if CanSeeTarget(p.Character) then ApplyHitbox(p) else RestoreHitbox(p) end
 			else
 				RestoreHitbox(p)
 			end
@@ -498,11 +479,7 @@ Tabs.Main:AddToggle("HBE", {
 	Default = false,
 	Callback = function(v) getgenv().HBE = v end
 })
-Tabs.Main:AddToggle("AntiWall", {
-	Title   = "Anti Wall Hitbox",
-	Default = false,
-	Callback = function(v) getgenv().AntiWallHitbox = v end
-})
+
 Tabs.Main:AddSlider("HBESize", {
 	Title    = "Tamaño del Hitbox",
 	Min      = 1,
