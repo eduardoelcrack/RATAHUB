@@ -781,6 +781,20 @@ Tabs.Aimlock:AddKeybind("AimlockKeybind", {
 	end
 })
 
+Tabs.Aimlock:AddSlider("AimSmooth", {
+	Title    = "Aimlock Smoothness",
+	Min      = 0.01,
+	Max      = 1,
+	Default  = 1,
+	Rounding = 2,
+	Callback = function(v) AimConfig.Smoothness = v end
+})
+
+    Tabs.Aimlock:AddParagraph({
+        Title = "Smooth",
+        Content = "0.20 recomedado"
+    })
+
 Tabs.Aimlock:AddToggle("SmartESP", {
 	Title   = "Smart ESP (WallCheck)",
 	Default = true,
@@ -824,14 +838,6 @@ Tabs.Aimlock:AddToggle("UseFOV", {
 	Callback = function(v) AimConfig.UseFOV = v end
 })
 
-Tabs.Aimlock:AddSlider("AimSmooth", {
-	Title    = "Aimlock Smoothness",
-	Min      = 0.01,
-	Max      = 1,
-	Default  = 1,
-	Rounding = 2,
-	Callback = function(v) AimConfig.Smoothness = v end
-})
 
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                    SCRIPTS TAB                          ║
