@@ -42,7 +42,7 @@ local Window = Fluent:CreateWindow({
 local Tabs = {
 	Main    = Window:AddTab({ Title = "Main",    Icon = "zap" }),
 	Aimlock = Window:AddTab({ Title = "Aimlock", Icon = "crosshair" }),
-	Scripts = Window:AddTab({ Title = "Scripts", Icon = "code" }),
+	Troll = Window:AddTab({ Title = "Troll", Icon = "code" }),
 	Settings = Window:AddTab({ Title = "Settings", Icon = "settings" }),
 }
 
@@ -543,6 +543,52 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 	if noclipEnabled then startNoclip() end
 end)
 
+-- ==========================================
+-- TELEPORT A JUGADORES
+-- ==========================================
+local TeleportTarget = nil
+local PlayerDropdown = Tabs.Main:AddDropdown("PlayerTPDrop", {
+	Title = "Seleccionar Jugador",
+	Values = {},
+	Multi = false,
+	Default = nil,
+	Callback = function(v)
+		TeleportTarget = v
+	end
+})
+
+-- Función para actualizar la lista de jugadores
+local function UpdatePlayerDropdown()
+	local list = {}
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer then table.insert(list, p.Name) end
+	end
+	PlayerDropdown:SetValues(list)
+end
+UpdatePlayerDropdown()
+Players.PlayerAdded:Connect(UpdatePlayerDropdown)
+Players.PlayerRemoving:Connect(UpdatePlayerDropdown)
+
+Tabs.Main:AddButton({
+	Title = "Teletransportarse al Jugador",
+	Callback = function()
+		if TeleportTarget then
+			local targetPlr = Players:FindFirstChild(TeleportTarget)
+			if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") then
+				local myChar = LocalPlayer.Character
+				if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+					-- Te teletransporta 3 studs detrás de la persona
+					myChar.HumanoidRootPart.CFrame = targetPlr.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+					Fluent:Notify({Title="Teleport", Content="Teletransportado a " .. TeleportTarget, Duration=2})
+				end
+			else
+				Fluent:Notify({Title="Error", Content="El jugador no tiene personaje", Duration=2})
+			end
+		end
+	end
+})
+
+
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                       BOTONES                           ║
 -- ╚══════════════════════════════════════════════════════════╝
@@ -842,12 +888,116 @@ Tabs.Aimlock:AddToggle("UseFOV", {
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                    SCRIPTS TAB                          ║
 -- ╚══════════════════════════════════════════════════════════╝
-Tabs.Scripts:AddButton({
+Tabs.Troll:AddButton({
 	Title    = "Fling",
 	Callback = function()
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt"))()
 	end
 })
+
+-- ==========================================
+-- GHOST MODE (INVISIBLE)
+-- ==========================================
+local GhostModeEnabled = false
+local FakeChar = nil
+local RealChar = nil
+
+Tabs.Troll:AddToggle("GhostMode", {
+	Title = "Ghost Mode (Invisible)",
+	Default = false,
+	Callback = function(v)
+		GhostModeEnabled = v
+		if GhostModeEnabled then
+			RealChar = LocalPlayer.Character
+			if not RealChar then return end
+			
+			RealChar.Archivable = true
+			FakeChar = RealChar:Clone()
+			FakeChar.Parent = workspace
+			
+			-- Hacemos al fantasma transparente para que sepas que estás en Ghost Mode
+			for _, part in pairs(FakeChar:GetDescendants()) do
+				if part:IsA("BasePart") or part:IsA("Decal") then
+					part.Transparency = 0.5
+				end
+			end
+			
+			-- Mover tu personaje real muy lejos (Nadie te ve ni te toca)
+			if RealChar:FindFirstChild("HumanoidRootPart") then
+				RealChar.HumanoidRootPart.CFrame = CFrame.new(0, 99999, 0)
+			end
+			
+			-- Le pasamos el control de tu cámara y teclado al clon
+			Camera.CameraSubject = FakeChar:FindFirstChild("Humanoid")
+			LocalPlayer.Character = FakeChar
+			Fluent:Notify({Title="Ghost Mode", Content="Eres invisible para los demás.", Duration=2})
+		else
+			-- Cuando lo apagas, volvemos a la normalidad
+			if RealChar and FakeChar and RealChar:FindFirstChild("HumanoidRootPart") and FakeChar:FindFirstChild("HumanoidRootPart") then
+				-- Teletransporta el real a donde caminaste con el fantasma
+				RealChar.HumanoidRootPart.CFrame = FakeChar.HumanoidRootPart.CFrame
+				
+				-- Destruimos el clon y te devolvemos el control
+				FakeChar:Destroy()
+				LocalPlayer.Character = RealChar
+				Camera.CameraSubject = RealChar:FindFirstChild("Humanoid")
+				Fluent:Notify({Title="Ghost Mode", Content="Apareciste de nuevo.", Duration=2})
+			end
+		end
+	end
+})
+-- ==========================================
+-- TOUCH FLING
+-- ==========================================
+local FlingActive = false
+local FlingVelocity = nil
+local FlingGyro = nil
+
+local function StartFling()
+	local char = LocalPlayer.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+	local root = char.HumanoidRootPart
+	
+	FlingVelocity = Instance.new("BodyAngularVelocity")
+	FlingVelocity.AngularVelocity = Vector3.new(0, 99999, 0) -- Girar a velocidad infinita
+	FlingVelocity.MaxTorque = Vector3.new(0, math.huge, 0)
+	FlingVelocity.P = math.huge
+	FlingVelocity.Parent = root
+	
+	for _, part in pairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.CustomPhysicalProperties = PhysicalProperties.new(100, 0.3, 0.5)
+		end
+	end
+end
+
+local function StopFling()
+	if FlingVelocity then FlingVelocity:Destroy(); FlingVelocity = nil end
+	local char = LocalPlayer.Character
+	if char then
+		for _, part in pairs(char:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+			end
+		end
+	end
+end
+
+Tabs.Troll:AddToggle("TouchFling", {
+	Title = "Touch Fling (Toca a alguien y volará)",
+	Default = false,
+	Callback = function(v)
+		FlingActive = v
+		if FlingActive then
+			StartFling()
+			Fluent:Notify({Title="Touch Fling", Content="Acércate a alguien para lanzarlo.", Duration=2})
+		else
+			StopFling()
+		end
+	end
+})
+
+
 
 Window:SelectTab(1)
 
