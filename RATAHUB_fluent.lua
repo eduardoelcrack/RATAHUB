@@ -443,6 +443,7 @@ local function RestoreHitbox(plr)
 	if hrp and OriginalSizes[plr] then
 		hrp.Size         = OriginalSizes[plr]
 		hrp.Transparency = 1
+		hrp.CanCollide   = true
 		hrp:SetAttribute("IsExpandedHitbox", false)
 		OriginalSizes[plr] = nil
 	end
@@ -474,6 +475,21 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
+-- ⚠️ ESTA ES LA MAGIA ANTI-LAG FÍSICO ⚠️
+-- Roblox intenta que los jugadores siempre choquen. Esto fuerza a que los hitboxes gigantes
+-- se vuelvan fantasmas un milisegundo antes de calcular las físicas, evitando que te atores.
+RunService.Stepped:Connect(function()
+	if not getgenv().HBE then return end
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer and p.Character then
+			local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+			if hrp and hrp:GetAttribute("IsExpandedHitbox") then
+				hrp.CanCollide = false
+			end
+		end
+	end
+end)
+
 Tabs.Main:AddToggle("HBE", {
 	Title   = "Hitbox Expander",
 	Default = false,
@@ -488,7 +504,6 @@ Tabs.Main:AddSlider("HBESize", {
 	Rounding = 0,
 	Callback = function(v) getgenv().HitboxSize = v end
 })
-
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                       NOCLIP                            ║
 -- ╚══════════════════════════════════════════════════════════╝
