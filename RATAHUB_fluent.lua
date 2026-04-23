@@ -517,41 +517,55 @@ Tabs.Main:AddSlider("HBESize", {
 -- ╚══════════════════════════════════════════════════════════╝
 local noclipEnabled    = false
 local noclipConnection = nil
+local noclipAddedConn  = nil
 local OriginalCanCollide = {}
-
-local function applyNoclip(char)
+local CharPartsCache   = {}
+-- Escaneamos el cuerpo UNA SOLA VEZ para no saturar el CPU
+local function RefreshNoclip(char)
+	CharPartsCache = {}
 	for _, part in pairs(char:GetDescendants()) do
-		if part:IsA("BasePart") then 
+		if part:IsA("BasePart") then
+			table.insert(CharPartsCache, part)
 			if OriginalCanCollide[part] == nil then
 				OriginalCanCollide[part] = part.CanCollide
 			end
-			part.CanCollide = false 
 		end
 	end
 end
-
 local function startNoclip()
 	local char = LocalPlayer.Character
 	if not char then return end
+	
+	RefreshNoclip(char)
+	
+	-- Si agarras un objeto nuevo o te equipas algo, lo metemos a la lista sin laggear
+	noclipAddedConn = char.DescendantAdded:Connect(function(part)
+		if part:IsA("BasePart") then
+			table.insert(CharPartsCache, part)
+			if OriginalCanCollide[part] == nil then
+				OriginalCanCollide[part] = part.CanCollide
+			end
+		end
+	end)
+	-- Bucle ultra rápido que no genera basura en la memoria
 	noclipConnection = RunService.Stepped:Connect(function()
-		local c = LocalPlayer.Character
-		if c then pcall(applyNoclip, c) end
+		for _, part in ipairs(CharPartsCache) do
+			part.CanCollide = false 
+		end
 	end)
 end
-
 local function stopNoclip()
 	if noclipConnection then noclipConnection:Disconnect(); noclipConnection = nil end
-	local char = LocalPlayer.Character
-	if char then
-		for _, part in pairs(char:GetDescendants()) do
-			if part:IsA("BasePart") and OriginalCanCollide[part] ~= nil then 
-				part.CanCollide = OriginalCanCollide[part]
-			end
+	if noclipAddedConn then noclipAddedConn:Disconnect(); noclipAddedConn = nil end
+	
+	for part, state in pairs(OriginalCanCollide) do
+		if part and part.Parent then
+			part.CanCollide = state
 		end
 	end
 	OriginalCanCollide = {}
+	CharPartsCache = {}
 end
-
 Tabs.Main:AddToggle("Noclip", {
 	Title   = "Noclip",
 	Default = false,
@@ -560,13 +574,12 @@ Tabs.Main:AddToggle("Noclip", {
 		if v then startNoclip() else stopNoclip() end
 	end
 })
-
 LocalPlayer.CharacterAdded:Connect(function(char)
 	task.wait(0.1)
 	OriginalCanCollide = {}
+	CharPartsCache = {}
 	if noclipEnabled then startNoclip() end
 end)
-
 -- ==========================================
 -- TELEPORT A JUGADORES
 -- ==========================================
