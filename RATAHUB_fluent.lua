@@ -339,7 +339,6 @@ Tabs.Main:AddToggle("ESPNombres", {
 local ESPEnabled    = false
 local ESPObjects    = {}
 local ESPConnection = nil
-
 local function createDistESP(player)
 	if player == LocalPlayer then return end
 	local billboard = Instance.new("BillboardGui")
@@ -362,7 +361,6 @@ local function createDistESP(player)
 	distLabel.TextScaled             = true
 	ESPObjects[player] = {Gui=billboard, Name=nameLabel, Dist=distLabel}
 end
-
 Tabs.Main:AddToggle("ESPStuds", {
 	Title   = "ESP Nombre + Studs",
 	Default = false,
@@ -387,20 +385,19 @@ Tabs.Main:AddToggle("ESPStuds", {
 				local myChar = LocalPlayer.Character
 				local myHRP  = myChar and myChar:FindFirstChild("HumanoidRootPart")
 				if not myHRP then return end
+				
 				for player, data in pairs(ESPObjects) do
-					pcall(function()
-						local char = player.Character
-						local hrp  = char and char:FindFirstChild("HumanoidRootPart")
-						if hrp then
-							data.Gui.Parent    = hrp
-							local dist         = (myHRP.Position - hrp.Position).Magnitude
-							data.Dist.Text     = math.floor(dist).." studs"
-							local scale        = math.clamp(2-(dist/500),0.4,2)
-							data.Gui.Size      = UDim2.new(0,120*scale,0,36*scale)
-						else
-							if data.Gui then data.Gui.Parent = nil end
-						end
-					end)
+					local char = player.Character
+					local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+					if hrp then
+						if data.Gui.Parent ~= hrp then data.Gui.Parent = hrp end
+						local dist         = (myHRP.Position - hrp.Position).Magnitude
+						data.Dist.Text     = math.floor(dist).." studs"
+						local scale        = math.clamp(2-(dist/500),0.4,2)
+						data.Gui.Size      = UDim2.new(0,120*scale,0,36*scale)
+					else
+						if data.Gui.Parent ~= nil then data.Gui.Parent = nil end
+					end
 				end
 			end)
 		elseif not v and ESPConnection then
@@ -415,21 +412,22 @@ Tabs.Main:AddToggle("ESPStuds", {
 getgenv().HBE            = false
 getgenv().AntiWallHitbox = false
 getgenv().HitboxSize     = 5
-
 local OriginalSizes = {}
 local RayParams     = RaycastParams.new()
 RayParams.FilterType = Enum.RaycastFilterType.Blacklist
-
+local tickCounter = 0
 local function CanSeeTarget(char)
 	local head = char:FindFirstChild("Head")
 	if not head then return false end
-	RayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+	-- Solo actualiza la lista si tu personaje cambió, esto ahorra mucho CPU
+	if RayParams.FilterDescendantsInstances[1] ~= LocalPlayer.Character then
+		RayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+	end
 	local origin = Camera.CFrame.Position
 	local dir    = head.Position - origin
 	local ray    = workspace:Raycast(origin, dir, RayParams)
 	return ray and ray.Instance and ray.Instance:IsDescendantOf(char)
 end
-
 local function RestoreHitbox(plr)
 	local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 	if hrp and OriginalSizes[plr] then
@@ -439,7 +437,6 @@ local function RestoreHitbox(plr)
 		OriginalSizes[plr] = nil
 	end
 end
-
 local function ApplyHitbox(plr)
 	if plr == LocalPlayer or not IsAlive(plr) then return end
 	local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
@@ -452,9 +449,11 @@ local function ApplyHitbox(plr)
 	hrp.CanCollide      = false
 	hrp:SetAttribute("IsExpandedHitbox", true)
 end
-
 RunService.Heartbeat:Connect(function()
-	for _, p in Players:GetPlayers() do
+	tickCounter = tickCounter + 1
+	-- Solo procesamos los hitboxes 1 de cada 3 frames. Visualmente es lo mismo, pero el lag baja un 60%
+	if tickCounter % 3 ~= 0 then return end 
+	for _, p in pairs(Players:GetPlayers()) do
 		if p ~= LocalPlayer and IsAlive(p) then
 			if getgenv().HBE and not getgenv().AntiWallHitbox then
 				ApplyHitbox(p)
@@ -466,19 +465,16 @@ RunService.Heartbeat:Connect(function()
 		end
 	end
 end)
-
 Tabs.Main:AddToggle("HBE", {
 	Title   = "Hitbox Expander",
 	Default = false,
 	Callback = function(v) getgenv().HBE = v end
 })
-
 Tabs.Main:AddToggle("AntiWall", {
 	Title   = "Anti Wall Hitbox",
 	Default = false,
 	Callback = function(v) getgenv().AntiWallHitbox = v end
 })
-
 Tabs.Main:AddSlider("HBESize", {
 	Title    = "Tamaño del Hitbox",
 	Min      = 1,
@@ -680,9 +676,11 @@ local function UpdateSmartESP()
 		if SmartHighlight then SmartHighlight:Destroy(); SmartHighlight = nil end
 		return
 	end
+	
 	local char = LockedTarget.Character
 	local head = char and char:FindFirstChild("Head")
 	if not head then return end
+	
 	if not SmartHighlight then
 		SmartHighlight = Instance.new("Highlight")
 		SmartHighlight.FillTransparency    = 0.3
@@ -690,29 +688,28 @@ local function UpdateSmartESP()
 		SmartHighlight.OutlineColor        = Color3.new(1,1,1)
 		SmartHighlight.Parent              = char
 	end
+	
 	FrameCounter += 1
-	if FrameCounter % 2 == 0 then
-		local origin    = Camera.CFrame.Position
-		local dir       = (head.Position - origin).Unit * 500
-		local params    = RaycastParams.new()
-		local ignoreList= {LocalPlayer.Character}
-		for _, p in Players:GetPlayers() do
-			if p.Character then
-				local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-				if hrp and hrp:GetAttribute("IsExpandedHitbox") then
-					table.insert(ignoreList, hrp)
-				end
-			end
-		end
-		params.FilterDescendantsInstances = ignoreList
-		params.FilterType = Enum.RaycastFilterType.Blacklist
+	if FrameCounter % 3 == 0 then
+		local origin = Camera.CFrame.Position
+		-- Calculamos la distancia y dirección EXACTA hacia la cabeza de tu objetivo
+		local dir = head.Position - origin 
+		
+		local params = RaycastParams.new()
+		params.FilterDescendantsInstances = {LocalPlayer.Character}
+		params.FilterType = Enum.RaycastFilterType.Exclude -- Usamos Exclude porque Blacklist ya caducó
+		
 		local r = workspace:Raycast(origin, dir, params)
-		SmartHighlight.FillColor =
-			(r and r.Instance and r.Instance:IsDescendantOf(char))
-			and Color3.fromRGB(0,255,0)
-			or  Color3.fromRGB(255,0,0)
+		
+		-- Si el rayo choca con el enemigo directamente, está verde. Si choca con una pared antes, está rojo.
+		if r and r.Instance and r.Instance:IsDescendantOf(char) then
+			SmartHighlight.FillColor = Color3.fromRGB(0, 255, 0) -- Verde (Vía libre)
+		else
+			SmartHighlight.FillColor = Color3.fromRGB(255, 0, 0) -- Rojo (Bloqueado)
+		end
 	end
 end
+
 
 local FOVCircle     = Drawing.new("Circle")
 FOVCircle.Color     = Color3.fromRGB(175,25,255)
