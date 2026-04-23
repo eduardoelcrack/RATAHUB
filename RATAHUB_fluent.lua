@@ -42,8 +42,8 @@ local Window = Fluent:CreateWindow({
 local Tabs = {
 	Main    = Window:AddTab({ Title = "Main",    Icon = "zap" }),
 	Aimlock = Window:AddTab({ Title = "Aimlock", Icon = "crosshair" }),
-	Troll = Window:AddTab({ Title = "Troll", Icon = "code" }),
-	Settings = Window:AddTab({ Title = "Settings", Icon = "settings" }),
+	Troll   = Window:AddTab({ Title = "Troll",   Icon = "code" }),
+	Settings= Window:AddTab({ Title = "Settings",Icon = "settings" }),
 }
 
 local Options = Fluent.Options
@@ -339,7 +339,8 @@ Tabs.Main:AddToggle("ESPNombres", {
 local ESPEnabled    = false
 local ESPObjects    = {}
 local ESPConnection = nil
-local ESPStudsConns = {} -- Aquí guardamos la caché para borrarla
+local ESPStudsConns = {}
+
 local function createDistESP(player)
 	if player == LocalPlayer then return end
 	if ESPObjects[player] then ESPObjects[player].Gui:Destroy(); ESPObjects[player] = nil end
@@ -362,7 +363,6 @@ local function createDistESP(player)
 	distLabel.TextColor3             = Color3.fromRGB(200,200,200)
 	distLabel.TextStrokeTransparency = 0.2
 	distLabel.TextScaled             = true
-	-- Añadimos LastDist para no crear textos a menos que se muevan
 	ESPObjects[player] = {Gui=billboard, Name=nameLabel, Dist=distLabel, LastDist = -1} 
 end
 
@@ -372,8 +372,6 @@ Tabs.Main:AddToggle("ESPStuds", {
 	Callback = function(v)
 		ESPEnabled = v
 		
-		-- ⚠️ ESTO ES LO QUE ARREGLA TUS FPS ⚠️
-		-- Limpiamos todas las conexiones viejas para que no se acumulen
 		for _, c in ipairs(ESPStudsConns) do c:Disconnect() end
 		ESPStudsConns = {}
 		
@@ -414,10 +412,7 @@ Tabs.Main:AddToggle("ESPStuds", {
 					local hrp  = char and char:FindFirstChild("HumanoidRootPart")
 					if hrp then
 						if data.Gui.Parent ~= hrp then data.Gui.Parent = hrp end
-						
 						local dist = math.floor((myHRP.Position - hrp.Position).Magnitude)
-						
-						-- Magia Anti-Lag: Solo dibuja el texto SI la distancia cambió
 						if data.LastDist ~= dist then
 							data.LastDist = dist
 							data.Dist.Text = dist.." studs"
@@ -432,22 +427,24 @@ Tabs.Main:AddToggle("ESPStuds", {
 		elseif not v and ESPConnection then
 			ESPConnection:Disconnect(); ESPConnection = nil
 		end
-		end		
+	end		
 })
+
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║             HITBOX EXPANDER + ANTI WALL                 ║
 -- ╚══════════════════════════════════════════════════════════╝
 getgenv().HBE            = false
 getgenv().AntiWallHitbox = false
 getgenv().HitboxSize     = 5
+
 local OriginalSizes = {}
 local RayParams     = RaycastParams.new()
 RayParams.FilterType = Enum.RaycastFilterType.Blacklist
 local tickCounter = 0
+
 local function CanSeeTarget(char)
 	local head = char:FindFirstChild("Head")
 	if not head then return false end
-	-- Solo actualiza la lista si tu personaje cambió, esto ahorra mucho CPU
 	if RayParams.FilterDescendantsInstances[1] ~= LocalPlayer.Character then
 		RayParams.FilterDescendantsInstances = {LocalPlayer.Character}
 	end
@@ -456,6 +453,7 @@ local function CanSeeTarget(char)
 	local ray    = workspace:Raycast(origin, dir, RayParams)
 	return ray and ray.Instance and ray.Instance:IsDescendantOf(char)
 end
+
 local function RestoreHitbox(plr)
 	local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 	if hrp and OriginalSizes[plr] then
@@ -465,6 +463,7 @@ local function RestoreHitbox(plr)
 		OriginalSizes[plr] = nil
 	end
 end
+
 local function ApplyHitbox(plr)
 	if plr == LocalPlayer or not IsAlive(plr) then return end
 	local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
@@ -477,9 +476,9 @@ local function ApplyHitbox(plr)
 	hrp.CanCollide      = false
 	hrp:SetAttribute("IsExpandedHitbox", true)
 end
+
 RunService.Heartbeat:Connect(function()
 	tickCounter = tickCounter + 1
-	-- Solo procesamos los hitboxes 1 de cada 3 frames. Visualmente es lo mismo, pero el lag baja un 60%
 	if tickCounter % 3 ~= 0 then return end 
 	for _, p in pairs(Players:GetPlayers()) do
 		if p ~= LocalPlayer and IsAlive(p) then
@@ -493,6 +492,7 @@ RunService.Heartbeat:Connect(function()
 		end
 	end
 end)
+
 Tabs.Main:AddToggle("HBE", {
 	Title   = "Hitbox Expander",
 	Default = false,
@@ -581,7 +581,6 @@ local PlayerDropdown = Tabs.Main:AddDropdown("PlayerTPDrop", {
 	end
 })
 
--- Función para actualizar la lista de jugadores
 local function UpdatePlayerDropdown()
 	local list = {}
 	for _, p in pairs(Players:GetPlayers()) do
@@ -601,7 +600,6 @@ Tabs.Main:AddButton({
 			if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") then
 				local myChar = LocalPlayer.Character
 				if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-					-- Te teletransporta 3 studs detrás de la persona
 					myChar.HumanoidRootPart.CFrame = targetPlr.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
 					Fluent:Notify({Title="Teleport", Content="Teletransportado a " .. TeleportTarget, Duration=2})
 				end
@@ -611,7 +609,6 @@ Tabs.Main:AddButton({
 		end
 	end
 })
-
 
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                       BOTONES                           ║
@@ -653,7 +650,7 @@ local AimConfig = {
 	FOVRadius      = 150,
 	AimPart        = "Head",
 	UseMaxDistance = true,
-	Smoothness     = 1 -- Nuevo para el Aimlock Suave
+	Smoothness     = 1
 }
 
 local LockedTarget  = nil
@@ -677,7 +674,7 @@ local function GetAimPart(char)
 		return char:FindFirstChild("Head") or char:FindFirstChildWhichIsA("BasePart")
 	elseif AimConfig.AimPart == "Torso" then
 		return char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart") or char:FindFirstChildWhichIsA("BasePart")
-	else -- Esto es para la opción "Auto"
+	else 
 		for _, name in ipairs({"Head", "UpperTorso", "Torso", "HumanoidRootPart"}) do
 			local p = char:FindFirstChild(name)
 			if p then return p end
@@ -685,7 +682,6 @@ local function GetAimPart(char)
 		return char:FindFirstChildWhichIsA("BasePart")
 	end
 end
-
 
 local function CreateNormalESP(plr)
 	ClearESP()
@@ -699,7 +695,6 @@ local function CreateNormalESP(plr)
 	AimESP[plr]        = h
 end
 
--- Parámetros creados UNA SOLA VEZ afuera para no generar basura en la memoria
 local SmartRayParams = RaycastParams.new()
 SmartRayParams.FilterType = Enum.RaycastFilterType.Exclude
 SmartRayParams.IgnoreWater = true
@@ -727,7 +722,6 @@ local function UpdateSmartESP()
 		local origin = Camera.CFrame.Position
 		local dir = (head.Position - origin).Unit * 1500 
 		
-		-- Solo actualizamos la lista si tu personaje cambió
 		if SmartRayParams.FilterDescendantsInstances[1] ~= LocalPlayer.Character then
 			SmartRayParams.FilterDescendantsInstances = {LocalPlayer.Character}
 		end
@@ -749,7 +743,6 @@ local function UpdateSmartESP()
 		end
 	end
 end
-
 
 local FOVCircle     = Drawing.new("Circle")
 FOVCircle.Color     = Color3.fromRGB(175,25,255)
@@ -873,10 +866,10 @@ Tabs.Aimlock:AddSlider("AimSmooth", {
 	Callback = function(v) AimConfig.Smoothness = v end
 })
 
-    Tabs.Aimlock:AddParagraph({
-        Title = "Smooth",
-        Content = "0.20 recomedado"
-    })
+Tabs.Aimlock:AddParagraph({
+    Title = "Smooth",
+    Content = "0.20 recomedado"
+})
 
 Tabs.Aimlock:AddToggle("SmartESP", {
 	Title   = "Smart ESP (WallCheck)",
@@ -920,7 +913,6 @@ Tabs.Aimlock:AddToggle("UseFOV", {
 	Default = false,
 	Callback = function(v) AimConfig.UseFOV = v end
 })
-
 
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                    SCRIPTS TAB                          ║
