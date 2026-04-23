@@ -362,8 +362,10 @@ local function createDistESP(player)
 	distLabel.TextColor3             = Color3.fromRGB(200,200,200)
 	distLabel.TextStrokeTransparency = 0.2
 	distLabel.TextScaled             = true
-	ESPObjects[player] = {Gui=billboard, Name=nameLabel, Dist=distLabel}
+	-- Añadimos LastDist para no crear textos a menos que se muevan
+	ESPObjects[player] = {Gui=billboard, Name=nameLabel, Dist=distLabel, LastDist = -1} 
 end
+
 Tabs.Main:AddToggle("ESPStuds", {
 	Title   = "ESP Nombre + Studs",
 	Default = false,
@@ -412,10 +414,16 @@ Tabs.Main:AddToggle("ESPStuds", {
 					local hrp  = char and char:FindFirstChild("HumanoidRootPart")
 					if hrp then
 						if data.Gui.Parent ~= hrp then data.Gui.Parent = hrp end
-						local dist         = (myHRP.Position - hrp.Position).Magnitude
-						data.Dist.Text     = math.floor(dist).." studs"
-						local scale        = math.clamp(2-(dist/500),0.4,2)
-						data.Gui.Size      = UDim2.new(0,120*scale,0,36*scale)
+						
+						local dist = math.floor((myHRP.Position - hrp.Position).Magnitude)
+						
+						-- Magia Anti-Lag: Solo dibuja el texto SI la distancia cambió
+						if data.LastDist ~= dist then
+							data.LastDist = dist
+							data.Dist.Text = dist.." studs"
+							local scale = math.clamp(2-(dist/500), 0.4, 2)
+							data.Gui.Size = UDim2.new(0, 120*scale, 0, 36*scale)
+						end
 					else
 						if data.Gui.Parent ~= nil then data.Gui.Parent = nil end
 					end
@@ -424,7 +432,6 @@ Tabs.Main:AddToggle("ESPStuds", {
 		elseif not v and ESPConnection then
 			ESPConnection:Disconnect(); ESPConnection = nil
 		end
-	end
 })
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║             HITBOX EXPANDER + ANTI WALL                 ║
@@ -691,6 +698,11 @@ local function CreateNormalESP(plr)
 	AimESP[plr]        = h
 end
 
+-- Parámetros creados UNA SOLA VEZ afuera para no generar basura en la memoria
+local SmartRayParams = RaycastParams.new()
+SmartRayParams.FilterType = Enum.RaycastFilterType.Exclude
+SmartRayParams.IgnoreWater = true
+
 local function UpdateSmartESP()
 	if not SmartESPEnabled or not LockedTarget or not IsAlive(LockedTarget) then
 		if SmartHighlight then SmartHighlight:Destroy(); SmartHighlight = nil end
@@ -712,33 +724,31 @@ local function UpdateSmartESP()
 	FrameCounter += 1
 	if FrameCounter % 3 == 0 then
 		local origin = Camera.CFrame.Position
-		local dir = (head.Position - origin).Unit * 1500 -- Rayo súper largo
+		local dir = (head.Position - origin).Unit * 1500 
 		
-		local params = RaycastParams.new()
-		params.FilterDescendantsInstances = {LocalPlayer.Character}
-		params.FilterType = Enum.RaycastFilterType.Exclude
-		params.IgnoreWater = true
+		-- Solo actualizamos la lista si tu personaje cambió
+		if SmartRayParams.FilterDescendantsInstances[1] ~= LocalPlayer.Character then
+			SmartRayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+		end
 		
-		local r = workspace:Raycast(origin, dir, params)
+		local r = workspace:Raycast(origin, dir, SmartRayParams)
 		
 		if r then
 			if r.Instance:IsDescendantOf(char) then
-				SmartHighlight.FillColor = Color3.fromRGB(0, 255, 0) -- Verde: Le diste al jugador
+				SmartHighlight.FillColor = Color3.fromRGB(0, 255, 0)
 			else
-				-- ⚠️ ESTE ES EL TRUCO PARA QUE FUNCIONE EL VERDE EN JUEGOS CON HITBOXES FALSOS ⚠️
-				-- Si chocó con algo, pero ese algo es invisible (como un borde del mapa) o no tiene colisión...
-				-- Lo ignoramos y lo pintamos verde porque significa que tú puedes ver al jugador de todas formas.
 				if r.Instance.Transparency == 1 or r.Instance.CanCollide == false then
-					SmartHighlight.FillColor = Color3.fromRGB(0, 255, 0) -- Verde
+					SmartHighlight.FillColor = Color3.fromRGB(0, 255, 0)
 				else
-					SmartHighlight.FillColor = Color3.fromRGB(255, 0, 0) -- Rojo: Es una pared real
+					SmartHighlight.FillColor = Color3.fromRGB(255, 0, 0)
 				end
 			end
 		else
-			SmartHighlight.FillColor = Color3.fromRGB(0, 255, 0) -- Verde: El rayo no chocó con ninguna pared
+			SmartHighlight.FillColor = Color3.fromRGB(0, 255, 0)
 		end
 	end
 end
+
 
 local FOVCircle     = Drawing.new("Circle")
 FOVCircle.Color     = Color3.fromRGB(175,25,255)
