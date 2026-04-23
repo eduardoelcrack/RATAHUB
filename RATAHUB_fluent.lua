@@ -933,6 +933,55 @@ Tabs.Aimlock:AddParagraph({
     Content = "0.20 recomedado"
 })
 
+-- [ TRIGGERBOT ]
+local TriggerbotLoop = nil
+local isShooting = false
+local TriggerDelay = 0.05 -- Velocidad por defecto
+
+Tabs.Aimlock:AddToggle("Triggerbot", {
+	Title   = "Triggerbot (Auto Disparo)",
+	Default = false,
+	Callback = function(v)
+		if v then
+			TriggerbotLoop = RunService.RenderStepped:Connect(function()
+				if isShooting then return end
+				local mouse = LocalPlayer:GetMouse()
+				local target = mouse.Target
+				
+				if target and target.Parent then
+					local model = target.Parent
+					if model:IsA("Accessory") then model = model.Parent end
+					
+					if model:FindFirstChildOfClass("Humanoid") and model.Name ~= LocalPlayer.Name then
+						isShooting = true
+						task.spawn(function()
+							-- Hace el clic inmediatamente
+							if mouse1click then pcall(mouse1click) end
+							
+							-- Espera el tiempo que tú hayas configurado en el Slider
+							task.wait(TriggerDelay) 
+							isShooting = false
+						end)
+					end
+				end
+			end)
+		else
+			if TriggerbotLoop then TriggerbotLoop:Disconnect(); TriggerbotLoop = nil end
+		end
+	end
+})
+
+-- Agregamos un Slider para que tú controles qué tan rápido dispara
+Tabs.Aimlock:AddSlider("TriggerDelay", {
+	Title    = "Retraso del Triggerbot",
+	Min      = 0.01,
+	Max      = 0.5,
+	Default  = 0.05,
+	Rounding = 2,
+	Callback = function(v) TriggerDelay = v end
+})
+
+
 Tabs.Aimlock:AddToggle("SmartESP", {
 	Title   = "Smart ESP (WallCheck)",
 	Default = true,
@@ -975,43 +1024,6 @@ Tabs.Aimlock:AddToggle("UseFOV", {
 	Default = false,
 	Callback = function(v) AimConfig.UseFOV = v end
 })
-
--- [ TRIGGERBOT ]
-local TriggerbotLoop = nil
-local isShooting = false
-
-Tabs.Aimlock:AddToggle("Triggerbot", {
-	Title   = "Triggerbot (Auto Disparo)",
-	Default = false,
-	Callback = function(v)
-		if v then
-			TriggerbotLoop = RunService.RenderStepped:Connect(function()
-				if isShooting then return end
-				local mouse = LocalPlayer:GetMouse()
-				local target = mouse.Target
-				
-				if target and target.Parent then
-					local model = target.Parent
-					-- Si el mouse apuntó a un sombrero o accesorio, buscamos al personaje real
-					if model:IsA("Accessory") then model = model.Parent end
-					
-					-- Si es un jugador y no somos nosotros mismos, dispara
-					if model:FindFirstChildOfClass("Humanoid") and model.Name ~= LocalPlayer.Name then
-						isShooting = true
-						task.spawn(function()
-							if mouse1click then pcall(mouse1click) end
-							task.wait(0.1) -- Pausa de 0.1 segundos entre disparos
-							isShooting = false
-						end)
-					end
-				end
-			end)
-		else
-			if TriggerbotLoop then TriggerbotLoop:Disconnect(); TriggerbotLoop = nil end
-		end
-	end
-})
-
 
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                    SCRIPTS TAB                          ║
