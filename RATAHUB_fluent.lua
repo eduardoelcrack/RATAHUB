@@ -962,6 +962,13 @@ local TriggerRayParams = RaycastParams.new()
 TriggerRayParams.FilterType = Enum.RaycastFilterType.Exclude
 TriggerRayParams.IgnoreWater = true
 
+-- Team Check Universal (Lee Equipos y Colores)
+local function IsSameTeam(plr)
+	if plr.Team ~= nil and LocalPlayer.Team ~= nil and plr.Team == LocalPlayer.Team then return true end
+	if plr.TeamColor ~= nil and LocalPlayer.TeamColor ~= nil and plr.TeamColor == LocalPlayer.TeamColor then return true end
+	return false
+end
+
 Tabs.Aimlock:AddToggle("Triggerbot", {
 	Title   = "Triggerbot (Auto Disparo)",
 	Default = false,
@@ -981,10 +988,10 @@ Tabs.Aimlock:AddToggle("Triggerbot", {
 						local targetPlr = Players:GetPlayerFromCharacter(model)
 						if not targetPlr then return end
 						
-						-- 1. Team Check: Si está activado y son del mismo equipo, no dispara
-						if TriggerTeamCheck and targetPlr.Team and targetPlr.Team == LocalPlayer.Team then return end
+						-- UNIVERSAL TEAM CHECK
+						if TriggerTeamCheck and IsSameTeam(targetPlr) then return end
 						
-						-- 2. Wall Check: Revisa que las balas sí vayan a darle
+						-- WALL CHECK
 						if TriggerWallCheck then
 							if TriggerRayParams.FilterDescendantsInstances[1] ~= LocalPlayer.Character then
 								TriggerRayParams.FilterDescendantsInstances = {LocalPlayer.Character}
@@ -994,16 +1001,14 @@ Tabs.Aimlock:AddToggle("Triggerbot", {
 							local dir = (mouse.Hit.Position - origin).Unit * 1500
 							local ray = workspace:Raycast(origin, dir, TriggerRayParams)
 							
-							-- Si el rayo choca con algo y ese algo no es parte del enemigo...
 							if ray and not ray.Instance:IsDescendantOf(model) then
-								-- Si esa pared no es invisible y se puede chocar con ella, abortamos el disparo
 								if ray.Instance.Transparency < 1 and ray.Instance.CanCollide then
 									return 
 								end
 							end
 						end
 						
-						-- Si pasa los checks, dispara
+						-- DISPARO
 						isShooting = true
 						task.spawn(function()
 							if mouse1click then pcall(mouse1click) end
@@ -1040,16 +1045,6 @@ Tabs.Aimlock:AddSlider("TriggerDelay", {
 	Callback = function(v) TriggerDelay = v end
 })
 
-
--- Agregamos un Slider para que tú controles qué tan rápido dispara
-Tabs.Aimlock:AddSlider("TriggerDelay", {
-	Title    = "Retraso del Triggerbot",
-	Min      = 0.01,
-	Max      = 0.5,
-	Default  = 0.05,
-	Rounding = 2,
-	Callback = function(v) TriggerDelay = v end
-})
 
 
 Tabs.Aimlock:AddToggle("SmartESP", {
