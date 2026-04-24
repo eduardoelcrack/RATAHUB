@@ -48,7 +48,7 @@ local Tabs = {
 }
 
 local Options = Fluent.Options
-╔══════════════════════════════════════════════════════════╗
+-- ╔══════════════════════════════════════════════════════════╗
 -- ║      SUPERMAN FLY (LÓGICA DE COOLCAPIDOG)               ║
 -- ╚══════════════════════════════════════════════════════════╝
 do
@@ -68,30 +68,35 @@ do
 	local HRP = Character:WaitForChild("HumanoidRootPart")
 	local Camera = workspace.CurrentCamera
 
-local BodyVelocity = Instance.new("BodyVelocity")
-BodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-BodyVelocity.Velocity = Vector3.new(0,0,0)
+	-- Fisica
+	local BodyVelocity = Instance.new("BodyVelocity")
+	BodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+	BodyVelocity.Velocity = Vector3.new(0, 0, 0)
 
-local BodyGyro = Instance.new("BodyGyro")
-BodyGyro.P = 9e4
-BodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+	local BodyGyro = Instance.new("BodyGyro")
+	BodyGyro.P = 9e4
+	BodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
 
+	-- Flymoving como BoolValue (ya no del script)
+	local Flymoving = Instance.new("BoolValue")
+	Flymoving.Value = false
+
+	-- Animaciones
 	local Hover = Instance.new("Animation")
 	Hover.AnimationId = HoverAnimID
 	local Fly = Instance.new("Animation")
-	
-local Flymoving = Instance.new("BoolValue")
-Flymoving.Value = false
+	Fly.AnimationId = FlyAnimID
 
+	-- Sonido
 	local Sound1 = Instance.new("Sound", HRP)
 	Sound1.SoundId = "rbxassetid://3308152153"
 	Sound1.Name = "Sound1"
 
+	-- Cargar animaciones
 	local v10 = Humanoid.Animator:LoadAnimation(Hover)
 	local v11 = Humanoid.Animator:LoadAnimation(Fly)
 
-	local Flymoving = script.Flymoving
-
+	-- Direccion de movimiento
 	local function u2()
 		if Humanoid.MoveDirection == Vector3.new(0, 0, 0) then
 			return Humanoid.MoveDirection
@@ -101,6 +106,7 @@ Flymoving.Value = false
 		return v12.Unit
 	end
 
+	-- Loop de vuelo
 	RunService.RenderStepped:Connect(function()
 		if FlyEnabled then
 			Humanoid:ChangeState(6)
@@ -114,6 +120,7 @@ Flymoving.Value = false
 		end
 	end)
 
+	-- Animaciones segun movimiento
 	Flymoving.Changed:Connect(function(p1)
 		if p1 == true then
 			TweenService:Create(Camera, TweenInfo.new(0.5), {FieldOfView = 100}):Play()
@@ -157,7 +164,7 @@ Flymoving.Value = false
 	end
 
 	-- ═══════════════════════════
-	--          UI (SIN TOCAR)
+	--          UI
 	-- ═══════════════════════════
 
 	local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
