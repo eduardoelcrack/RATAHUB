@@ -688,6 +688,56 @@ Tabs.Main:AddButton({
 	end
 })
 
+local FreecamPart = nil
+local FC_Loop = nil
+
+Tabs.Main:AddToggle("Freecam", {
+	Title   = "Freecam (Cámara Libre)",
+	Default = false,
+	Callback = function(v)
+		if v then
+			if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+			
+			-- Creamos nuestro dron invisible
+			FreecamPart = Instance.new("Part")
+			FreecamPart.Size = Vector3.new(1, 1, 1)
+			FreecamPart.Transparency = 1
+			FreecamPart.Anchored = true
+			FreecamPart.CanCollide = false
+			FreecamPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+			FreecamPart.Parent = workspace
+			
+			-- Enganchamos la cámara al dron
+			workspace.CurrentCamera.CameraSubject = FreecamPart
+			
+			local uis = game:GetService("UserInputService")
+			FC_Loop = RunService.RenderStepped:Connect(function()
+				local cam = workspace.CurrentCamera
+				local move = Vector3.new()
+				
+				-- Controles (Usa E para subir y Q para bajar)
+				if uis:IsKeyDown(Enum.KeyCode.W) then move = move + cam.CFrame.LookVector end
+				if uis:IsKeyDown(Enum.KeyCode.S) then move = move - cam.CFrame.LookVector end
+				if uis:IsKeyDown(Enum.KeyCode.A) then move = move - cam.CFrame.RightVector end
+				if uis:IsKeyDown(Enum.KeyCode.D) then move = move + cam.CFrame.RightVector end
+				if uis:IsKeyDown(Enum.KeyCode.E) then move = move + Vector3.new(0,1,0) end
+				if uis:IsKeyDown(Enum.KeyCode.Q) then move = move - Vector3.new(0,1,0) end
+				
+				-- Velocidad del Freecam (puedes cambiar el 3 a un 5 para que vuele más rápido)
+				FreecamPart.CFrame = FreecamPart.CFrame + (move * 3)
+			end)
+		else
+			-- Apagar: Destruir el dron y devolver la cámara a tu personaje
+			if FC_Loop then FC_Loop:Disconnect(); FC_Loop = nil end
+			if FreecamPart then FreecamPart:Destroy(); FreecamPart = nil end
+			if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+				workspace.CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
+			end
+		end
+	end
+})
+
+
 local OriginalLighting = {}
 local Lighting = game:GetService("Lighting")
 
