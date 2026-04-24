@@ -92,9 +92,12 @@ do
 	Sound1.SoundId = "rbxassetid://3308152153"
 	Sound1.Name = "Sound1"
 
-	-- Cargar animaciones
-	local v10 = Humanoid.Animator:LoadAnimation(Hover)
-	local v11 = Humanoid.Animator:LoadAnimation(Fly)
+	-- MAGIA ANTI-CRASH: Creamos el Animator si el juego aún no lo había cargado
+	local animator = Humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", Humanoid)
+	
+	-- Cargar animaciones (ya no da "nil value")
+	local v10 = animator:LoadAnimation(Hover)
+	local v11 = animator:LoadAnimation(Fly)
 
 	-- Direccion de movimiento
 	local function u2()
@@ -142,7 +145,7 @@ do
 		Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
 		Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
 		Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-		HRP.Running.Volume = 0
+		if HRP:FindFirstChild("Running") then HRP.Running.Volume = 0 end
 		Humanoid:ChangeState(6)
 		BodyVelocity.Parent = HRP
 		BodyGyro.Parent = HRP
@@ -155,7 +158,7 @@ do
 		Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
 		Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
 		Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
-		HRP.Running.Volume = 0.65
+		if HRP:FindFirstChild("Running") then HRP.Running.Volume = 0.65 end
 		Humanoid:ChangeState(8)
 		BodyVelocity.Parent = Character
 		BodyGyro.Parent = Character
