@@ -49,13 +49,12 @@ local Tabs = {
 local Options = Fluent.Options
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║           SUPERMAN FLY (VERSIÓN DEFINITIVA PREMIUM)     ║
+-- ║           SUPERMAN FLY (PARCHE DE ANIMACIONES)          ║
 -- ╚══════════════════════════════════════════════════════════╝
 local FlyEnabled = false
 local FlySpeed = 350
 local FlyLoop = nil
 
--- Tus IDs de Animación y Sonido
 local HoverAnimID = "rbxassetid://70877054591439"
 local FlyAnimID = "rbxassetid://80012694228400"
 local WindSoundEnabled = true
@@ -70,15 +69,10 @@ local isCurrentlyMoving = false
 local TweenService = game:GetService("TweenService")
 local Camera = workspace.CurrentCamera
 
--- Función avanzada para calcular la dirección (sacada de tu script)
 local function getMoveVector(hum)
-	if hum.MoveDirection == Vector3.new(0, 0, 0) then
-		return hum.MoveDirection
-	end
+	if hum.MoveDirection == Vector3.new(0, 0, 0) then return hum.MoveDirection end
 	local v12 = (Camera.CFrame * CFrame.new((CFrame.new(Camera.CFrame.p, Camera.CFrame.p + Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z)):VectorToObjectSpace(hum.MoveDirection)))).p - Camera.CFrame.p;
-	if v12 == Vector3.new() then
-		return v12
-	end
+	if v12 == Vector3.new() then return v12 end
 	return v12.Unit
 end
 
@@ -95,7 +89,14 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 		if not hrp or not hum then return end
 		
 		if v then
-			-- Crear motores de movimiento
+			-- APAGAR ANIMACIONES DEL JUEGO PARA QUE NO INTERFIERAN
+			local animate = char:FindFirstChild("Animate")
+			if animate then animate.Disabled = true end
+			
+			for _, track in pairs(hum:GetPlayingAnimationTracks()) do
+				track:Stop()
+			end
+			
 			bbv = Instance.new("BodyVelocity")
 			bbv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
 			bbv.Velocity = Vector3.new(0, 0, 0)
@@ -107,13 +108,11 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 			bbg.CFrame = Camera.CFrame
 			bbg.Parent = hrp
 			
-			-- Sonido de Viento
 			Sound1 = Instance.new("Sound", hrp)
 			Sound1.SoundId = "rbxassetid://3308152153"
 			Sound1.Looped = true
 			if not WindSoundEnabled then Sound1.Volume = 0 end
 			
-			-- Cargar tus Animaciones
 			local HoverAnim = Instance.new("Animation")
 			HoverAnim.AnimationId = HoverAnimID
 			local FlyAnim = Instance.new("Animation")
@@ -123,9 +122,12 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 			HoverTrack = animator:LoadAnimation(HoverAnim)
 			FlyTrack = animator:LoadAnimation(FlyAnim)
 			
+			-- FORZAR PRIORIDAD MÁXIMA
+			HoverTrack.Priority = Enum.AnimationPriority.Action
+			FlyTrack.Priority = Enum.AnimationPriority.Action
+			
 			HoverTrack:Play(0.1, 1, 1)
 			
-			-- Configurar Humanoide
 			hum:SetStateEnabled(Enum.HumanoidStateType.Running, false)
 			hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
 			hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
@@ -138,7 +140,6 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 			
 			isCurrentlyMoving = false
 			
-			-- Loop de Vuelo Suave
 			FlyLoop = RunService.RenderStepped:Connect(function()
 				if not FlyEnabled then return end
 				hum:ChangeState(6)
@@ -147,17 +148,14 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 				local moveVec = getMoveVector(hum)
 				local movingNow = (moveVec ~= Vector3.new(0, 0, 0))
 				
-				-- Sistema de Transición (Equivalente al Flymoving.Changed)
 				if movingNow ~= isCurrentlyMoving then
 					isCurrentlyMoving = movingNow
 					if isCurrentlyMoving then
-						-- Al avanzar: Aleja la cámara, pone viento y animación de volar
 						TweenService:Create(Camera, TweenInfo.new(0.5), {FieldOfView = 100}):Play()
 						HoverTrack:Stop()
 						Sound1:Play()
 						FlyTrack:Play()
 					else
-						-- Al detenerse: Acerca la cámara, quita viento y pone animación de levitar
 						TweenService:Create(Camera, TweenInfo.new(0.5), {FieldOfView = 70}):Play()
 						FlyTrack:Stop()
 						Sound1:Stop()
@@ -165,7 +163,6 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 					end
 				end
 				
-				-- Movimiento (Usa la velocidad de tu Slider)
 				if isCurrentlyMoving then
 					TweenService:Create(bbv, TweenInfo.new(0.3), {Velocity = moveVec * FlySpeed}):Play()
 				else
@@ -173,7 +170,6 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 				end
 			end)
 		else
-			-- Limpieza total al apagar
 			if FlyLoop then FlyLoop:Disconnect(); FlyLoop = nil end
 			if bbv then bbv:Destroy(); bbv = nil end
 			if bbg then bbg:Destroy(); bbg = nil end
@@ -181,6 +177,10 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 			
 			if HoverTrack then HoverTrack:Stop(); HoverTrack = nil end
 			if FlyTrack then FlyTrack:Stop(); FlyTrack = nil end
+			
+			-- VOLVER A PRENDER ANIMACIONES DEL JUEGO
+			local animate = char:FindFirstChild("Animate")
+			if animate then animate.Disabled = false end
 			
 			TweenService:Create(Camera, TweenInfo.new(0.5), {FieldOfView = 70}):Play()
 			
@@ -197,7 +197,6 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 	end
 })
 
--- KEYBIND: Tecla 'E' por defecto como en tu código original
 Tabs.Main:AddKeybind("FlyKeybind", {
 	Title   = "Atajo de Teclado (Fly)",
 	Mode    = "Toggle",
@@ -207,7 +206,6 @@ Tabs.Main:AddKeybind("FlyKeybind", {
 	end
 })
 
--- SLIDER: Velocidad base en 350 como en tu código
 Tabs.Main:AddSlider("FlySpeed", {
 	Title    = "Velocidad de Vuelo",
 	Min      = 50,
