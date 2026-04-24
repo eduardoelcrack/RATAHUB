@@ -49,8 +49,9 @@ local Tabs = {
 local Options = Fluent.Options
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║        SUPERMAN FLY (ANIMACIÓN MEJORADA)                ║
+-- ║        SUPERMAN FLY (ANIMACIÓN FUNCIONANDO)             ║
 -- ╚══════════════════════════════════════════════════════════╝
+
 local FlyEnabled = false
 local FlySpeed = 50
 local FlyLoop = nil
@@ -60,7 +61,7 @@ local FlyTrack = nil
 local IdleTrack = nil
 
 local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
-	Title   = "Fly (Tu Animación)",
+	Title   = "Fly (Animación)",
 	Default = false,
 	Callback = function(v)
 		FlyEnabled = v
@@ -72,35 +73,41 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 		local animate = char:FindFirstChild("Animate")
 		
 		if v then
-			if hum then hum.PlatformStand = true end
+			-- 🔥 CAMBIO CLAVE (NO MÁS TIESO)
+			if hum then
+				hum:ChangeState(Enum.HumanoidStateType.Physics)
+			end
+			
 			if animate then animate.Disabled = true end
 			
 			for _, track in pairs(hum:GetPlayingAnimationTracks()) do
 				track:Stop()
 			end
 			
-			-- 🔥 TU ANIMACIÓN
-			local animCustom = Instance.new("Animation")
-			animCustom.AnimationId = "rbxassetid://11228653710"
+			-- 🔥 ANIMACIÓN DEL ASSET
+			local anim = Instance.new("Animation")
+			anim.AnimationId = "rbxassetid://11228653710"
 			
-			FlyTrack = hum:LoadAnimation(animCustom)
-			IdleTrack = hum:LoadAnimation(animCustom)
+			FlyTrack = hum:LoadAnimation(anim)
+			IdleTrack = hum:LoadAnimation(anim)
 			
-			-- 🔥 prioridad alta para que no choque con otras
 			FlyTrack.Priority = Enum.AnimationPriority.Action
 			IdleTrack.Priority = Enum.AnimationPriority.Action
 			
-			bbg = Instance.new("BodyGyro", hrp)
+			bbg = Instance.new("BodyGyro")
 			bbg.P = 9e4
 			bbg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
 			bbg.CFrame = hrp.CFrame
+			bbg.Parent = hrp
 			
-			bbv = Instance.new("BodyVelocity", hrp)
+			bbv = Instance.new("BodyVelocity")
 			bbv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+			bbv.Velocity = Vector3.zero
+			bbv.Parent = hrp
 			
 			local uis = game:GetService("UserInputService")
 			
-			FlyLoop = RunService.RenderStepped:Connect(function()
+			FlyLoop = game:GetService("RunService").RenderStepped:Connect(function()
 				local cam = workspace.CurrentCamera
 				local moveDir = Vector3.zero
 				
@@ -109,13 +116,13 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 				if uis:IsKeyDown(Enum.KeyCode.A) then moveDir -= cam.CFrame.RightVector end
 				if uis:IsKeyDown(Enum.KeyCode.D) then moveDir += cam.CFrame.RightVector end
 				
-				local isMoving = moveDir.Magnitude > 0
+				local moving = moveDir.Magnitude > 0
 				
-				if isMoving then
-					moveDir = moveDir.Unit -- 🔥 evita velocidad rara en diagonal
+				if moving then
+					moveDir = moveDir.Unit
 					
-					-- 🦸 rotación tipo Superman PRO
-					bbg.CFrame = CFrame.new(hrp.Position, hrp.Position + moveDir) 
+					-- 🦸 ROTACIÓN TIPO SUPERMAN
+					bbg.CFrame = CFrame.new(hrp.Position, hrp.Position + moveDir)
 						* CFrame.Angles(math.rad(-90), 0, 0)
 					
 					if IdleTrack.IsPlaying then IdleTrack:Stop() end
@@ -135,7 +142,9 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 			if bbg then bbg:Destroy(); bbg = nil end
 			if bbv then bbv:Destroy(); bbv = nil end
 			
-			if hum then hum.PlatformStand = false end
+			if hum then
+				hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+			end
 			
 			if FlyTrack then FlyTrack:Stop(); FlyTrack:Destroy(); FlyTrack = nil end
 			if IdleTrack then IdleTrack:Stop(); IdleTrack:Destroy(); IdleTrack = nil end
@@ -145,6 +154,7 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 	end
 })
 
+-- 🎮 TECLA
 Tabs.Main:AddKeybind("FlyKeybind", {
 	Title   = "Atajo de Teclado (Fly)",
 	Mode    = "Toggle",
@@ -154,6 +164,7 @@ Tabs.Main:AddKeybind("FlyKeybind", {
 	end
 })
 
+-- ⚡ VELOCIDAD
 Tabs.Main:AddSlider("FlySpeed", {
 	Title    = "Velocidad de Vuelo",
 	Min      = 10,
@@ -164,8 +175,6 @@ Tabs.Main:AddSlider("FlySpeed", {
 		FlySpeed = v
 	end
 })
-
-
 
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                    INFINITE JUMP                        ║
