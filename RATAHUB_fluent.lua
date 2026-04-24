@@ -16,6 +16,7 @@ local RunService       = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui          = game:GetService("CoreGui")
 local GuiService       = game:GetService("GuiService")
+local TweenService     = game:GetService("TweenService")
 local LocalPlayer      = Players.LocalPlayer
 local Camera           = workspace.CurrentCamera
 local Mouse            = LocalPlayer:GetMouse()
@@ -49,120 +50,112 @@ local Tabs = {
 local Options = Fluent.Options
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║      SUPERMAN FLY (LÓGICA DE COOLCAPIDOG)               ║
+-- ║      SUPERMAN FLY (CORREGIDO - SIN CRASHES)             ║
 -- ╚══════════════════════════════════════════════════════════╝
 do
-	local TweenService = game:GetService("TweenService")
-	local UIS = game:GetService("UserInputService")
-	local RunService = game:GetService("RunService")
-	local Players = game:GetService("Players")
-	local LocalPlayer = Players.LocalPlayer
+	local FlyEnabled = false
+	local FlySpeed = 350
+	local FlyLoop = nil
 
 	local HoverAnimID = "rbxassetid://93878823698001"
 	local FlyAnimID = "rbxassetid://71899254710824"
-	local FlySpeed = 350
-	local FlyEnabled = false
+	local HoverAnim = Instance.new("Animation")
+	HoverAnim.AnimationId = HoverAnimID
+	local FlyAnim = Instance.new("Animation")
+	FlyAnim.AnimationId = FlyAnimID
 
-	local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-	local Humanoid = Character:WaitForChild("Humanoid")
-	local HRP = Character:WaitForChild("HumanoidRootPart")
-	local Camera = workspace.CurrentCamera
-
-	local BodyVelocity = script:WaitForChild("BodyVelocity"):Clone()
-	local BodyGyro = script:WaitForChild("BodyGyro"):Clone()
-	BodyVelocity.Parent = Character
-	BodyGyro.Parent = Character
-
-	local Hover = Instance.new("Animation")
-	Hover.AnimationId = HoverAnimID
-	local Fly = Instance.new("Animation")
-	Fly.AnimationId = FlyAnimID
-
-	local Sound1 = Instance.new("Sound", HRP)
-	Sound1.SoundId = "rbxassetid://3308152153"
-	Sound1.Name = "Sound1"
-
-	local v10 = Humanoid.Animator:LoadAnimation(Hover)
-	local v11 = Humanoid.Animator:LoadAnimation(Fly)
-
-	local Flymoving = script.Flymoving
-
-	local function u2()
-		if Humanoid.MoveDirection == Vector3.new(0, 0, 0) then
-			return Humanoid.MoveDirection
-		end
-		local v12 = (Camera.CFrame * CFrame.new((CFrame.new(Camera.CFrame.p, Camera.CFrame.p + Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z)):VectorToObjectSpace(Humanoid.MoveDirection)))).p - Camera.CFrame.p
-		if v12 == Vector3.new() then return v12 end
-		return v12.Unit
-	end
-
-	RunService.RenderStepped:Connect(function()
-		if FlyEnabled then
-			Humanoid:ChangeState(6)
-			BodyGyro.CFrame = Camera.CFrame
-			if u2() == Vector3.new(0, 0, 0) then
-				Flymoving.Value = false
-			else
-				Flymoving.Value = true
-			end
-			TweenService:Create(BodyVelocity, TweenInfo.new(0.3), {Velocity = u2() * FlySpeed}):Play()
-		end
-	end)
-
-	Flymoving.Changed:Connect(function(p1)
-		if p1 == true then
-			TweenService:Create(Camera, TweenInfo.new(0.5), {FieldOfView = 100}):Play()
-			v10:Stop()
-			Sound1:Play()
-			v11:Play()
-		elseif p1 == false then
-			TweenService:Create(Camera, TweenInfo.new(0.5), {FieldOfView = 70}):Play()
-			v11:Stop()
-			Sound1:Stop()
-			v10:Play()
-		end
-	end)
-
-	local function activarVuelo()
-		FlyEnabled = true
-		v10:Play(0.1, 1, 1)
-		Humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, false)
-		Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
-		Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-		Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-		HRP.Running.Volume = 0
-		Humanoid:ChangeState(6)
-		BodyVelocity.Parent = HRP
-		BodyGyro.Parent = HRP
-	end
-
-	local function desactivarVuelo()
-		FlyEnabled = false
-		Flymoving.Value = false
-		Humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
-		Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
-		Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
-		Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
-		HRP.Running.Volume = 0.65
-		Humanoid:ChangeState(8)
-		BodyVelocity.Parent = Character
-		BodyGyro.Parent = Character
-		v10:Stop()
-		v11:Stop()
-	end
-
-	-- ═══════════════════════════
-	--          UI (SIN TOCAR)
-	-- ═══════════════════════════
+	local bbg = nil
+	local bbv = nil
+	local Sound1 = nil
+	local HoverTrack = nil
+	local FlyTrack = nil
+	local isCurrentlyMoving = false
 
 	local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 		Title   = "Fly (Premium Híbrido)",
 		Default = false,
 		Callback = function(v)
+			FlyEnabled = v
+			local char = LocalPlayer.Character
+			if not char then return end
+			local hum = char:FindFirstChild("Humanoid")
+			local hrp = char:FindFirstChild("HumanoidRootPart")
+			
+			if not hrp or not hum then return end
+			
 			if v then
-				activarVuelo()
+				hum.PlatformStand = true
+				
+				bbv = Instance.new("BodyVelocity")
+				bbv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+				bbv.Velocity = Vector3.new(0, 0, 0)
+				bbv.Parent = hrp
+				
+				bbg = Instance.new("BodyGyro")
+				bbg.P = 9e4
+				bbg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+				bbg.CFrame = workspace.CurrentCamera.CFrame
+				bbg.Parent = hrp
+				
+				Sound1 = Instance.new("Sound", hrp)
+				Sound1.SoundId = "rbxassetid://3308152153"
+				Sound1.Looped = true
+				Sound1.Volume = 0.65
+				
+				local animator = hum:FindFirstChild("Animator") or hum
+				HoverTrack = animator:LoadAnimation(HoverAnim)
+				FlyTrack = animator:LoadAnimation(FlyAnim)
+				HoverTrack.Priority = Enum.AnimationPriority.Action
+				FlyTrack.Priority = Enum.AnimationPriority.Action
+				
+				HoverTrack:Play(0.1, 1, 1)
+				isCurrentlyMoving = false
+				
+				FlyLoop = RunService.RenderStepped:Connect(function()
+					if not FlyEnabled then return end
+					local cam = workspace.CurrentCamera
+					bbg.CFrame = cam.CFrame
+					
+					local moveDir = Vector3.new()
+					local movingNow = false
+					
+					if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector; movingNow = true end
+					if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector; movingNow = true end
+					if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector; movingNow = true end
+					if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector; movingNow = true end
+					
+					if movingNow ~= isCurrentlyMoving then
+						isCurrentlyMoving = movingNow
+						if isCurrentlyMoving then
+							TweenService:Create(cam, TweenInfo.new(0.5), {FieldOfView = 100}):Play()
+							if HoverTrack then HoverTrack:Stop() end
+							if Sound1 then Sound1:Play() end
+							if FlyTrack then FlyTrack:Play() end
+						else
+							TweenService:Create(cam, TweenInfo.new(0.5), {FieldOfView = 70}):Play()
+							if FlyTrack then FlyTrack:Stop() end
+							if Sound1 then Sound1:Stop() end
+							if HoverTrack then HoverTrack:Play() end
+						end
+					end
+					
+					if isCurrentlyMoving then
+						TweenService:Create(bbv, TweenInfo.new(0.3), {Velocity = moveDir * FlySpeed}):Play()
+					else
+						TweenService:Create(bbv, TweenInfo.new(0.3), {Velocity = Vector3.new(0,0,0)}):Play()
+					end
+				end)
 			else
-				desactivarVuelo()
+				if FlyLoop then FlyLoop:Disconnect(); FlyLoop = nil end
+				if bbv then bbv:Destroy(); bbv = nil end
+				if bbg then bbg:Destroy(); bbg = nil end
+				if Sound1 then Sound1:Destroy(); Sound1 = nil end
+				
+				if HoverTrack then HoverTrack:Stop(); HoverTrack = nil end
+				if FlyTrack then FlyTrack:Stop(); FlyTrack = nil end
+				
+				hum.PlatformStand = false
+				TweenService:Create(workspace.CurrentCamera, TweenInfo.new(0.5), {FieldOfView = 70}):Play()
 			end
 		end
 	})
@@ -170,7 +163,7 @@ do
 	Tabs.Main:AddKeybind("FlyKeybind", {
 		Title   = "Atajo de Teclado (Fly)",
 		Mode    = "Toggle",
-		Default = "E",
+		Default = "E", 
 		Callback = function()
 			FlyToggle:SetValue(not FlyEnabled)
 		end
@@ -182,9 +175,7 @@ do
 		Max      = 1000,
 		Default  = 350,
 		Rounding = 0,
-		Callback = function(v)
-			FlySpeed = v
-		end
+		Callback = function(v) FlySpeed = v end
 	})
 end
 
@@ -516,8 +507,6 @@ RunService.Heartbeat:Connect(function()
 end)
 
 -- ⚠️ ESTA ES LA MAGIA ANTI-LAG FÍSICO ⚠️
--- Roblox intenta que los jugadores siempre choquen. Esto fuerza a que los hitboxes gigantes
--- se vuelvan fantasmas un milisegundo antes de calcular las físicas, evitando que te atores.
 RunService.Stepped:Connect(function()
 	if not getgenv().HBE then return end
 	for _, p in pairs(Players:GetPlayers()) do
@@ -544,6 +533,7 @@ Tabs.Main:AddSlider("HBESize", {
 	Rounding = 0,
 	Callback = function(v) getgenv().HitboxSize = v end
 })
+
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                  NOCLIP (Sin Lag / Optimizado)          ║
 -- ╚══════════════════════════════════════════════════════════╝
@@ -615,6 +605,7 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 	CharPartsCache = {}
 	if noclipEnabled then startNoclip() end
 end)
+
 -- ==========================================
 -- TELEPORT A JUGADORES
 -- ==========================================
@@ -671,8 +662,7 @@ local function GiveClickTP()
 		tool.ToolTip = "Haz click en cualquier lado para teletransportarte"
 		
 		tool.Activated:Connect(function()
-			local mouse = LocalPlayer:GetMouse()
-			local pos = mouse.Hit.Position
+			local pos = Mouse.Hit.Position
 			local char = LocalPlayer.Character
 			if char and char:FindFirstChild("HumanoidRootPart") then
 				char:PivotTo(CFrame.new(pos + Vector3.new(0, 3, 0)))
@@ -692,15 +682,12 @@ Tabs.Main:AddToggle("AutoClickTP", {
 			GiveClickTP()
 			Fluent:Notify({Title="Herramienta", Content="Click TP Activado", Duration=1.5})
 		else
-			-- Si lo apagas, te lo quita de las manos o de la mochila
 			local char = LocalPlayer.Character
 			local tool = LocalPlayer.Backpack:FindFirstChild("Click TP") or (char and char:FindFirstChild("Click TP"))
 			if tool then tool:Destroy() end
 		end
 	end
 })
-
-
 
 Tabs.Main:AddButton({
 	Title    = "Force Reset",
@@ -738,7 +725,6 @@ Tabs.Main:AddToggle("Freecam", {
 		if v then
 			if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
 			
-			-- Creamos nuestro dron invisible
 			FreecamPart = Instance.new("Part")
 			FreecamPart.Size = Vector3.new(1, 1, 1)
 			FreecamPart.Transparency = 1
@@ -747,27 +733,22 @@ Tabs.Main:AddToggle("Freecam", {
 			FreecamPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
 			FreecamPart.Parent = workspace
 			
-			-- Enganchamos la cámara al dron
 			workspace.CurrentCamera.CameraSubject = FreecamPart
 			
-			local uis = game:GetService("UserInputService")
 			FC_Loop = RunService.RenderStepped:Connect(function()
 				local cam = workspace.CurrentCamera
 				local move = Vector3.new()
 				
-				-- Controles (Usa E para subir y Q para bajar)
-				if uis:IsKeyDown(Enum.KeyCode.W) then move = move + cam.CFrame.LookVector end
-				if uis:IsKeyDown(Enum.KeyCode.S) then move = move - cam.CFrame.LookVector end
-				if uis:IsKeyDown(Enum.KeyCode.A) then move = move - cam.CFrame.RightVector end
-				if uis:IsKeyDown(Enum.KeyCode.D) then move = move + cam.CFrame.RightVector end
-				if uis:IsKeyDown(Enum.KeyCode.E) then move = move + Vector3.new(0,1,0) end
-				if uis:IsKeyDown(Enum.KeyCode.Q) then move = move - Vector3.new(0,1,0) end
+				if UserInputService:IsKeyDown(Enum.KeyCode.W) then move = move + cam.CFrame.LookVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - cam.CFrame.LookVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - cam.CFrame.RightVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + cam.CFrame.RightVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.E) then move = move + Vector3.new(0,1,0) end
+				if UserInputService:IsKeyDown(Enum.KeyCode.Q) then move = move - Vector3.new(0,1,0) end
 				
-				-- Velocidad del Freecam (puedes cambiar el 3 a un 5 para que vuele más rápido)
 				FreecamPart.CFrame = FreecamPart.CFrame + (move * 3)
 			end)
 		else
-			-- Apagar: Destruir el dron y devolver la cámara a tu personaje
 			if FC_Loop then FC_Loop:Disconnect(); FC_Loop = nil end
 			if FreecamPart then FreecamPart:Destroy(); FreecamPart = nil end
 			if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
@@ -777,7 +758,6 @@ Tabs.Main:AddToggle("Freecam", {
 	end
 })
 
-
 local OriginalLighting = {}
 local Lighting = game:GetService("Lighting")
 
@@ -786,19 +766,16 @@ Tabs.Main:AddToggle("Fullbright", {
 	Default = false,
 	Callback = function(v)
 		if v then
-			-- Guardamos cómo estaba el juego
 			OriginalLighting.Ambient = Lighting.Ambient
 			OriginalLighting.OutdoorAmbient = Lighting.OutdoorAmbient
 			OriginalLighting.Brightness = Lighting.Brightness
 			OriginalLighting.GlobalShadows = Lighting.GlobalShadows
 			
-			-- Ponemos todo al máximo de luz
 			Lighting.Ambient = Color3.fromRGB(255, 255, 255)
 			Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
 			Lighting.Brightness = 1
 			Lighting.GlobalShadows = false
 		else
-			-- Restauramos si lo apagas
 			if OriginalLighting.Ambient then
 				Lighting.Ambient = OriginalLighting.Ambient
 				Lighting.OutdoorAmbient = OriginalLighting.OutdoorAmbient
@@ -1052,38 +1029,27 @@ local TriggerRayParams = RaycastParams.new()
 TriggerRayParams.FilterType = Enum.RaycastFilterType.Exclude
 TriggerRayParams.IgnoreWater = true
 
--- Team Check Super Avanzado (El Jefe Final)
 local function IsSameTeam(plr)
 	if not plr then return false end
 	if plr == LocalPlayer then return true end
 
-	-- 1. Equipos oficiales de Roblox
 	if plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then return true end
-	
-	-- 2. Colores (Ignorando el blanco por defecto)
 	if plr.TeamColor and LocalPlayer.TeamColor and plr.TeamColor == LocalPlayer.TeamColor and tostring(plr.TeamColor) ~= "White" then return true end
 
-	-- 3. Valores y Atributos dentro del Player
 	for _, valName in ipairs({"Team", "TeamName", "Role", "role", "DefusalTeam"}) do
-		-- StringValues o IntValues
 		local myVal = LocalPlayer:FindFirstChild(valName)
 		local enVal = plr:FindFirstChild(valName)
 		if myVal and enVal and myVal.ClassName == enVal.ClassName and myVal.Value == enVal.Value then return true end
 		
-		-- Atributos ocultos
 		local myAttr = LocalPlayer:GetAttribute(valName)
 		local enAttr = plr:GetAttribute(valName)
 		if myAttr ~= nil and enAttr ~= nil and myAttr == enAttr then return true end
 	end
 	
-	-- 4. Valores y Agrupaciones dentro del Character (Clásico de juegos CS:GO)
 	local myChar = LocalPlayer.Character
 	local enChar = plr.Character
 	if myChar and enChar then
-		-- Si el juego los agrupa en carpetas separadas (Ej: workspace.Terrorists)
 		if myChar.Parent == enChar.Parent and myChar.Parent ~= workspace then return true end
-		
-		-- Atributos directamente en el muñeco
 		for _, valName in ipairs({"Team", "TeamName"}) do
 			local myAttr = myChar:GetAttribute(valName)
 			local enAttr = enChar:GetAttribute(valName)
@@ -1102,8 +1068,7 @@ Tabs.Aimlock:AddToggle("Triggerbot", {
 		if v then
 			TriggerbotLoop = RunService.RenderStepped:Connect(function()
 				if isShooting then return end
-				local mouse = LocalPlayer:GetMouse()
-				local target = mouse.Target
+				local target = Mouse.Target
 				
 				if target and target.Parent then
 					local model = target.Parent
@@ -1117,17 +1082,15 @@ Tabs.Aimlock:AddToggle("Triggerbot", {
 					if targetHum and model.Name ~= LocalPlayer.Name then
 						local targetPlr = Players:GetPlayerFromCharacter(model) or Players:FindFirstChild(model.Name)
 						
-						-- TEAM CHECK
 						if TriggerTeamCheck and targetPlr and IsSameTeam(targetPlr) then return end
 						
-						-- WALL CHECK
 						if TriggerWallCheck then
 							if TriggerRayParams.FilterDescendantsInstances[1] ~= LocalPlayer.Character then
 								TriggerRayParams.FilterDescendantsInstances = {LocalPlayer.Character}
 							end
 							
 							local origin = Camera.CFrame.Position
-							local dir = (mouse.Hit.Position - origin).Unit * 1500
+							local dir = (Mouse.Hit.Position - origin).Unit * 1500
 							local ray = workspace:Raycast(origin, dir, TriggerRayParams)
 							
 							if ray and not ray.Instance:IsDescendantOf(model) then
@@ -1137,7 +1100,6 @@ Tabs.Aimlock:AddToggle("Triggerbot", {
 							end
 						end
 						
-						-- SI PASA TODO, DISPARA
 						isShooting = true
 						task.spawn(function()
 							if mouse1click then pcall(mouse1click) end
@@ -1173,7 +1135,6 @@ Tabs.Aimlock:AddSlider("TriggerDelay", {
 	Rounding = 2,
 	Callback = function(v) TriggerDelay = v end
 })
-
 
 Tabs.Aimlock:AddToggle("SmartESP", {
 	Title   = "Smart ESP (WallCheck)",
@@ -1242,7 +1203,6 @@ Tabs.Troll:AddToggle("XRay", {
 	Default = false,
 	Callback = function(v)
 		if v then
-			-- Guarda todo y lo vuelve cristalino
 			for _, part in pairs(workspace:GetDescendants()) do
 				if part:IsA("BasePart") and not part.Parent:FindFirstChild("Humanoid") then
 					if OriginalTransparencies[part] == nil then
@@ -1254,7 +1214,6 @@ Tabs.Troll:AddToggle("XRay", {
 				end
 			end
 		else
-			-- Restaura los colores de las paredes
 			for part, trans in pairs(OriginalTransparencies) do
 				if part and part.Parent then
 					part.Transparency = trans
@@ -1264,7 +1223,6 @@ Tabs.Troll:AddToggle("XRay", {
 		end
 	end
 })
-
 
 local KeepBTools = false
 
@@ -1299,7 +1257,6 @@ Tabs.Troll:AddToggle("AntiFling", {
 	Callback = function(v)
 		if v then
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/HarcangiRobloxProjects/AntiFling/refs/heads/main/antifling.lua"))()
-			
 			Fluent:Notify({Title="Escudo", Content="Anti-Fling Activado", Duration=2})
 		end
 	end
@@ -1321,22 +1278,18 @@ Tabs.Troll:AddButton({
 	Callback = function()
 		local char = LocalPlayer.Character
 		if char then
-			-- Intenta romper el cuerpo en juegos nuevos (R15)
 			if char:FindFirstChild("LowerTorso") and char.LowerTorso:FindFirstChild("Root") then
 				char.LowerTorso.Root:Destroy()
-				Fluent:Notify({Title="God Mode", Content="Hitbox congelado. Eres invencible/invisible.", Duration=3})
-			
-			-- Intenta romper el cuerpo en juegos viejos (R6)
+				Fluent:Notify({Title="God Mode", Content="Hitbox congelado. Eres invencible.", Duration=3})
 			elseif char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart:FindFirstChild("RootJoint") then
 				char.HumanoidRootPart.RootJoint:Destroy()
-				Fluent:Notify({Title="God Mode", Content="Hitbox congelado. Eres invencible/invisible.", Duration=3})
+				Fluent:Notify({Title="God Mode", Content="Hitbox congelado. Eres invencible.", Duration=3})
 			else
 				Fluent:Notify({Title="Error", Content="No se pudo activar el God Mode aquí.", Duration=2})
 			end
 		end
 	end
 })
-
 
 Window:SelectTab(1)
 
@@ -1351,9 +1304,8 @@ SaveManager:LoadAutoloadConfig()
 print("RATAHUB gg")
 Fluent:Notify({Title="RATAHUB", Content="maldito 😝", Duration=4})
 
--- Función para darte las herramientas automáticamente cuando mueres y revives
 LocalPlayer.CharacterAdded:Connect(function()
-	task.wait(0.5) -- Esperamos a que el juego te cargue la mochila nueva
+	task.wait(0.5)
 	if KeepClickTP then GiveClickTP() end
 	if KeepBTools then GiveBTools() end
 end)
