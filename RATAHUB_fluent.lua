@@ -49,7 +49,7 @@ local Tabs = {
 local Options = Fluent.Options
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║           SUPERMAN FLY (TU ANIMACIÓN PERSONALIZADA)     ║
+-- ║        SUPERMAN FLY (ANIMACIÓN MEJORADA)                ║
 -- ╚══════════════════════════════════════════════════════════╝
 local FlyEnabled = false
 local FlySpeed = 50
@@ -79,57 +79,67 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 				track:Stop()
 			end
 			
-			-- AQUÍ CARGAMOS TU ANIMACIÓN: 11228653710
+			-- 🔥 TU ANIMACIÓN
 			local animCustom = Instance.new("Animation")
 			animCustom.AnimationId = "rbxassetid://11228653710"
 			
-			pcall(function()
-				FlyTrack = hum:LoadAnimation(animCustom)
-				-- Usamos la misma para quedarnos quietos (puedes cambiarlo si consigues otro ID)
-				IdleTrack = hum:LoadAnimation(animCustom) 
-			end)
+			FlyTrack = hum:LoadAnimation(animCustom)
+			IdleTrack = hum:LoadAnimation(animCustom)
+			
+			-- 🔥 prioridad alta para que no choque con otras
+			FlyTrack.Priority = Enum.AnimationPriority.Action
+			IdleTrack.Priority = Enum.AnimationPriority.Action
 			
 			bbg = Instance.new("BodyGyro", hrp)
 			bbg.P = 9e4
-			bbg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-			bbg.cframe = hrp.CFrame
+			bbg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+			bbg.CFrame = hrp.CFrame
 			
 			bbv = Instance.new("BodyVelocity", hrp)
-			bbv.velocity = Vector3.new(0,0,0)
-			bbv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+			bbv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
 			
 			local uis = game:GetService("UserInputService")
 			
 			FlyLoop = RunService.RenderStepped:Connect(function()
 				local cam = workspace.CurrentCamera
-				local moveDir = Vector3.new()
-				local isMoving = false
+				local moveDir = Vector3.zero
 				
-				if uis:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector; isMoving = true end
-				if uis:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector; isMoving = true end
-				if uis:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector; isMoving = true end
-				if uis:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector; isMoving = true end
+				if uis:IsKeyDown(Enum.KeyCode.W) then moveDir += cam.CFrame.LookVector end
+				if uis:IsKeyDown(Enum.KeyCode.S) then moveDir -= cam.CFrame.LookVector end
+				if uis:IsKeyDown(Enum.KeyCode.A) then moveDir -= cam.CFrame.RightVector end
+				if uis:IsKeyDown(Enum.KeyCode.D) then moveDir += cam.CFrame.RightVector end
+				
+				local isMoving = moveDir.Magnitude > 0
 				
 				if isMoving then
-					bbg.cframe = cam.CFrame * CFrame.Angles(math.rad(-90), 0, 0)
-					if IdleTrack and IdleTrack.IsPlaying then IdleTrack:Stop() end
-					if FlyTrack and not FlyTrack.IsPlaying then FlyTrack:Play() end
+					moveDir = moveDir.Unit -- 🔥 evita velocidad rara en diagonal
+					
+					-- 🦸 rotación tipo Superman PRO
+					bbg.CFrame = CFrame.new(hrp.Position, hrp.Position + moveDir) 
+						* CFrame.Angles(math.rad(-90), 0, 0)
+					
+					if IdleTrack.IsPlaying then IdleTrack:Stop() end
+					if not FlyTrack.IsPlaying then FlyTrack:Play() end
 				else
-					bbg.cframe = cam.CFrame
-					if FlyTrack and FlyTrack.IsPlaying then FlyTrack:Stop() end
-					if IdleTrack and not IdleTrack.IsPlaying then IdleTrack:Play() end
+					bbg.CFrame = cam.CFrame
+					
+					if FlyTrack.IsPlaying then FlyTrack:Stop() end
+					if not IdleTrack.IsPlaying then IdleTrack:Play() end
 				end
 				
-				bbv.velocity = moveDir * FlySpeed
+				bbv.Velocity = moveDir * FlySpeed
 			end)
+			
 		else
 			if FlyLoop then FlyLoop:Disconnect(); FlyLoop = nil end
 			if bbg then bbg:Destroy(); bbg = nil end
 			if bbv then bbv:Destroy(); bbv = nil end
+			
 			if hum then hum.PlatformStand = false end
 			
 			if FlyTrack then FlyTrack:Stop(); FlyTrack:Destroy(); FlyTrack = nil end
 			if IdleTrack then IdleTrack:Stop(); IdleTrack:Destroy(); IdleTrack = nil end
+			
 			if animate then animate.Disabled = false end
 		end
 	end
@@ -138,7 +148,7 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 Tabs.Main:AddKeybind("FlyKeybind", {
 	Title   = "Atajo de Teclado (Fly)",
 	Mode    = "Toggle",
-	Default = "F", 
+	Default = "F",
 	Callback = function()
 		FlyToggle:SetValue(not FlyEnabled)
 	end
@@ -150,7 +160,9 @@ Tabs.Main:AddSlider("FlySpeed", {
 	Max      = 300,
 	Default  = 50,
 	Rounding = 0,
-	Callback = function(v) FlySpeed = v end
+	Callback = function(v)
+		FlySpeed = v
+	end
 })
 
 
