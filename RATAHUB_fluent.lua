@@ -49,171 +49,135 @@ local Tabs = {
 local Options = Fluent.Options
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║           SUPERMAN FLY (PARCHE DE ANIMACIONES)          ║
+-- ║      SUPERMAN FLY (CÁPSULA DE SEGURIDAD ANTI-CRASHES)   ║
 -- ╚══════════════════════════════════════════════════════════╝
-local FlyEnabled = false
-local FlySpeed = 350
-local FlyLoop = nil
+do
+	local Players = game:GetService("Players")
+	local RunService = game:GetService("RunService")
+	local TweenService = game:GetService("TweenService")
+	local UIS = game:GetService("UserInputService")
+	local LocalPlayer = Players.LocalPlayer
 
-local HoverAnimID = "rbxassetid://70877054591439"
-local FlyAnimID = "rbxassetid://80012694228400"
-local WindSoundEnabled = true
+	local FlyEnabled = false
+	local FlySpeed = 350
+	local FlyLoop = nil
 
-local bbg = nil
-local bbv = nil
-local Sound1 = nil
-local HoverTrack = nil
-local FlyTrack = nil
-local isCurrentlyMoving = false
+	local HoverAnim = Instance.new("Animation")
+	HoverAnim.AnimationId = "rbxassetid://70877054591439"
+	local FlyAnim = Instance.new("Animation")
+	FlyAnim.AnimationId = "rbxassetid://80012694228400"
 
-local TweenService = game:GetService("TweenService")
-local Camera = workspace.CurrentCamera
+	local bbg, bbv, Sound1, HoverTrack, FlyTrack
+	local isCurrentlyMoving = false
 
-local function getMoveVector(hum)
-	if hum.MoveDirection == Vector3.new(0, 0, 0) then return hum.MoveDirection end
-	local v12 = (Camera.CFrame * CFrame.new((CFrame.new(Camera.CFrame.p, Camera.CFrame.p + Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z)):VectorToObjectSpace(hum.MoveDirection)))).p - Camera.CFrame.p;
-	if v12 == Vector3.new() then return v12 end
-	return v12.Unit
-end
-
-local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
-	Title   = "Fly (Estilo Premium Animado)",
-	Default = false,
-	Callback = function(v)
-		FlyEnabled = v
-		local char = LocalPlayer.Character
-		if not char then return end
-		local hum = char:FindFirstChild("Humanoid")
-		local hrp = char:FindFirstChild("HumanoidRootPart")
-		
-		if not hrp or not hum then return end
-		
-		if v then
-			-- APAGAR ANIMACIONES DEL JUEGO PARA QUE NO INTERFIERAN
-			local animate = char:FindFirstChild("Animate")
-			if animate then animate.Disabled = true end
+	local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
+		Title   = "Fly (Premium Híbrido)",
+		Default = false,
+		Callback = function(v)
+			FlyEnabled = v
+			local char = LocalPlayer.Character
+			if not char then return end
+			local hum = char:FindFirstChild("Humanoid")
+			local hrp = char:FindFirstChild("HumanoidRootPart")
 			
-			for _, track in pairs(hum:GetPlayingAnimationTracks()) do
-				track:Stop()
-			end
+			if not hrp or not hum then return end
 			
-			bbv = Instance.new("BodyVelocity")
-			bbv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-			bbv.Velocity = Vector3.new(0, 0, 0)
-			bbv.Parent = hrp
-			
-			bbg = Instance.new("BodyGyro")
-			bbg.P = 9e4
-			bbg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-			bbg.CFrame = Camera.CFrame
-			bbg.Parent = hrp
-			
-			Sound1 = Instance.new("Sound", hrp)
-			Sound1.SoundId = "rbxassetid://3308152153"
-			Sound1.Looped = true
-			if not WindSoundEnabled then Sound1.Volume = 0 end
-			
-			local HoverAnim = Instance.new("Animation")
-			HoverAnim.AnimationId = HoverAnimID
-			local FlyAnim = Instance.new("Animation")
-			FlyAnim.AnimationId = FlyAnimID
-			
-			local animator = hum:FindFirstChild("Animator") or hum
-			HoverTrack = animator:LoadAnimation(HoverAnim)
-			FlyTrack = animator:LoadAnimation(FlyAnim)
-			
-			-- FORZAR PRIORIDAD MÁXIMA
-			HoverTrack.Priority = Enum.AnimationPriority.Action
-			FlyTrack.Priority = Enum.AnimationPriority.Action
-			
-			HoverTrack:Play(0.1, 1, 1)
-			
-			hum:SetStateEnabled(Enum.HumanoidStateType.Running, false)
-			hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
-			hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-			hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-			hum:ChangeState(6)
-			
-			if hrp:FindFirstChild("Running") and hrp.Running:IsA("Sound") then
-				hrp.Running.Volume = 0
-			end
-			
-			isCurrentlyMoving = false
-			
-			FlyLoop = RunService.RenderStepped:Connect(function()
-				if not FlyEnabled then return end
-				hum:ChangeState(6)
-				bbg.CFrame = Camera.CFrame
+			if v then
+				hum.PlatformStand = true
 				
-				local moveVec = getMoveVector(hum)
-				local movingNow = (moveVec ~= Vector3.new(0, 0, 0))
+				bbv = Instance.new("BodyVelocity")
+				bbv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+				bbv.Velocity = Vector3.new(0, 0, 0)
+				bbv.Parent = hrp
 				
-				if movingNow ~= isCurrentlyMoving then
-					isCurrentlyMoving = movingNow
-					if isCurrentlyMoving then
-						TweenService:Create(Camera, TweenInfo.new(0.5), {FieldOfView = 100}):Play()
-						HoverTrack:Stop()
-						Sound1:Play()
-						FlyTrack:Play()
-					else
-						TweenService:Create(Camera, TweenInfo.new(0.5), {FieldOfView = 70}):Play()
-						FlyTrack:Stop()
-						Sound1:Stop()
-						HoverTrack:Play()
+				bbg = Instance.new("BodyGyro")
+				bbg.P = 9e4
+				bbg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+				bbg.CFrame = workspace.CurrentCamera.CFrame
+				bbg.Parent = hrp
+				
+				Sound1 = Instance.new("Sound", hrp)
+				Sound1.SoundId = "rbxassetid://3308152153"
+				Sound1.Looped = true
+				Sound1.Volume = 0.65
+				
+				local animator = hum:FindFirstChild("Animator") or hum
+				HoverTrack = animator:LoadAnimation(HoverAnim)
+				FlyTrack = animator:LoadAnimation(FlyAnim)
+				HoverTrack.Priority = Enum.AnimationPriority.Action
+				FlyTrack.Priority = Enum.AnimationPriority.Action
+				
+				HoverTrack:Play(0.1, 1, 1)
+				isCurrentlyMoving = false
+				
+				FlyLoop = RunService.RenderStepped:Connect(function()
+					if not FlyEnabled then return end
+					local cam = workspace.CurrentCamera
+					bbg.CFrame = cam.CFrame
+					
+					local moveDir = Vector3.new()
+					local movingNow = false
+					
+					if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector; movingNow = true end
+					if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector; movingNow = true end
+					if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector; movingNow = true end
+					if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector; movingNow = true end
+					
+					if movingNow ~= isCurrentlyMoving then
+						isCurrentlyMoving = movingNow
+						if isCurrentlyMoving then
+							TweenService:Create(cam, TweenInfo.new(0.5), {FieldOfView = 100}):Play()
+							if HoverTrack then HoverTrack:Stop() end
+							if Sound1 then Sound1:Play() end
+							if FlyTrack then FlyTrack:Play() end
+						else
+							TweenService:Create(cam, TweenInfo.new(0.5), {FieldOfView = 70}):Play()
+							if FlyTrack then FlyTrack:Stop() end
+							if Sound1 then Sound1:Stop() end
+							if HoverTrack then HoverTrack:Play() end
+						end
 					end
-				end
+					
+					if isCurrentlyMoving then
+						TweenService:Create(bbv, TweenInfo.new(0.3), {Velocity = moveDir * FlySpeed}):Play()
+					else
+						TweenService:Create(bbv, TweenInfo.new(0.3), {Velocity = Vector3.new(0,0,0)}):Play()
+					end
+				end)
+			else
+				if FlyLoop then FlyLoop:Disconnect(); FlyLoop = nil end
+				if bbv then bbv:Destroy(); bbv = nil end
+				if bbg then bbg:Destroy(); bbg = nil end
+				if Sound1 then Sound1:Destroy(); Sound1 = nil end
 				
-				if isCurrentlyMoving then
-					TweenService:Create(bbv, TweenInfo.new(0.3), {Velocity = moveVec * FlySpeed}):Play()
-				else
-					TweenService:Create(bbv, TweenInfo.new(0.3), {Velocity = Vector3.new(0,0,0)}):Play()
-				end
-			end)
-		else
-			if FlyLoop then FlyLoop:Disconnect(); FlyLoop = nil end
-			if bbv then bbv:Destroy(); bbv = nil end
-			if bbg then bbg:Destroy(); bbg = nil end
-			if Sound1 then Sound1:Destroy(); Sound1 = nil end
-			
-			if HoverTrack then HoverTrack:Stop(); HoverTrack = nil end
-			if FlyTrack then FlyTrack:Stop(); FlyTrack = nil end
-			
-			-- VOLVER A PRENDER ANIMACIONES DEL JUEGO
-			local animate = char:FindFirstChild("Animate")
-			if animate then animate.Disabled = false end
-			
-			TweenService:Create(Camera, TweenInfo.new(0.5), {FieldOfView = 70}):Play()
-			
-			hum:SetStateEnabled(Enum.HumanoidStateType.Running, true)
-			hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
-			hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
-			hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
-			hum:ChangeState(8)
-			
-			if hrp:FindFirstChild("Running") and hrp.Running:IsA("Sound") then
-				hrp.Running.Volume = 0.65
+				if HoverTrack then HoverTrack:Stop(); HoverTrack = nil end
+				if FlyTrack then FlyTrack:Stop(); FlyTrack = nil end
+				
+				hum.PlatformStand = false
+				TweenService:Create(workspace.CurrentCamera, TweenInfo.new(0.5), {FieldOfView = 70}):Play()
 			end
 		end
-	end
-})
+	})
 
-Tabs.Main:AddKeybind("FlyKeybind", {
-	Title   = "Atajo de Teclado (Fly)",
-	Mode    = "Toggle",
-	Default = "E", 
-	Callback = function()
-		FlyToggle:SetValue(not FlyEnabled)
-	end
-})
+	Tabs.Main:AddKeybind("FlyKeybind", {
+		Title   = "Atajo de Teclado (Fly)",
+		Mode    = "Toggle",
+		Default = "E", 
+		Callback = function()
+			FlyToggle:SetValue(not FlyEnabled)
+		end
+	})
 
-Tabs.Main:AddSlider("FlySpeed", {
-	Title    = "Velocidad de Vuelo",
-	Min      = 50,
-	Max      = 1000,
-	Default  = 350,
-	Rounding = 0,
-	Callback = function(v) FlySpeed = v end
-})
+	Tabs.Main:AddSlider("FlySpeed", {
+		Title    = "Velocidad de Vuelo",
+		Min      = 50,
+		Max      = 1000,
+		Default  = 350,
+		Rounding = 0,
+		Callback = function(v) FlySpeed = v end
+	})
+end
+
 
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                    INFINITE JUMP                        ║
