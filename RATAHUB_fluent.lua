@@ -962,9 +962,29 @@ local TriggerRayParams = RaycastParams.new()
 TriggerRayParams.FilterType = Enum.RaycastFilterType.Exclude
 TriggerRayParams.IgnoreWater = true
 
+-- Team Check Super Avanzado
 local function IsSameTeam(plr)
-	if plr.Team ~= nil and LocalPlayer.Team ~= nil and plr.Team == LocalPlayer.Team then return true end
-	if plr.TeamColor ~= nil and LocalPlayer.TeamColor ~= nil and plr.TeamColor == LocalPlayer.TeamColor then return true end
+	-- 1. Equipos oficiales de Roblox
+	if plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then 
+		return true 
+	end
+	
+	-- 2. Colores (Solo funciona si los colores NO son el "Blanco" por defecto de todos los juegos)
+	if plr.TeamColor and LocalPlayer.TeamColor then
+		if plr.TeamColor == LocalPlayer.TeamColor and tostring(plr.TeamColor) ~= "White" then
+			return true
+		end
+	end
+
+	-- 3. Valores personalizados (Defusal, CB:RO, Arsenal a veces usan esto)
+	for _, valName in ipairs({"Team", "TeamName", "Role", "role", "DefusalTeam"}) do
+		local myVal = LocalPlayer:FindFirstChild(valName)
+		local enVal = plr:FindFirstChild(valName)
+		if myVal and enVal and myVal.ClassName == enVal.ClassName then
+			if myVal.Value == enVal.Value then return true end
+		end
+	end
+	
 	return false
 end
 
@@ -980,8 +1000,6 @@ Tabs.Aimlock:AddToggle("Triggerbot", {
 				
 				if target and target.Parent then
 					local model = target.Parent
-					
-					-- Si apuntaste a un accesorio o a un arma que trae en la mano, buscamos su cuerpo principal
 					if model and not model:FindFirstChildOfClass("Humanoid") then
 						if model.Parent and model.Parent:FindFirstChildOfClass("Humanoid") then
 							model = model.Parent
@@ -990,12 +1008,9 @@ Tabs.Aimlock:AddToggle("Triggerbot", {
 					
 					local targetHum = model:FindFirstChildOfClass("Humanoid")
 					if targetHum and model.Name ~= LocalPlayer.Name then
-						
-						-- En juegos como Defusal, el modelo puede no estar atado al Player de forma nativa,
-						-- así que lo buscamos por el nombre del modelo.
 						local targetPlr = Players:GetPlayerFromCharacter(model) or Players:FindFirstChild(model.Name)
 						
-						-- UNIVERSAL TEAM CHECK
+						-- TEAM CHECK
 						if TriggerTeamCheck and targetPlr and IsSameTeam(targetPlr) then return end
 						
 						-- WALL CHECK
@@ -1015,6 +1030,7 @@ Tabs.Aimlock:AddToggle("Triggerbot", {
 							end
 						end
 						
+						-- SI PASA TODO, DISPARA
 						isShooting = true
 						task.spawn(function()
 							if mouse1click then pcall(mouse1click) end
@@ -1050,6 +1066,7 @@ Tabs.Aimlock:AddSlider("TriggerDelay", {
 	Rounding = 2,
 	Callback = function(v) TriggerDelay = v end
 })
+
 
 Tabs.Aimlock:AddToggle("SmartESP", {
 	Title   = "Smart ESP (WallCheck)",
