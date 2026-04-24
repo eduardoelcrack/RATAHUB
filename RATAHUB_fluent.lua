@@ -1242,23 +1242,6 @@ Tabs.Settings:AddSlider("TimeOfDay", {
 	end
 })
 
-Tabs.Troll:AddButton({
-	Title = "God Mode (Congelar Hitbox)",
-	Callback = function()
-		local char = LocalPlayer.Character
-		if char then
-			if char:FindFirstChild("LowerTorso") and char.LowerTorso:FindFirstChild("Root") then
-				char.LowerTorso.Root:Destroy()
-				Fluent:Notify({Title="God Mode", Content="Hitbox congelado. Eres invencible.", Duration=3})
-			elseif char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart:FindFirstChild("RootJoint") then
-				char.HumanoidRootPart.RootJoint:Destroy()
-				Fluent:Notify({Title="God Mode", Content="Hitbox congelado. Eres invencible.", Duration=3})
-			else
-				Fluent:Notify({Title="Error", Content="No se pudo activar el God Mode aquí.", Duration=2})
-			end
-		end
-	end
-})
 
 Window:SelectTab(1)
 
