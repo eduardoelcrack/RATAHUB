@@ -962,7 +962,6 @@ local TriggerRayParams = RaycastParams.new()
 TriggerRayParams.FilterType = Enum.RaycastFilterType.Exclude
 TriggerRayParams.IgnoreWater = true
 
--- Team Check Universal (Lee Equipos y Colores)
 local function IsSameTeam(plr)
 	if plr.Team ~= nil and LocalPlayer.Team ~= nil and plr.Team == LocalPlayer.Team then return true end
 	if plr.TeamColor ~= nil and LocalPlayer.TeamColor ~= nil and plr.TeamColor == LocalPlayer.TeamColor then return true end
@@ -981,15 +980,23 @@ Tabs.Aimlock:AddToggle("Triggerbot", {
 				
 				if target and target.Parent then
 					local model = target.Parent
-					if model:IsA("Accessory") then model = model.Parent end
+					
+					-- Si apuntaste a un accesorio o a un arma que trae en la mano, buscamos su cuerpo principal
+					if model and not model:FindFirstChildOfClass("Humanoid") then
+						if model.Parent and model.Parent:FindFirstChildOfClass("Humanoid") then
+							model = model.Parent
+						end
+					end
 					
 					local targetHum = model:FindFirstChildOfClass("Humanoid")
 					if targetHum and model.Name ~= LocalPlayer.Name then
-						local targetPlr = Players:GetPlayerFromCharacter(model)
-						if not targetPlr then return end
+						
+						-- En juegos como Defusal, el modelo puede no estar atado al Player de forma nativa,
+						-- así que lo buscamos por el nombre del modelo.
+						local targetPlr = Players:GetPlayerFromCharacter(model) or Players:FindFirstChild(model.Name)
 						
 						-- UNIVERSAL TEAM CHECK
-						if TriggerTeamCheck and IsSameTeam(targetPlr) then return end
+						if TriggerTeamCheck and targetPlr and IsSameTeam(targetPlr) then return end
 						
 						-- WALL CHECK
 						if TriggerWallCheck then
@@ -1008,7 +1015,6 @@ Tabs.Aimlock:AddToggle("Triggerbot", {
 							end
 						end
 						
-						-- DISPARO
 						isShooting = true
 						task.spawn(function()
 							if mouse1click then pcall(mouse1click) end
@@ -1044,8 +1050,6 @@ Tabs.Aimlock:AddSlider("TriggerDelay", {
 	Rounding = 2,
 	Callback = function(v) TriggerDelay = v end
 })
-
-
 
 Tabs.Aimlock:AddToggle("SmartESP", {
 	Title   = "Smart ESP (WallCheck)",
