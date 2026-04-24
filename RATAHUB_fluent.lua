@@ -49,17 +49,18 @@ local Tabs = {
 local Options = Fluent.Options
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║                  SUPERMAN FLY (Vuelo)                   ║
+-- ║           SUPERMAN FLY (CON ANIMACIONES NATIVAS)        ║
 -- ╚══════════════════════════════════════════════════════════╝
 local FlyEnabled = false
 local FlySpeed = 50
 local FlyLoop = nil
 local bbg = nil
 local bbv = nil
+local FlyTrack = nil
+local IdleTrack = nil
 
--- Guardamos el Toggle en una variable (FlyToggle) para poder prenderlo desde el Keybind
 local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
-	Title   = "Fly (Estilo Superman)",
+	Title   = "Fly (Con Animaciones)",
 	Default = false,
 	Callback = function(v)
 		FlyEnabled = v
@@ -68,9 +69,27 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 		
 		local hrp = char.HumanoidRootPart
 		local hum = char:FindFirstChild("Humanoid")
+		local animate = char:FindFirstChild("Animate")
 		
 		if v then
 			if hum then hum.PlatformStand = true end
+			
+			-- ROBAMOS LAS ANIMACIONES DEL PROPIO JUEGO
+			if animate then
+				local swimAnim = animate:FindFirstChild("swim") and animate.swim:FindFirstChildOfClass("Animation")
+				local fallAnim = animate:FindFirstChild("fall") and animate.fall:FindFirstChildOfClass("Animation")
+				
+				if swimAnim then FlyTrack = hum:LoadAnimation(swimAnim) end
+				if fallAnim then IdleTrack = hum:LoadAnimation(fallAnim) end
+				
+				-- Apagamos el script de animaciones del juego para tomar el control total
+				animate.Disabled = true
+			end
+			
+			-- Detenemos cualquier otra animación que estuvieras haciendo
+			for _, track in pairs(hum:GetPlayingAnimationTracks()) do
+				track:Stop()
+			end
 			
 			bbg = Instance.new("BodyGyro", hrp)
 			bbg.P = 9e4
@@ -94,29 +113,41 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 				if uis:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector; isMoving = true end
 				
 				if isMoving then
+					-- MODO SUPERMAN: Cuerpo acostado + Animación de Brazos extendidos
 					bbg.cframe = cam.CFrame * CFrame.Angles(math.rad(-90), 0, 0)
+					if IdleTrack and IdleTrack.IsPlaying then IdleTrack:Stop() end
+					if FlyTrack and not FlyTrack.IsPlaying then FlyTrack:Play() end
 				else
+					-- MODO FLOTAR: Cuerpo parado + Animación de Flotar
 					bbg.cframe = cam.CFrame
+					if FlyTrack and FlyTrack.IsPlaying then FlyTrack:Stop() end
+					if IdleTrack and not IdleTrack.IsPlaying then IdleTrack:Play() end
 				end
 				
 				bbv.velocity = moveDir * FlySpeed
 			end)
 		else
+			-- APAGAR FLY Y DEVOLVER TODO A LA NORMALIDAD
 			if FlyLoop then FlyLoop:Disconnect(); FlyLoop = nil end
 			if bbg then bbg:Destroy(); bbg = nil end
 			if bbv then bbv:Destroy(); bbv = nil end
 			if hum then hum.PlatformStand = false end
+			
+			-- Detenemos nuestras animaciones robadas
+			if FlyTrack then FlyTrack:Stop(); FlyTrack = nil end
+			if IdleTrack then IdleTrack:Stop(); IdleTrack = nil end
+			
+			-- Volvemos a prender las animaciones normales del juego
+			if animate then animate.Disabled = false end
 		end
 	end
 })
 
--- EL KEYBIND PARA ACTIVAR/DESACTIVAR EL FLY
 Tabs.Main:AddKeybind("FlyKeybind", {
 	Title   = "Atajo de Teclado (Fly)",
 	Mode    = "Toggle",
-	Default = "V",
-	Callback = function(Value)
-		-- Prende o apaga el interruptor visualmente y activa la función
+	Default = "F", 
+	Callback = function()
 		FlyToggle:SetValue(not FlyEnabled)
 	end
 })
@@ -129,6 +160,7 @@ Tabs.Main:AddSlider("FlySpeed", {
 	Rounding = 0,
 	Callback = function(v) FlySpeed = v end
 })
+
 
 
 -- ╔══════════════════════════════════════════════════════════╗
