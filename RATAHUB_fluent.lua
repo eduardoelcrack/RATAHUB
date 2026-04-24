@@ -505,14 +505,14 @@ Tabs.Main:AddSlider("HBESize", {
 	Callback = function(v) getgenv().HitboxSize = v end
 })
 -- ╔══════════════════════════════════════════════════════════╗
--- ║                       NOCLIP                            ║
+-- ║                  NOCLIP (Sin Lag / Optimizado)          ║
 -- ╚══════════════════════════════════════════════════════════╝
 local noclipEnabled    = false
 local noclipConnection = nil
 local noclipAddedConn  = nil
 local OriginalCanCollide = {}
 local CharPartsCache   = {}
--- Escaneamos el cuerpo UNA SOLA VEZ para no saturar el CPU
+
 local function RefreshNoclip(char)
 	CharPartsCache = {}
 	for _, part in pairs(char:GetDescendants()) do
@@ -524,13 +524,13 @@ local function RefreshNoclip(char)
 		end
 	end
 end
+
 local function startNoclip()
 	local char = LocalPlayer.Character
 	if not char then return end
 	
 	RefreshNoclip(char)
 	
-	-- Si agarras un objeto nuevo o te equipas algo, lo metemos a la lista sin laggear
 	noclipAddedConn = char.DescendantAdded:Connect(function(part)
 		if part:IsA("BasePart") then
 			table.insert(CharPartsCache, part)
@@ -539,13 +539,14 @@ local function startNoclip()
 			end
 		end
 	end)
-	-- Bucle ultra rápido que no genera basura en la memoria
+
 	noclipConnection = RunService.Stepped:Connect(function()
 		for _, part in ipairs(CharPartsCache) do
 			part.CanCollide = false 
 		end
 	end)
 end
+
 local function stopNoclip()
 	if noclipConnection then noclipConnection:Disconnect(); noclipConnection = nil end
 	if noclipAddedConn then noclipAddedConn:Disconnect(); noclipAddedConn = nil end
@@ -558,6 +559,7 @@ local function stopNoclip()
 	OriginalCanCollide = {}
 	CharPartsCache = {}
 end
+
 Tabs.Main:AddToggle("Noclip", {
 	Title   = "Noclip",
 	Default = false,
@@ -566,6 +568,7 @@ Tabs.Main:AddToggle("Noclip", {
 		if v then startNoclip() else stopNoclip() end
 	end
 })
+
 LocalPlayer.CharacterAdded:Connect(function(char)
 	task.wait(0.1)
 	OriginalCanCollide = {}
@@ -618,10 +621,10 @@ Tabs.Main:AddButton({
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                       BOTONES                           ║
 -- ╚══════════════════════════════════════════════════════════╝
-Tabs.Main:AddButton({
-	Title = "Click Teleport Tool",
-	Callback = function()
-		-- Creamos una herramienta vacía y se la ponemos en la mano
+local KeepClickTP = false
+
+local function GiveClickTP()
+	if not LocalPlayer.Backpack:FindFirstChild("Click TP") and LocalPlayer.Character then
 		local tool = Instance.new("Tool")
 		tool.RequiresHandle = false
 		tool.Name = "Click TP"
@@ -632,16 +635,31 @@ Tabs.Main:AddButton({
 			local pos = mouse.Hit.Position
 			local char = LocalPlayer.Character
 			if char and char:FindFirstChild("HumanoidRootPart") then
-				-- Nos teletransportamos donde apuntó el mouse.
-				-- Le sumamos +3 arriba para que no caigas enterrado en el piso.
 				char:PivotTo(CFrame.new(pos + Vector3.new(0, 3, 0)))
 			end
 		end)
 		
 		tool.Parent = LocalPlayer.Backpack
-		Fluent:Notify({Title="Herramienta", Content="Click TP añadido a tu inventario", Duration=2})
+	end
+end
+
+Tabs.Main:AddToggle("AutoClickTP", {
+	Title   = "Click TP (Auto Equipar)",
+	Default = false,
+	Callback = function(v)
+		KeepClickTP = v
+		if v then
+			GiveClickTP()
+			Fluent:Notify({Title="Herramienta", Content="Click TP Activado", Duration=1.5})
+		else
+			-- Si lo apagas, te lo quita de las manos o de la mochila
+			local char = LocalPlayer.Character
+			local tool = LocalPlayer.Backpack:FindFirstChild("Click TP") or (char and char:FindFirstChild("Click TP"))
+			if tool then tool:Destroy() end
+		end
 	end
 })
+
 
 
 Tabs.Main:AddButton({
@@ -936,7 +954,13 @@ Tabs.Aimlock:AddParagraph({
 -- [ TRIGGERBOT ]
 local TriggerbotLoop = nil
 local isShooting = false
-local TriggerDelay = 0.05 -- Velocidad por defecto
+local TriggerDelay = 0.05
+local TriggerTeamCheck = false
+local TriggerWallCheck = false
+
+local TriggerRayParams = RaycastParams.new()
+TriggerRayParams.FilterType = Enum.RaycastFilterType.Exclude
+TriggerRayParams.IgnoreWater = true
 
 Tabs.Aimlock:AddToggle("Triggerbot", {
 	Title   = "Triggerbot (Auto Disparo)",
@@ -952,13 +976,37 @@ Tabs.Aimlock:AddToggle("Triggerbot", {
 					local model = target.Parent
 					if model:IsA("Accessory") then model = model.Parent end
 					
-					if model:FindFirstChildOfClass("Humanoid") and model.Name ~= LocalPlayer.Name then
+					local targetHum = model:FindFirstChildOfClass("Humanoid")
+					if targetHum and model.Name ~= LocalPlayer.Name then
+						local targetPlr = Players:GetPlayerFromCharacter(model)
+						if not targetPlr then return end
+						
+						-- 1. Team Check: Si está activado y son del mismo equipo, no dispara
+						if TriggerTeamCheck and targetPlr.Team and targetPlr.Team == LocalPlayer.Team then return end
+						
+						-- 2. Wall Check: Revisa que las balas sí vayan a darle
+						if TriggerWallCheck then
+							if TriggerRayParams.FilterDescendantsInstances[1] ~= LocalPlayer.Character then
+								TriggerRayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+							end
+							
+							local origin = Camera.CFrame.Position
+							local dir = (mouse.Hit.Position - origin).Unit * 1500
+							local ray = workspace:Raycast(origin, dir, TriggerRayParams)
+							
+							-- Si el rayo choca con algo y ese algo no es parte del enemigo...
+							if ray and not ray.Instance:IsDescendantOf(model) then
+								-- Si esa pared no es invisible y se puede chocar con ella, abortamos el disparo
+								if ray.Instance.Transparency < 1 and ray.Instance.CanCollide then
+									return 
+								end
+							end
+						end
+						
+						-- Si pasa los checks, dispara
 						isShooting = true
 						task.spawn(function()
-							-- Hace el clic inmediatamente
 							if mouse1click then pcall(mouse1click) end
-							
-							-- Espera el tiempo que tú hayas configurado en el Slider
 							task.wait(TriggerDelay) 
 							isShooting = false
 						end)
@@ -970,6 +1018,28 @@ Tabs.Aimlock:AddToggle("Triggerbot", {
 		end
 	end
 })
+
+Tabs.Aimlock:AddToggle("TriggerTeam", {
+	Title   = "Triggerbot: Team Check",
+	Default = false,
+	Callback = function(v) TriggerTeamCheck = v end
+})
+
+Tabs.Aimlock:AddToggle("TriggerWall", {
+	Title   = "Triggerbot: Wall Check",
+	Default = false,
+	Callback = function(v) TriggerWallCheck = v end
+})
+
+Tabs.Aimlock:AddSlider("TriggerDelay", {
+	Title    = "Retraso del Triggerbot",
+	Min      = 0.01,
+	Max      = 0.5,
+	Default  = 0.05,
+	Rounding = 2,
+	Callback = function(v) TriggerDelay = v end
+})
+
 
 -- Agregamos un Slider para que tú controles qué tan rápido dispara
 Tabs.Aimlock:AddSlider("TriggerDelay", {
@@ -1042,18 +1112,33 @@ Tabs.Troll:AddButton({
 	end
 })
 
-Tabs.Troll:AddButton({
-	Title = "Dar BTools (Martillo Borrador)",
-	Callback = function()
-		-- Roblox tiene una herramienta escondida llamada HopperBin
-		-- Si le pones "Hammer" te deja darle click a las cosas y borrarlas
+local KeepBTools = false
+
+local function GiveBTools()
+	if not LocalPlayer.Backpack:FindFirstChild("BTools") and LocalPlayer.Character then
 		local btools = Instance.new("HopperBin")
 		btools.Name = "BTools"
 		btools.BinType = Enum.BinType.Hammer 
 		btools.Parent = LocalPlayer.Backpack
-		Fluent:Notify({Title="Troll", Content="Martillo BTools añadido a tu inventario", Duration=2})
+	end
+end
+
+Tabs.Troll:AddToggle("AutoBTools", {
+	Title   = "BTools (Auto Equipar)",
+	Default = false,
+	Callback = function(v)
+		KeepBTools = v
+		if v then
+			GiveBTools()
+			Fluent:Notify({Title="Troll", Content="BTools Activado", Duration=1.5})
+		else
+			local char = LocalPlayer.Character
+			local btools = LocalPlayer.Backpack:FindFirstChild("BTools") or (char and char:FindFirstChild("BTools"))
+			if btools then btools:Destroy() end
+		end
 	end
 })
+
 
 
 Window:SelectTab(1)
@@ -1068,3 +1153,11 @@ SaveManager:LoadAutoloadConfig()
 
 print("RATAHUB gg")
 Fluent:Notify({Title="RATAHUB", Content="maldito 😝", Duration=4})
+
+-- Función para darte las herramientas automáticamente cuando mueres y revives
+LocalPlayer.CharacterAdded:Connect(function()
+	task.wait(0.5) -- Esperamos a que el juego te cargue la mochila nueva
+	if KeepClickTP then GiveClickTP() end
+	if KeepBTools then GiveBTools() end
+end)
+
