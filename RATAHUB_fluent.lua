@@ -68,15 +68,20 @@ do
 	local HRP = Character:WaitForChild("HumanoidRootPart")
 	local Camera = workspace.CurrentCamera
 
-	local BodyVelocity = script:WaitForChild("BodyVelocity"):Clone()
-	local BodyGyro = script:WaitForChild("BodyGyro"):Clone()
-	BodyVelocity.Parent = Character
-	BodyGyro.Parent = Character
+local BodyVelocity = Instance.new("BodyVelocity")
+BodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+BodyVelocity.Velocity = Vector3.new(0,0,0)
+
+local BodyGyro = Instance.new("BodyGyro")
+BodyGyro.P = 9e4
+BodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
 
 	local Hover = Instance.new("Animation")
 	Hover.AnimationId = HoverAnimID
 	local Fly = Instance.new("Animation")
-	Fly.AnimationId = FlyAnimID
+	
+local Flymoving = Instance.new("BoolValue")
+Flymoving.Value = false
 
 	local Sound1 = Instance.new("Sound", HRP)
 	Sound1.SoundId = "rbxassetid://3308152153"
