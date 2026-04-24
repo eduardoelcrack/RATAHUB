@@ -1222,6 +1222,19 @@ Tabs.Troll:AddToggle("AutoBTools", {
 	end
 })
 
+Tabs.Troll:AddToggle("AntiFling", {
+	Title   = "Anti-Fling",
+	Default = false,
+	Callback = function(v)
+		if v then
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/HarcangiRobloxProjects/AntiFling/refs/heads/main/antifling.lua"))()
+			
+			Fluent:Notify({Title="Escudo", Content="Anti-Fling Activado", Duration=2})
+		end
+	end
+})
+
+
 
 
 Window:SelectTab(1)
