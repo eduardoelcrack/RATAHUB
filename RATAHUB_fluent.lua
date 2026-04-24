@@ -49,7 +49,7 @@ local Tabs = {
 local Options = Fluent.Options
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║           SUPERMAN FLY (CON ANIMACIONES NATIVAS)        ║
+-- ║           SUPERMAN FLY (ANIMACIONES INYECTADAS)         ║
 -- ╚══════════════════════════════════════════════════════════╝
 local FlyEnabled = false
 local FlySpeed = 50
@@ -60,7 +60,7 @@ local FlyTrack = nil
 local IdleTrack = nil
 
 local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
-	Title   = "Fly (Con Animaciones)",
+	Title   = "Fly (Animaciones Custom)",
 	Default = false,
 	Callback = function(v)
 		FlyEnabled = v
@@ -73,23 +73,29 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 		
 		if v then
 			if hum then hum.PlatformStand = true end
+			if animate then animate.Disabled = true end
 			
-			-- ROBAMOS LAS ANIMACIONES DEL PROPIO JUEGO
-			if animate then
-				local swimAnim = animate:FindFirstChild("swim") and animate.swim:FindFirstChildOfClass("Animation")
-				local fallAnim = animate:FindFirstChild("fall") and animate.fall:FindFirstChildOfClass("Animation")
-				
-				if swimAnim then FlyTrack = hum:LoadAnimation(swimAnim) end
-				if fallAnim then IdleTrack = hum:LoadAnimation(fallAnim) end
-				
-				-- Apagamos el script de animaciones del juego para tomar el control total
-				animate.Disabled = true
-			end
-			
-			-- Detenemos cualquier otra animación que estuvieras haciendo
 			for _, track in pairs(hum:GetPlayingAnimationTracks()) do
 				track:Stop()
 			end
+			
+			-- LOS CÓDIGOS SECRETOS DE ANIMACIÓN DEL VIDEO:
+			local animFly = Instance.new("Animation")
+			local animIdle = Instance.new("Animation")
+			
+			if hum.RigType == Enum.HumanoidRigType.R15 then
+				animFly.AnimationId = "rbxassetid://3541114300" -- Volar
+				animIdle.AnimationId = "rbxassetid://3541044388" -- Levitar Quieto
+			else
+				animFly.AnimationId = "rbxassetid://282574440"
+				animIdle.AnimationId = "rbxassetid://282574440"
+			end
+			
+			-- Forzamos a que tu cuerpo cargue las animaciones
+			pcall(function()
+				FlyTrack = hum:LoadAnimation(animFly)
+				IdleTrack = hum:LoadAnimation(animIdle)
+			end)
 			
 			bbg = Instance.new("BodyGyro", hrp)
 			bbg.P = 9e4
@@ -113,12 +119,12 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 				if uis:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector; isMoving = true end
 				
 				if isMoving then
-					-- MODO SUPERMAN: Cuerpo acostado + Animación de Brazos extendidos
+					-- Volando hacia adelante
 					bbg.cframe = cam.CFrame * CFrame.Angles(math.rad(-90), 0, 0)
 					if IdleTrack and IdleTrack.IsPlaying then IdleTrack:Stop() end
 					if FlyTrack and not FlyTrack.IsPlaying then FlyTrack:Play() end
 				else
-					-- MODO FLOTAR: Cuerpo parado + Animación de Flotar
+					-- Flotando estático
 					bbg.cframe = cam.CFrame
 					if FlyTrack and FlyTrack.IsPlaying then FlyTrack:Stop() end
 					if IdleTrack and not IdleTrack.IsPlaying then IdleTrack:Play() end
@@ -127,21 +133,36 @@ local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
 				bbv.velocity = moveDir * FlySpeed
 			end)
 		else
-			-- APAGAR FLY Y DEVOLVER TODO A LA NORMALIDAD
 			if FlyLoop then FlyLoop:Disconnect(); FlyLoop = nil end
 			if bbg then bbg:Destroy(); bbg = nil end
 			if bbv then bbv:Destroy(); bbv = nil end
 			if hum then hum.PlatformStand = false end
 			
-			-- Detenemos nuestras animaciones robadas
-			if FlyTrack then FlyTrack:Stop(); FlyTrack = nil end
-			if IdleTrack then IdleTrack:Stop(); IdleTrack = nil end
-			
-			-- Volvemos a prender las animaciones normales del juego
+			if FlyTrack then FlyTrack:Stop(); FlyTrack:Destroy(); FlyTrack = nil end
+			if IdleTrack then IdleTrack:Stop(); IdleTrack:Destroy(); IdleTrack = nil end
 			if animate then animate.Disabled = false end
 		end
 	end
 })
+
+Tabs.Main:AddKeybind("FlyKeybind", {
+	Title   = "Atajo de Teclado (Fly)",
+	Mode    = "Toggle",
+	Default = "F", 
+	Callback = function()
+		FlyToggle:SetValue(not FlyEnabled)
+	end
+})
+
+Tabs.Main:AddSlider("FlySpeed", {
+	Title    = "Velocidad de Vuelo",
+	Min      = 10,
+	Max      = 300,
+	Default  = 50,
+	Rounding = 0,
+	Callback = function(v) FlySpeed = v end
+})
+
 
 Tabs.Main:AddKeybind("FlyKeybind", {
 	Title   = "Atajo de Teclado (Fly)",
