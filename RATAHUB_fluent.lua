@@ -49,132 +49,104 @@ local Tabs = {
 local Options = Fluent.Options
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║        SUPERMAN FLY (ANIMACIÓN FUNCIONANDO)             ║
+-- ║                         FLY                             ║
 -- ╚══════════════════════════════════════════════════════════╝
+local FlyToggleEnabled = false
+local FlyActive        = false
+local FlySpeed         = 140
+local BV, BG           = nil, nil
+local OldAnimate       = nil
+local FlyLoop          = nil
 
-local FlyEnabled = false
-local FlySpeed = 50
-local FlyLoop = nil
-local bbg = nil
-local bbv = nil
-local FlyTrack = nil
-local IdleTrack = nil
+local function StartFly()
+	local char = LocalPlayer.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+	local hum  = char:FindFirstChildOfClass("Humanoid")
+	local root = char.HumanoidRootPart
+	if hum then hum.PlatformStand = true end
+	if char:FindFirstChild("Animate") then
+		OldAnimate = char.Animate:Clone()
+		char.Animate:Destroy()
+	end
+	BV = Instance.new("BodyVelocity")
+	BV.MaxForce = Vector3.new(1e5,1e5,1e5)
+	BV.Velocity = Vector3.zero
+	BV.Parent   = root
+	BG = Instance.new("BodyGyro")
+	BG.MaxTorque = Vector3.new(1e5,1e5,1e5)
+	BG.P  = 20000
+	BG.D  = 800
+	BG.Parent = root
+	FlyLoop = RunService.RenderStepped:Connect(function()
+		if not FlyActive then return end
+		local look  = Camera.CFrame.LookVector
+		local right = look:Cross(Vector3.new(0,1,0))
+		local move  = Vector3.zero
+		if UserInputService:IsKeyDown(Enum.KeyCode.W)           then move += look end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S)           then move -= look end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A)           then move -= right end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D)           then move += right end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space)       then move += Vector3.new(0,1,0) end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then move -= Vector3.new(0,1,0) end
+		BV.Velocity = move * FlySpeed
+		BG.CFrame   = Camera.CFrame
+	end)
+end
 
-local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
-	Title   = "Fly (Animación)",
+local function StopFly()
+	FlyActive = false
+	if FlyLoop then FlyLoop:Disconnect(); FlyLoop = nil end
+	if BV then BV:Destroy(); BV = nil end
+	if BG then BG:Destroy(); BG = nil end
+	local char = LocalPlayer.Character
+	if char then
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if hum then hum.PlatformStand = false end
+		if OldAnimate then OldAnimate.Parent = char; OldAnimate = nil end
+	end
+end
+
+Tabs.Main:AddToggle("FlyToggle", {
+	Title   = "Fly",
 	Default = false,
 	Callback = function(v)
-		FlyEnabled = v
-		local char = LocalPlayer.Character
-		if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-		
-		local hrp = char.HumanoidRootPart
-		local hum = char:FindFirstChild("Humanoid")
-		local animate = char:FindFirstChild("Animate")
-		
-		if v then
-			-- 🔥 CAMBIO CLAVE (NO MÁS TIESO)
-			if hum then
-				hum:ChangeState(Enum.HumanoidStateType.Physics)
-			end
-			
-			if animate then animate.Disabled = true end
-			
-			for _, track in pairs(hum:GetPlayingAnimationTracks()) do
-				track:Stop()
-			end
-			
-			-- 🔥 ANIMACIÓN DEL ASSET
-			local anim = Instance.new("Animation")
-			anim.AnimationId = "rbxassetid://11228653710"
-			
-			FlyTrack = hum:LoadAnimation(anim)
-			IdleTrack = hum:LoadAnimation(anim)
-			
-			FlyTrack.Priority = Enum.AnimationPriority.Action
-			IdleTrack.Priority = Enum.AnimationPriority.Action
-			
-			bbg = Instance.new("BodyGyro")
-			bbg.P = 9e4
-			bbg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-			bbg.CFrame = hrp.CFrame
-			bbg.Parent = hrp
-			
-			bbv = Instance.new("BodyVelocity")
-			bbv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-			bbv.Velocity = Vector3.zero
-			bbv.Parent = hrp
-			
-			local uis = game:GetService("UserInputService")
-			
-			FlyLoop = game:GetService("RunService").RenderStepped:Connect(function()
-				local cam = workspace.CurrentCamera
-				local moveDir = Vector3.zero
-				
-				if uis:IsKeyDown(Enum.KeyCode.W) then moveDir += cam.CFrame.LookVector end
-				if uis:IsKeyDown(Enum.KeyCode.S) then moveDir -= cam.CFrame.LookVector end
-				if uis:IsKeyDown(Enum.KeyCode.A) then moveDir -= cam.CFrame.RightVector end
-				if uis:IsKeyDown(Enum.KeyCode.D) then moveDir += cam.CFrame.RightVector end
-				
-				local moving = moveDir.Magnitude > 0
-				
-				if moving then
-					moveDir = moveDir.Unit
-					
-					-- 🦸 ROTACIÓN TIPO SUPERMAN
-					bbg.CFrame = CFrame.new(hrp.Position, hrp.Position + moveDir)
-						* CFrame.Angles(math.rad(-90), 0, 0)
-					
-					if IdleTrack.IsPlaying then IdleTrack:Stop() end
-					if not FlyTrack.IsPlaying then FlyTrack:Play() end
-				else
-					bbg.CFrame = cam.CFrame
-					
-					if FlyTrack.IsPlaying then FlyTrack:Stop() end
-					if not IdleTrack.IsPlaying then IdleTrack:Play() end
-				end
-				
-				bbv.Velocity = moveDir * FlySpeed
-			end)
-			
+		FlyToggleEnabled = v
+		FlyActive = false
+		StopFly()
+	end
+})
+
+Tabs.Main:AddKeybind("FlyKeybind", {
+	Title   = "Fly Keybind",
+	Mode    = "Toggle",
+	Default = "V",
+	Callback = function(v)
+		if not FlyToggleEnabled then return end
+		FlyActive = not FlyActive
+		if FlyActive then
+			StartFly()
+			Fluent:Notify({Title="Fly", Content="Activado", Duration=1.5})
 		else
-			if FlyLoop then FlyLoop:Disconnect(); FlyLoop = nil end
-			if bbg then bbg:Destroy(); bbg = nil end
-			if bbv then bbv:Destroy(); bbv = nil end
-			
-			if hum then
-				hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-			end
-			
-			if FlyTrack then FlyTrack:Stop(); FlyTrack:Destroy(); FlyTrack = nil end
-			if IdleTrack then IdleTrack:Stop(); IdleTrack:Destroy(); IdleTrack = nil end
-			
-			if animate then animate.Disabled = false end
+			StopFly()
+			Fluent:Notify({Title="Fly", Content="Desactivado", Duration=1.5})
 		end
 	end
 })
 
--- 🎮 TECLA
-Tabs.Main:AddKeybind("FlyKeybind", {
-	Title   = "Atajo de Teclado (Fly)",
-	Mode    = "Toggle",
-	Default = "F",
-	Callback = function()
-		FlyToggle:SetValue(not FlyEnabled)
-	end
+Tabs.Main:AddSlider("FlySpeed", {
+	Title   = "Velocidad Fly",
+	Min     = 50,
+	Max     = 600,
+	Default = 140,
+	Rounding= 0,
+	Callback = function(v) FlySpeed = v end
 })
 
--- ⚡ VELOCIDAD
-Tabs.Main:AddSlider("FlySpeed", {
-	Title    = "Velocidad de Vuelo",
-	Min      = 10,
-	Max      = 300,
-	Default  = 50,
-	Rounding = 0,
-	Callback = function(v)
-		FlySpeed = v
-	end
-})
+LocalPlayer.CharacterAdded:Connect(function()
+	task.wait(0.2)
+	FlyActive = false
+	StopFly()
+end)
 
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                    INFINITE JUMP                        ║
@@ -1345,4 +1317,3 @@ LocalPlayer.CharacterAdded:Connect(function()
 	if KeepClickTP then GiveClickTP() end
 	if KeepBTools then GiveBTools() end
 end)
-
