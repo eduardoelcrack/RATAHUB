@@ -1265,7 +1265,52 @@ Tabs.Troll:AddToggle("AntiFling", {
 	end
 })
 
+Tabs.Settings:AddSlider("TimeOfDay", {
+	Title    = "Hora del Servidor (0 a 24)",
+	Min      = 0,
+	Max      = 24,
+	Default  = 14,
+	Rounding = 0,
+	Callback = function(v)
+		game:GetService("Lighting").ClockTime = v
+	end
+})
 
+local TornadoEnabled = false
+local angle = 0
+
+Tabs.Troll:AddToggle("Tornado", {
+	Title   = "Tornado de Basura (Fling Shield)",
+	Default = false,
+	Callback = function(v)
+		TornadoEnabled = v
+	end
+})
+
+RunService.Heartbeat:Connect(function()
+	if TornadoEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+		angle = angle + 0.1
+		local hrp = LocalPlayer.Character.HumanoidRootPart
+		local radius = 10
+		local parts = {}
+		
+		-- Recolecta partes sueltas del mapa (que no sean jugadores)
+		for _, v in pairs(workspace:GetDescendants()) do
+			if v:IsA("BasePart") and not v.Anchored and not v.Parent:FindFirstChild("Humanoid") then
+				table.insert(parts, v)
+			end
+		end
+		
+		-- Las hace girar a tu alrededor
+		for i, part in ipairs(parts) do
+			local offset = angle + (i * (math.pi * 2 / #parts))
+			local targetCFrame = hrp.CFrame * CFrame.new(math.cos(offset) * radius, math.sin(offset) * 5, math.sin(offset) * radius)
+			part.CFrame = targetCFrame
+			part.Velocity = Vector3.new(0,0,0)
+			part.RotVelocity = Vector3.new(500, 500, 500) -- Giran violentamente para hacer fling al contacto
+		end
+	end
+end)
 
 
 Window:SelectTab(1)
