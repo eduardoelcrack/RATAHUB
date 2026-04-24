@@ -49,140 +49,172 @@ local Tabs = {
 local Options = Fluent.Options
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║        SUPERMAN FLY (ADAPTADO A TABS)                   ║
+-- ║           SUPERMAN FLY (VERSIÓN DEFINITIVA PREMIUM)     ║
 -- ╚══════════════════════════════════════════════════════════╝
-
 local FlyEnabled = false
 local FlySpeed = 350
+local FlyLoop = nil
 
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local HRP = Character:WaitForChild("HumanoidRootPart")
-
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-
--- 🔥 ANIMACIONES (las que ya comprobaste que sí jalan)
+-- Tus IDs de Animación y Sonido
 local HoverAnimID = "rbxassetid://70877054591439"
 local FlyAnimID = "rbxassetid://80012694228400"
+local WindSoundEnabled = true
 
-local Hover = Instance.new("Animation")
-Hover.AnimationId = HoverAnimID
+local bbg = nil
+local bbv = nil
+local Sound1 = nil
+local HoverTrack = nil
+local FlyTrack = nil
+local isCurrentlyMoving = false
 
-local Fly = Instance.new("Animation")
-Fly.AnimationId = FlyAnimID
-
-local Animator = Humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", Humanoid)
-
-local HoverTrack = Animator:LoadAnimation(Hover)
-local FlyTrack = Animator:LoadAnimation(Fly)
-
-HoverTrack.Looped = true
-FlyTrack.Looped = true
-
--- 🔥 FÍSICAS
-local BV = Instance.new("BodyVelocity")
-BV.MaxForce = Vector3.new(9e9,9e9,9e9)
-
-local BG = Instance.new("BodyGyro")
-BG.MaxTorque = Vector3.new(9e9,9e9,9e9)
-
+local TweenService = game:GetService("TweenService")
 local Camera = workspace.CurrentCamera
 
-local function getDirection()
-	local move = Humanoid.MoveDirection
-	if move.Magnitude == 0 then return Vector3.zero end
-	
-	local camCF = Camera.CFrame
-	local dir = (camCF * CFrame.new(move)).Position - camCF.Position
-	return dir.Unit
+-- Función avanzada para calcular la dirección (sacada de tu script)
+local function getMoveVector(hum)
+	if hum.MoveDirection == Vector3.new(0, 0, 0) then
+		return hum.MoveDirection
+	end
+	local v12 = (Camera.CFrame * CFrame.new((CFrame.new(Camera.CFrame.p, Camera.CFrame.p + Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z)):VectorToObjectSpace(hum.MoveDirection)))).p - Camera.CFrame.p;
+	if v12 == Vector3.new() then
+		return v12
+	end
+	return v12.Unit
 end
 
-local FlyLoop
-
-local function StartFly()
-	FlyEnabled = true
-	
-	Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-	
-	BV.Parent = HRP
-	BG.Parent = HRP
-	
-	HoverTrack:Play()
-	
-	FlyLoop = RunService.RenderStepped:Connect(function()
-		local dir = getDirection()
-		
-		if dir.Magnitude > 0 then
-			-- 🦸 volando
-			TweenService:Create(BV, TweenInfo.new(0.2), {Velocity = dir * FlySpeed}):Play()
-			BG.CFrame = CFrame.new(HRP.Position, HRP.Position + dir)
-				* CFrame.Angles(math.rad(-90),0,0)
-			
-			if not FlyTrack.IsPlaying then
-				HoverTrack:Stop()
-				FlyTrack:Play()
-			end
-		else
-			-- 🧍 idle
-			BV.Velocity = Vector3.zero
-			BG.CFrame = Camera.CFrame
-			
-			if not HoverTrack.IsPlaying then
-				FlyTrack:Stop()
-				HoverTrack:Play()
-			end
-		end
-	end)
-end
-
-local function StopFly()
-	FlyEnabled = false
-	
-	if FlyLoop then FlyLoop:Disconnect() end
-	
-	BV:Destroy()
-	BG:Destroy()
-	
-	HoverTrack:Stop()
-	FlyTrack:Stop()
-	
-	Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
-end
-
--- 🎮 TOGGLE (TU TAB)
 local FlyToggle = Tabs.Main:AddToggle("SupermanFly", {
-	Title = "Fly (Superman PRO)",
+	Title   = "Fly (Estilo Premium Animado)",
 	Default = false,
 	Callback = function(v)
+		FlyEnabled = v
+		local char = LocalPlayer.Character
+		if not char then return end
+		local hum = char:FindFirstChild("Humanoid")
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		
+		if not hrp or not hum then return end
+		
 		if v then
-			StartFly()
+			-- Crear motores de movimiento
+			bbv = Instance.new("BodyVelocity")
+			bbv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+			bbv.Velocity = Vector3.new(0, 0, 0)
+			bbv.Parent = hrp
+			
+			bbg = Instance.new("BodyGyro")
+			bbg.P = 9e4
+			bbg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+			bbg.CFrame = Camera.CFrame
+			bbg.Parent = hrp
+			
+			-- Sonido de Viento
+			Sound1 = Instance.new("Sound", hrp)
+			Sound1.SoundId = "rbxassetid://3308152153"
+			Sound1.Looped = true
+			if not WindSoundEnabled then Sound1.Volume = 0 end
+			
+			-- Cargar tus Animaciones
+			local HoverAnim = Instance.new("Animation")
+			HoverAnim.AnimationId = HoverAnimID
+			local FlyAnim = Instance.new("Animation")
+			FlyAnim.AnimationId = FlyAnimID
+			
+			local animator = hum:FindFirstChild("Animator") or hum
+			HoverTrack = animator:LoadAnimation(HoverAnim)
+			FlyTrack = animator:LoadAnimation(FlyAnim)
+			
+			HoverTrack:Play(0.1, 1, 1)
+			
+			-- Configurar Humanoide
+			hum:SetStateEnabled(Enum.HumanoidStateType.Running, false)
+			hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
+			hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+			hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+			hum:ChangeState(6)
+			
+			if hrp:FindFirstChild("Running") and hrp.Running:IsA("Sound") then
+				hrp.Running.Volume = 0
+			end
+			
+			isCurrentlyMoving = false
+			
+			-- Loop de Vuelo Suave
+			FlyLoop = RunService.RenderStepped:Connect(function()
+				if not FlyEnabled then return end
+				hum:ChangeState(6)
+				bbg.CFrame = Camera.CFrame
+				
+				local moveVec = getMoveVector(hum)
+				local movingNow = (moveVec ~= Vector3.new(0, 0, 0))
+				
+				-- Sistema de Transición (Equivalente al Flymoving.Changed)
+				if movingNow ~= isCurrentlyMoving then
+					isCurrentlyMoving = movingNow
+					if isCurrentlyMoving then
+						-- Al avanzar: Aleja la cámara, pone viento y animación de volar
+						TweenService:Create(Camera, TweenInfo.new(0.5), {FieldOfView = 100}):Play()
+						HoverTrack:Stop()
+						Sound1:Play()
+						FlyTrack:Play()
+					else
+						-- Al detenerse: Acerca la cámara, quita viento y pone animación de levitar
+						TweenService:Create(Camera, TweenInfo.new(0.5), {FieldOfView = 70}):Play()
+						FlyTrack:Stop()
+						Sound1:Stop()
+						HoverTrack:Play()
+					end
+				end
+				
+				-- Movimiento (Usa la velocidad de tu Slider)
+				if isCurrentlyMoving then
+					TweenService:Create(bbv, TweenInfo.new(0.3), {Velocity = moveVec * FlySpeed}):Play()
+				else
+					TweenService:Create(bbv, TweenInfo.new(0.3), {Velocity = Vector3.new(0,0,0)}):Play()
+				end
+			end)
 		else
-			StopFly()
+			-- Limpieza total al apagar
+			if FlyLoop then FlyLoop:Disconnect(); FlyLoop = nil end
+			if bbv then bbv:Destroy(); bbv = nil end
+			if bbg then bbg:Destroy(); bbg = nil end
+			if Sound1 then Sound1:Destroy(); Sound1 = nil end
+			
+			if HoverTrack then HoverTrack:Stop(); HoverTrack = nil end
+			if FlyTrack then FlyTrack:Stop(); FlyTrack = nil end
+			
+			TweenService:Create(Camera, TweenInfo.new(0.5), {FieldOfView = 70}):Play()
+			
+			hum:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+			hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
+			hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+			hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+			hum:ChangeState(8)
+			
+			if hrp:FindFirstChild("Running") and hrp.Running:IsA("Sound") then
+				hrp.Running.Volume = 0.65
+			end
 		end
 	end
 })
 
--- ⌨️ KEYBIND
+-- KEYBIND: Tecla 'E' por defecto como en tu código original
 Tabs.Main:AddKeybind("FlyKeybind", {
-	Title = "Atajo Fly",
-	Mode = "Toggle",
-	Default = "F",
+	Title   = "Atajo de Teclado (Fly)",
+	Mode    = "Toggle",
+	Default = "E", 
 	Callback = function()
 		FlyToggle:SetValue(not FlyEnabled)
 	end
 })
 
--- ⚡ SPEED
+-- SLIDER: Velocidad base en 350 como en tu código
 Tabs.Main:AddSlider("FlySpeed", {
-	Title = "Velocidad",
-	Min = 50,
-	Max = 600,
-	Default = 350,
+	Title    = "Velocidad de Vuelo",
+	Min      = 50,
+	Max      = 1000,
+	Default  = 350,
 	Rounding = 0,
-	Callback = function(v)
-		FlySpeed = v
-	end
+	Callback = function(v) FlySpeed = v end
 })
 
 -- ╔══════════════════════════════════════════════════════════╗
