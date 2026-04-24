@@ -1195,6 +1195,37 @@ Tabs.Troll:AddButton({
 	end
 })
 
+local OriginalTransparencies = {}
+
+Tabs.Troll:AddToggle("XRay", {
+	Title   = "X-Ray (Paredes de Cristal)",
+	Default = false,
+	Callback = function(v)
+		if v then
+			-- Guarda todo y lo vuelve cristalino
+			for _, part in pairs(workspace:GetDescendants()) do
+				if part:IsA("BasePart") and not part.Parent:FindFirstChild("Humanoid") then
+					if OriginalTransparencies[part] == nil then
+						OriginalTransparencies[part] = part.Transparency
+					end
+					if part.Transparency < 0.5 then
+						part.Transparency = 0.5
+					end
+				end
+			end
+		else
+			-- Restaura los colores de las paredes
+			for part, trans in pairs(OriginalTransparencies) do
+				if part and part.Parent then
+					part.Transparency = trans
+				end
+			end
+			OriginalTransparencies = {}
+		end
+	end
+})
+
+
 local KeepBTools = false
 
 local function GiveBTools()
