@@ -962,31 +962,48 @@ local TriggerRayParams = RaycastParams.new()
 TriggerRayParams.FilterType = Enum.RaycastFilterType.Exclude
 TriggerRayParams.IgnoreWater = true
 
--- Team Check Super Avanzado
+-- Team Check Super Avanzado (El Jefe Final)
 local function IsSameTeam(plr)
-	-- 1. Equipos oficiales de Roblox
-	if plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then 
-		return true 
-	end
-	
-	-- 2. Colores (Solo funciona si los colores NO son el "Blanco" por defecto de todos los juegos)
-	if plr.TeamColor and LocalPlayer.TeamColor then
-		if plr.TeamColor == LocalPlayer.TeamColor and tostring(plr.TeamColor) ~= "White" then
-			return true
-		end
-	end
+	if not plr then return false end
+	if plr == LocalPlayer then return true end
 
-	-- 3. Valores personalizados (Defusal, CB:RO, Arsenal a veces usan esto)
+	-- 1. Equipos oficiales de Roblox
+	if plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then return true end
+	
+	-- 2. Colores (Ignorando el blanco por defecto)
+	if plr.TeamColor and LocalPlayer.TeamColor and plr.TeamColor == LocalPlayer.TeamColor and tostring(plr.TeamColor) ~= "White" then return true end
+
+	-- 3. Valores y Atributos dentro del Player
 	for _, valName in ipairs({"Team", "TeamName", "Role", "role", "DefusalTeam"}) do
+		-- StringValues o IntValues
 		local myVal = LocalPlayer:FindFirstChild(valName)
 		local enVal = plr:FindFirstChild(valName)
-		if myVal and enVal and myVal.ClassName == enVal.ClassName then
-			if myVal.Value == enVal.Value then return true end
+		if myVal and enVal and myVal.ClassName == enVal.ClassName and myVal.Value == enVal.Value then return true end
+		
+		-- Atributos ocultos
+		local myAttr = LocalPlayer:GetAttribute(valName)
+		local enAttr = plr:GetAttribute(valName)
+		if myAttr ~= nil and enAttr ~= nil and myAttr == enAttr then return true end
+	end
+	
+	-- 4. Valores y Agrupaciones dentro del Character (Clásico de juegos CS:GO)
+	local myChar = LocalPlayer.Character
+	local enChar = plr.Character
+	if myChar and enChar then
+		-- Si el juego los agrupa en carpetas separadas (Ej: workspace.Terrorists)
+		if myChar.Parent == enChar.Parent and myChar.Parent ~= workspace then return true end
+		
+		-- Atributos directamente en el muñeco
+		for _, valName in ipairs({"Team", "TeamName"}) do
+			local myAttr = myChar:GetAttribute(valName)
+			local enAttr = enChar:GetAttribute(valName)
+			if myAttr ~= nil and enAttr ~= nil and myAttr == enAttr then return true end
 		end
 	end
 	
 	return false
 end
+
 
 Tabs.Aimlock:AddToggle("Triggerbot", {
 	Title   = "Triggerbot (Auto Disparo)",
