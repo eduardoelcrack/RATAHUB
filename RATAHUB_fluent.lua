@@ -1199,39 +1199,6 @@ Tabs.Aimlock:AddToggle("UseFOV", {
 })
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║                     SILENT AIM TAB                      ║
--- ╚══════════════════════════════════════════════════════════╝
-local SilentAimEnabled = false
-local OldNamecall
-
-if hookmetamethod and getnamecallmethod and checkcaller then
-    OldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-        local method = getnamecallmethod()
-        local args = {...}
-        if SilentAimEnabled and not checkcaller() and (method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRayWithWhitelist" or method == "FindPartOnRay" or method == "Raycast") then
-            local closestPlayer = GetClosest()
-            if closestPlayer and closestPlayer.Character then
-                local part = GetAimPart(closestPlayer.Character)
-                if part then
-                    if method == "Raycast" then
-                        args[2] = (part.Position - args[1]).Unit * args[2].Magnitude
-                    elseif method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRayWithWhitelist" or method == "FindPartOnRay" then
-                        args[1] = Ray.new(args[1].Origin, (part.Position - args[1].Origin).Unit * args[1].Direction.Magnitude)
-                    end
-                end
-            end
-        end
-        return OldNamecall(self, unpack(args))
-    end)
-end
-
-Tabs.SilentAim:AddToggle("SilentAim", {
-    Title   = "Silent Aim",
-    Default = false,
-    Callback = function(v) SilentAimEnabled = v end
-})
-
--- ╔══════════════════════════════════════════════════════════╗
 -- ║                     TRIGGERBOT TAB                      ║
 -- ╚══════════════════════════════════════════════════════════╝
 local TriggerbotLoop = nil
