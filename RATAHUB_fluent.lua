@@ -1,5 +1,5 @@
 -- ============================================================
---  RATAHUB  |  by Bambi  |  Fluent UI
+--  RATAHUB V2 |  by Bambi  |  Fluent UI
 -- ============================================================
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
@@ -41,13 +41,18 @@ local Window = Fluent:CreateWindow({
 })
 
 local Tabs = {
-	Main    = Window:AddTab({ Title = "Main",    Icon = "zap" }),
-	Aimlock = Window:AddTab({ Title = "Aimlock", Icon = "crosshair" }),
-	Troll   = Window:AddTab({ Title = "Troll",   Icon = "code" }),
-	Settings= Window:AddTab({ Title = "Settings",Icon = "settings" }),
+	Main       = Window:AddTab({ Title = "Main",       Icon = "zap" }),
+	ESP        = Window:AddTab({ Title = "ESP",        Icon = "eye" }),
+	Aimlock    = Window:AddTab({ Title = "Aimlock",    Icon = "crosshair" }),
+	SilentAim  = Window:AddTab({ Title = "Silent Aim", Icon = "target" }),
+	Triggerbot = Window:AddTab({ Title = "Triggerbot", Icon = "mouse-pointer" }),
+	Extras     = Window:AddTab({ Title = "Extras",     Icon = "plus" }),
+	Troll      = Window:AddTab({ Title = "Troll",      Icon = "code" }),
+	Settings   = Window:AddTab({ Title = "Settings",   Icon = "settings" }),
 }
 
 local Options = Fluent.Options
+
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                         FLY                             ║
 -- ╚══════════════════════════════════════════════════════════╝
@@ -55,6 +60,7 @@ local FlyToggleEnabled = false
 local FlyActive        = false
 local FlySpeed         = 140
 local BV, BG           = nil, nil
+local FlyAtt           = nil
 local OldAnimate       = nil
 local FlyLoop          = nil
 
@@ -68,15 +74,23 @@ local function StartFly()
 		OldAnimate = char.Animate:Clone()
 		char.Animate:Destroy()
 	end
-	BV = Instance.new("BodyVelocity")
-	BV.MaxForce = Vector3.new(1e5,1e5,1e5)
-	BV.Velocity = Vector3.zero
+    
+    FlyAtt = Instance.new("Attachment", root)
+    FlyAtt.Name = "FlyAtt"
+
+	BV = Instance.new("LinearVelocity")
+    BV.Attachment0 = FlyAtt
+	BV.MaxForce = math.huge
+	BV.VectorVelocity = Vector3.zero
 	BV.Parent   = root
-	BG = Instance.new("BodyGyro")
-	BG.MaxTorque = Vector3.new(1e5,1e5,1e5)
-	BG.P  = 20000
-	BG.D  = 800
+    
+	BG = Instance.new("AlignOrientation")
+    BG.Mode = Enum.OrientationAlignmentMode.OneAttachment
+    BG.Attachment0 = FlyAtt
+	BG.MaxTorque = math.huge
+    BG.Responsiveness = 200
 	BG.Parent = root
+    
 	FlyLoop = RunService.RenderStepped:Connect(function()
 		if not FlyActive then return end
 		local look  = Camera.CFrame.LookVector
@@ -88,7 +102,7 @@ local function StartFly()
 		if UserInputService:IsKeyDown(Enum.KeyCode.D)           then move += right end
 		if UserInputService:IsKeyDown(Enum.KeyCode.Space)       then move += Vector3.new(0,1,0) end
 		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then move -= Vector3.new(0,1,0) end
-		BV.Velocity = move * FlySpeed
+		BV.VectorVelocity = move * FlySpeed
 		BG.CFrame   = Camera.CFrame
 	end)
 end
@@ -98,6 +112,7 @@ local function StopFly()
 	if FlyLoop then FlyLoop:Disconnect(); FlyLoop = nil end
 	if BV then BV:Destroy(); BV = nil end
 	if BG then BG:Destroy(); BG = nil end
+    if FlyAtt then FlyAtt:Destroy(); FlyAtt = nil end
 	local char = LocalPlayer.Character
 	if char then
 		local hum = char:FindFirstChildOfClass("Humanoid")
@@ -164,6 +179,65 @@ UserInputService.JumpRequest:Connect(function()
 end)
 
 -- ╔══════════════════════════════════════════════════════════╗
+-- ║                      JUMP POWER                         ║
+-- ╚══════════════════════════════════════════════════════════╝
+local JumpPowerToggleEnabled = false
+local TargetJumpPower = 50
+local OriginalJumpPower = nil
+local JumpPowerLoop = nil
+
+local function StartJumpPowerLoop()
+    if JumpPowerLoop then return end
+    JumpPowerLoop = RunService.Heartbeat:Connect(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        if not OriginalJumpPower then 
+            OriginalJumpPower = hum.UseJumpPower and hum.JumpPower or hum.JumpHeight
+        end
+        if hum.UseJumpPower then
+            hum.JumpPower = JumpPowerToggleEnabled and TargetJumpPower or OriginalJumpPower
+        else
+            hum.JumpHeight = JumpPowerToggleEnabled and TargetJumpPower or OriginalJumpPower
+        end
+    end)
+end
+
+local function StopJumpPowerLoop()
+    if JumpPowerLoop then JumpPowerLoop:Disconnect(); JumpPowerLoop = nil end
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum and OriginalJumpPower then 
+            if hum.UseJumpPower then
+                hum.JumpPower = OriginalJumpPower
+            else
+                hum.JumpHeight = OriginalJumpPower
+            end
+        end
+    end
+end
+
+Tabs.Main:AddToggle("JPToggle", {
+    Title   = "JumpPower",
+    Default = false,
+    Callback = function(v)
+        JumpPowerToggleEnabled = v
+        if v then StartJumpPowerLoop() else StopJumpPowerLoop() end
+    end
+})
+
+Tabs.Main:AddSlider("JPSlider", {
+    Title    = "Fuerza de Salto",
+    Min      = 50,
+    Max      = 300,
+    Default  = 50,
+    Rounding = 0,
+    Callback = function(v) TargetJumpPower = v end
+})
+
+-- ╔══════════════════════════════════════════════════════════╗
 -- ║                      WALKSPEED                          ║
 -- ╚══════════════════════════════════════════════════════════╝
 local WSToggleEnabled = false
@@ -227,208 +301,6 @@ LocalPlayer.CharacterAdded:Connect(function()
 	WSActive = false
 	OriginalWalkSpeed = nil
 end)
-
--- ╔══════════════════════════════════════════════════════════╗
--- ║                   ESP (HIGHLIGHT)                       ║
--- ╚══════════════════════════════════════════════════════════╝
-local ESPFillColor    = Color3.fromRGB(175, 25, 255)
-local ESPOutlineColor = Color3.fromRGB(175, 25, 255)
-local ESPConns        = {}
-local ESPStorage      = nil
-
-local function SetupHighlightESP(Value)
-	if ESPStorage then ESPStorage:Destroy(); ESPStorage = nil end
-	for _, c in pairs(ESPConns) do c:Disconnect() end
-	ESPConns = {}
-	if not Value then return end
-
-	ESPStorage = Instance.new("Folder")
-	ESPStorage.Name   = "Highlight_Storage"
-	ESPStorage.Parent = CoreGui
-
-	local function Highlight(plr)
-		if plr == LocalPlayer then return end
-		local function apply(char)
-			if ESPStorage:FindFirstChild(plr.Name) then ESPStorage[plr.Name]:Destroy() end
-			local h = Instance.new("Highlight")
-			h.Name                = plr.Name
-			h.DepthMode           = "AlwaysOnTop"
-			h.FillColor           = ESPFillColor
-			h.OutlineColor        = ESPOutlineColor
-			h.FillTransparency    = 0.5
-			h.OutlineTransparency = 0
-			h.Adornee             = char
-			h.Parent              = ESPStorage
-		end
-		if plr.Character then apply(plr.Character) end
-		ESPConns[plr] = plr.CharacterAdded:Connect(function(char)
-			task.wait(0.5); apply(char)
-		end)
-	end
-
-	for _, p in ipairs(Players:GetPlayers()) do Highlight(p) end
-	ESPConns["Added"]   = Players.PlayerAdded:Connect(Highlight)
-	ESPConns["Removed"] = Players.PlayerRemoving:Connect(function(plr)
-		if ESPStorage:FindFirstChild(plr.Name) then ESPStorage[plr.Name]:Destroy() end
-		if ESPConns[plr] then ESPConns[plr]:Disconnect() end
-	end)
-end
-
-Tabs.Main:AddToggle("ESP", {
-	Title   = "ESP",
-	Default = false,
-	Callback = SetupHighlightESP
-})
-
--- ╔══════════════════════════════════════════════════════════╗
--- ║                     ESP NOMBRES                         ║
--- ╚══════════════════════════════════════════════════════════╝
-local NameESPFolder = nil
-local nameConns     = {}
-
-Tabs.Main:AddToggle("ESPNombres", {
-	Title   = "ESP Nombres",
-	Default = false,
-	Callback = function(enabled)
-		if NameESPFolder then NameESPFolder:Destroy(); NameESPFolder = nil end
-		for _, c in ipairs(nameConns) do c:Disconnect() end
-		nameConns = {}
-		if not enabled then return end
-
-		NameESPFolder        = Instance.new("Folder")
-		NameESPFolder.Name   = "NameESP_Storage"
-		NameESPFolder.Parent = CoreGui
-
-		local function createNameTag(plr)
-			if plr == LocalPlayer then return end
-			local function apply(char)
-				local head = char:WaitForChild("Head", 5)
-				if not head or not NameESPFolder then return end
-				if NameESPFolder:FindFirstChild(plr.Name) then NameESPFolder[plr.Name]:Destroy() end
-				local bg = Instance.new("BillboardGui")
-				bg.Name        = plr.Name
-				bg.Adornee     = head
-				bg.Size        = UDim2.new(0,140,0,26)
-				bg.StudsOffset = Vector3.new(0,3,0)
-				bg.AlwaysOnTop = true
-				bg.Parent      = NameESPFolder
-				local txt = Instance.new("TextLabel", bg)
-				txt.Size                   = UDim2.new(1,0,1,0)
-				txt.BackgroundTransparency = 1
-				txt.Text                   = plr.Name
-				txt.TextColor3             = Color3.fromRGB(255,255,255)
-				txt.TextStrokeColor3       = Color3.new(0,0,0)
-				txt.TextStrokeTransparency = 0
-				txt.Font                   = Enum.Font.Arcade
-				txt.TextScaled             = true
-			end
-			if plr.Character then task.spawn(apply, plr.Character) end
-			table.insert(nameConns, plr.CharacterAdded:Connect(function(char)
-				task.wait(0.5); apply(char)
-			end))
-		end
-
-		for _, p in Players:GetPlayers() do createNameTag(p) end
-		table.insert(nameConns, Players.PlayerAdded:Connect(createNameTag))
-	end
-})
-
--- ╔══════════════════════════════════════════════════════════╗
--- ║                  ESP NOMBRE + STUDS                     ║
--- ╚══════════════════════════════════════════════════════════╝
-local ESPEnabled    = false
-local ESPObjects    = {}
-local ESPConnection = nil
-local ESPStudsConns = {}
-
-local function createDistESP(player)
-	if player == LocalPlayer then return end
-	if ESPObjects[player] then ESPObjects[player].Gui:Destroy(); ESPObjects[player] = nil end
-	
-	local billboard = Instance.new("BillboardGui")
-	billboard.Size        = UDim2.new(0,120,0,36)
-	billboard.AlwaysOnTop = true
-	billboard.StudsOffset = Vector3.new(0,3,0)
-	local nameLabel = Instance.new("TextLabel", billboard)
-	nameLabel.Size                   = UDim2.new(1,0,0.5,0)
-	nameLabel.BackgroundTransparency = 1
-	nameLabel.TextColor3             = Color3.fromRGB(255,255,255)
-	nameLabel.TextStrokeTransparency = 0
-	nameLabel.TextScaled             = true
-	nameLabel.Text                   = player.Name
-	local distLabel = Instance.new("TextLabel", billboard)
-	distLabel.Size                   = UDim2.new(1,0,0.5,0)
-	distLabel.Position               = UDim2.new(0,0,0.5,0)
-	distLabel.BackgroundTransparency = 1
-	distLabel.TextColor3             = Color3.fromRGB(200,200,200)
-	distLabel.TextStrokeTransparency = 0.2
-	distLabel.TextScaled             = true
-	ESPObjects[player] = {Gui=billboard, Name=nameLabel, Dist=distLabel, LastDist = -1} 
-end
-
-Tabs.Main:AddToggle("ESPStuds", {
-	Title   = "ESP Nombre + Studs",
-	Default = false,
-	Callback = function(v)
-		ESPEnabled = v
-		
-		for _, c in ipairs(ESPStudsConns) do c:Disconnect() end
-		ESPStudsConns = {}
-		
-		for _, p in pairs(Players:GetPlayers()) do
-			if v then
-				createDistESP(p)
-				table.insert(ESPStudsConns, p.CharacterAdded:Connect(function()
-					task.wait(0.5)
-					if ESPEnabled then createDistESP(p) end
-				end))
-			else
-				if ESPObjects[p] then ESPObjects[p].Gui:Destroy(); ESPObjects[p] = nil end
-			end
-		end
-		
-		table.insert(ESPStudsConns, Players.PlayerAdded:Connect(function(p)
-			if ESPEnabled then
-				createDistESP(p)
-				table.insert(ESPStudsConns, p.CharacterAdded:Connect(function()
-					task.wait(0.5)
-					if ESPEnabled then createDistESP(p) end
-				end))
-			end
-		end))
-		
-		table.insert(ESPStudsConns, Players.PlayerRemoving:Connect(function(p)
-			if ESPObjects[p] then ESPObjects[p].Gui:Destroy(); ESPObjects[p] = nil end
-		end))
-		
-		if v and not ESPConnection then
-			ESPConnection = RunService.RenderStepped:Connect(function()
-				local myChar = LocalPlayer.Character
-				local myHRP  = myChar and myChar:FindFirstChild("HumanoidRootPart")
-				if not myHRP then return end
-				
-				for player, data in pairs(ESPObjects) do
-					local char = player.Character
-					local hrp  = char and char:FindFirstChild("HumanoidRootPart")
-					if hrp then
-						if data.Gui.Parent ~= hrp then data.Gui.Parent = hrp end
-						local dist = math.floor((myHRP.Position - hrp.Position).Magnitude)
-						if data.LastDist ~= dist then
-							data.LastDist = dist
-							data.Dist.Text = dist.." studs"
-							local scale = math.clamp(2-(dist/500), 0.4, 2)
-							data.Gui.Size = UDim2.new(0, 120*scale, 0, 36*scale)
-						end
-					else
-						if data.Gui.Parent ~= nil then data.Gui.Parent = nil end
-					end
-				end
-			end)
-		elseif not v and ESPConnection then
-			ESPConnection:Disconnect(); ESPConnection = nil
-		end
-	end		
-})
 
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                  HITBOX EXPANDER                        ║
@@ -618,46 +490,6 @@ Tabs.Main:AddButton({
 	end
 })
 
--- ╔══════════════════════════════════════════════════════════╗
--- ║                       BOTONES                           ║
--- ╚══════════════════════════════════════════════════════════╝
-local KeepClickTP = false
-
-local function GiveClickTP()
-	if not LocalPlayer.Backpack:FindFirstChild("Click TP") and LocalPlayer.Character then
-		local tool = Instance.new("Tool")
-		tool.RequiresHandle = false
-		tool.Name = "Click TP"
-		tool.ToolTip = "Haz click en cualquier lado para teletransportarte"
-		
-		tool.Activated:Connect(function()
-			local pos = Mouse.Hit.Position
-			local char = LocalPlayer.Character
-			if char and char:FindFirstChild("HumanoidRootPart") then
-				char:PivotTo(CFrame.new(pos + Vector3.new(0, 3, 0)))
-			end
-		end)
-		
-		tool.Parent = LocalPlayer.Backpack
-	end
-end
-
-Tabs.Main:AddToggle("AutoClickTP", {
-	Title   = "Click TP (Auto Equipar)",
-	Default = false,
-	Callback = function(v)
-		KeepClickTP = v
-		if v then
-			GiveClickTP()
-			Fluent:Notify({Title="Herramienta", Content="Click TP Activado", Duration=1.5})
-		else
-			local char = LocalPlayer.Character
-			local tool = LocalPlayer.Backpack:FindFirstChild("Click TP") or (char and char:FindFirstChild("Click TP"))
-			if tool then tool:Destroy() end
-		end
-	end
-})
-
 Tabs.Main:AddButton({
 	Title    = "Force Reset",
 	Callback = function() pcall(function() LocalPlayer.Character:BreakJoints() end) end
@@ -684,79 +516,355 @@ Tabs.Main:AddButton({
 	end
 })
 
-local FreecamPart = nil
-local FC_Loop = nil
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                     ESP TAB                             ║
+-- ╚══════════════════════════════════════════════════════════╝
 
-Tabs.Main:AddToggle("Freecam", {
-	Title   = "Freecam (Cámara Libre)",
+local ESPFillColor    = Color3.fromRGB(175, 25, 255)
+local ESPOutlineColor = Color3.fromRGB(175, 25, 255)
+local ESPConns        = {}
+local ESPStorage      = nil
+
+local function SetupHighlightESP(Value)
+	if ESPStorage then ESPStorage:Destroy(); ESPStorage = nil end
+	for _, c in pairs(ESPConns) do c:Disconnect() end
+	ESPConns = {}
+	if not Value then return end
+
+	ESPStorage = Instance.new("Folder")
+	ESPStorage.Name   = "Highlight_Storage"
+	ESPStorage.Parent = CoreGui
+
+	local function Highlight(plr)
+		if plr == LocalPlayer then return end
+		local function apply(char)
+			if ESPStorage:FindFirstChild(plr.Name) then ESPStorage[plr.Name]:Destroy() end
+			local h = Instance.new("Highlight")
+			h.Name                = plr.Name
+			h.DepthMode           = "AlwaysOnTop"
+			h.FillColor           = ESPFillColor
+			h.OutlineColor        = ESPOutlineColor
+			h.FillTransparency    = 0.5
+			h.OutlineTransparency = 0
+			h.Adornee             = char
+			h.Parent              = ESPStorage
+		end
+		if plr.Character then apply(plr.Character) end
+		ESPConns[plr] = plr.CharacterAdded:Connect(function(char)
+			task.wait(0.5); apply(char)
+		end)
+	end
+
+	for _, p in ipairs(Players:GetPlayers()) do Highlight(p) end
+	ESPConns["Added"]   = Players.PlayerAdded:Connect(Highlight)
+	ESPConns["Removed"] = Players.PlayerRemoving:Connect(function(plr)
+		if ESPStorage:FindFirstChild(plr.Name) then ESPStorage[plr.Name]:Destroy() end
+		if ESPConns[plr] then ESPConns[plr]:Disconnect() end
+	end)
+end
+
+Tabs.ESP:AddToggle("ESP", {
+	Title   = "ESP (Highlight)",
+	Default = false,
+	Callback = SetupHighlightESP
+})
+
+-- Nombres ESP
+local NameESPFolder = nil
+local nameConns     = {}
+
+Tabs.ESP:AddToggle("ESPNombres", {
+	Title   = "ESP Nombres",
+	Default = false,
+	Callback = function(enabled)
+		if NameESPFolder then NameESPFolder:Destroy(); NameESPFolder = nil end
+		for _, c in ipairs(nameConns) do c:Disconnect() end
+		nameConns = {}
+		if not enabled then return end
+
+		NameESPFolder        = Instance.new("Folder")
+		NameESPFolder.Name   = "NameESP_Storage"
+		NameESPFolder.Parent = CoreGui
+
+		local function createNameTag(plr)
+			if plr == LocalPlayer then return end
+			local function apply(char)
+				local head = char:WaitForChild("Head", 5)
+				if not head or not NameESPFolder then return end
+				if NameESPFolder:FindFirstChild(plr.Name) then NameESPFolder[plr.Name]:Destroy() end
+				local bg = Instance.new("BillboardGui")
+				bg.Name        = plr.Name
+				bg.Adornee     = head
+				bg.Size        = UDim2.new(0,140,0,26)
+				bg.StudsOffset = Vector3.new(0,3,0)
+				bg.AlwaysOnTop = true
+				bg.Parent      = NameESPFolder
+				local txt = Instance.new("TextLabel", bg)
+				txt.Size                   = UDim2.new(1,0,1,0)
+				txt.BackgroundTransparency = 1
+				txt.Text                   = plr.Name
+				txt.TextColor3             = Color3.fromRGB(255,255,255)
+				txt.TextStrokeColor3       = Color3.new(0,0,0)
+				txt.TextStrokeTransparency = 0
+				txt.Font                   = Enum.Font.Arcade
+				txt.TextScaled             = true
+			end
+			if plr.Character then task.spawn(apply, plr.Character) end
+			table.insert(nameConns, plr.CharacterAdded:Connect(function(char)
+				task.wait(0.5); apply(char)
+			end))
+		end
+
+		for _, p in Players:GetPlayers() do createNameTag(p) end
+		table.insert(nameConns, Players.PlayerAdded:Connect(createNameTag))
+	end
+})
+
+-- Nombres + Studs
+local ESPEnabled    = false
+local ESPObjects    = {}
+local ESPConnection = nil
+local ESPStudsConns = {}
+
+local function createDistESP(player)
+	if player == LocalPlayer then return end
+	if ESPObjects[player] then ESPObjects[player].Gui:Destroy(); ESPObjects[player] = nil end
+	
+	local billboard = Instance.new("BillboardGui")
+	billboard.Size        = UDim2.new(0,120,0,36)
+	billboard.AlwaysOnTop = true
+	billboard.StudsOffset = Vector3.new(0,3,0)
+	local nameLabel = Instance.new("TextLabel", billboard)
+	nameLabel.Size                   = UDim2.new(1,0,0.5,0)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.TextColor3             = Color3.fromRGB(255,255,255)
+	nameLabel.TextStrokeTransparency = 0
+	nameLabel.TextScaled             = true
+	nameLabel.Text                   = player.Name
+	local distLabel = Instance.new("TextLabel", billboard)
+	distLabel.Size                   = UDim2.new(1,0,0.5,0)
+	distLabel.Position               = UDim2.new(0,0,0.5,0)
+	distLabel.BackgroundTransparency = 1
+	distLabel.TextColor3             = Color3.fromRGB(200,200,200)
+	distLabel.TextStrokeTransparency = 0.2
+	distLabel.TextScaled             = true
+	ESPObjects[player] = {Gui=billboard, Name=nameLabel, Dist=distLabel, LastDist = -1} 
+end
+
+Tabs.ESP:AddToggle("ESPStuds", {
+	Title   = "ESP Nombre + Studs",
 	Default = false,
 	Callback = function(v)
-		if v then
-			if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-			
-			FreecamPart = Instance.new("Part")
-			FreecamPart.Size = Vector3.new(1, 1, 1)
-			FreecamPart.Transparency = 1
-			FreecamPart.Anchored = true
-			FreecamPart.CanCollide = false
-			FreecamPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
-			FreecamPart.Parent = workspace
-			
-			workspace.CurrentCamera.CameraSubject = FreecamPart
-			
-			FC_Loop = RunService.RenderStepped:Connect(function()
-				local cam = workspace.CurrentCamera
-				local move = Vector3.new()
-				
-				if UserInputService:IsKeyDown(Enum.KeyCode.W) then move = move + cam.CFrame.LookVector end
-				if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - cam.CFrame.LookVector end
-				if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - cam.CFrame.RightVector end
-				if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + cam.CFrame.RightVector end
-				if UserInputService:IsKeyDown(Enum.KeyCode.E) then move = move + Vector3.new(0,1,0) end
-				if UserInputService:IsKeyDown(Enum.KeyCode.Q) then move = move - Vector3.new(0,1,0) end
-				
-				FreecamPart.CFrame = FreecamPart.CFrame + (move * 3)
+		ESPEnabled = v
+		for _, c in ipairs(ESPStudsConns) do c:Disconnect() end
+		ESPStudsConns = {}
+		for _, p in pairs(Players:GetPlayers()) do
+			if v then
+				createDistESP(p)
+				table.insert(ESPStudsConns, p.CharacterAdded:Connect(function()
+					task.wait(0.5)
+					if ESPEnabled then createDistESP(p) end
+				end))
+			else
+				if ESPObjects[p] then ESPObjects[p].Gui:Destroy(); ESPObjects[p] = nil end
+			end
+		end
+		table.insert(ESPStudsConns, Players.PlayerAdded:Connect(function(p)
+			if ESPEnabled then
+				createDistESP(p)
+				table.insert(ESPStudsConns, p.CharacterAdded:Connect(function()
+					task.wait(0.5)
+					if ESPEnabled then createDistESP(p) end
+				end))
+			end
+		end))
+		table.insert(ESPStudsConns, Players.PlayerRemoving:Connect(function(p)
+			if ESPObjects[p] then ESPObjects[p].Gui:Destroy(); ESPObjects[p] = nil end
+		end))
+		if v and not ESPConnection then
+			ESPConnection = RunService.RenderStepped:Connect(function()
+				local myChar = LocalPlayer.Character
+				local myHRP  = myChar and myChar:FindFirstChild("HumanoidRootPart")
+				if not myHRP then return end
+				for player, data in pairs(ESPObjects) do
+					local char = player.Character
+					local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+					if hrp then
+						if data.Gui.Parent ~= hrp then data.Gui.Parent = hrp end
+						local dist = math.floor((myHRP.Position - hrp.Position).Magnitude)
+						if data.LastDist ~= dist then
+							data.LastDist = dist
+							data.Dist.Text = dist.." studs"
+							local scale = math.clamp(2-(dist/500), 0.4, 2)
+							data.Gui.Size = UDim2.new(0, 120*scale, 0, 36*scale)
+						end
+					else
+						if data.Gui.Parent ~= nil then data.Gui.Parent = nil end
+					end
+				end
 			end)
-		else
-			if FC_Loop then FC_Loop:Disconnect(); FC_Loop = nil end
-			if FreecamPart then FreecamPart:Destroy(); FreecamPart = nil end
-			if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-				workspace.CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
-			end
+		elseif not v and ESPConnection then
+			ESPConnection:Disconnect(); ESPConnection = nil
 		end
-	end
+	end		
 })
 
-local OriginalLighting = {}
-local Lighting = game:GetService("Lighting")
+-- Box ESP
+local BoxESPEnabled = false
+local BoxESPObjects = {}
+local BoxESPConnection = nil
 
-Tabs.Main:AddToggle("Fullbright", {
-	Title   = "Fullbright (Visión Nocturna)",
-	Default = false,
-	Callback = function(v)
-		if v then
-			OriginalLighting.Ambient = Lighting.Ambient
-			OriginalLighting.OutdoorAmbient = Lighting.OutdoorAmbient
-			OriginalLighting.Brightness = Lighting.Brightness
-			OriginalLighting.GlobalShadows = Lighting.GlobalShadows
-			
-			Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-			Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
-			Lighting.Brightness = 1
-			Lighting.GlobalShadows = false
-		else
-			if OriginalLighting.Ambient then
-				Lighting.Ambient = OriginalLighting.Ambient
-				Lighting.OutdoorAmbient = OriginalLighting.OutdoorAmbient
-				Lighting.Brightness = OriginalLighting.Brightness
-				Lighting.GlobalShadows = OriginalLighting.GlobalShadows
-			end
-		end
-	end
+local function CreateBoxESP(plr)
+    if plr == LocalPlayer then return end
+    if BoxESPObjects[plr] then return end
+    local box = Drawing.new("Square")
+    box.Visible = false
+    box.Color = Color3.fromRGB(175, 25, 255)
+    box.Thickness = 1
+    box.Filled = false
+    box.Transparency = 1
+    BoxESPObjects[plr] = box
+end
+
+local function RemoveBoxESP(plr)
+    if BoxESPObjects[plr] then
+        BoxESPObjects[plr]:Remove()
+        BoxESPObjects[plr] = nil
+    end
+end
+
+Tabs.ESP:AddToggle("BoxESP", {
+    Title   = "Box ESP (Cajas)",
+    Default = false,
+    Callback = function(v)
+        BoxESPEnabled = v
+        if v then
+            for _, p in pairs(Players:GetPlayers()) do CreateBoxESP(p) end
+            if not BoxESPConnection then
+                BoxESPConnection = RunService.RenderStepped:Connect(function()
+                    for p, box in pairs(BoxESPObjects) do
+                        if p and p.Character and IsAlive(p) and p ~= LocalPlayer then
+                            local root = p.Character:FindFirstChild("HumanoidRootPart")
+                            if root then
+                                local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+                                if onScreen then
+                                    local distance = (Camera.CFrame.Position - root.Position).Magnitude
+                                    local factor = 1 / (distance / 3)
+                                    local w, h = 1000 * factor, 1500 * factor
+                                    box.Size = Vector2.new(w, h)
+                                    box.Position = Vector2.new(pos.X - w/2, pos.Y - h/2)
+                                    box.Visible = true
+                                else
+                                    box.Visible = false
+                                end
+                            else
+                                box.Visible = false
+                            end
+                        else
+                            box.Visible = false
+                        end
+                    end
+                end)
+            end
+        else
+            if BoxESPConnection then BoxESPConnection:Disconnect(); BoxESPConnection = nil end
+            for p, box in pairs(BoxESPObjects) do box.Visible = false end
+        end
+    end
 })
+
+Players.PlayerAdded:Connect(CreateBoxESP)
+Players.PlayerRemoving:Connect(RemoveBoxESP)
+
+-- Health ESP
+local HealthESPEnabled = false
+local HealthESPObjects = {}
+local HealthESPConnection = nil
+
+local function CreateHealthESP(plr)
+    if plr == LocalPlayer then return end
+    if HealthESPObjects[plr] then return end
+    local barBg = Drawing.new("Square")
+    barBg.Visible = false
+    barBg.Color = Color3.new(0, 0, 0)
+    barBg.Thickness = 1
+    barBg.Filled = true
+    barBg.Transparency = 0.5
+    local bar = Drawing.new("Square")
+    bar.Visible = false
+    bar.Color = Color3.new(0, 1, 0)
+    bar.Thickness = 1
+    bar.Filled = true
+    bar.Transparency = 1
+    HealthESPObjects[plr] = {Bg = barBg, Bar = bar}
+end
+
+local function RemoveHealthESP(plr)
+    if HealthESPObjects[plr] then
+        HealthESPObjects[plr].Bg:Remove()
+        HealthESPObjects[plr].Bar:Remove()
+        HealthESPObjects[plr] = nil
+    end
+end
+
+Tabs.ESP:AddToggle("HealthESP", {
+    Title   = "Health ESP",
+    Default = false,
+    Callback = function(v)
+        HealthESPEnabled = v
+        if v then
+            for _, p in pairs(Players:GetPlayers()) do CreateHealthESP(p) end
+            if not HealthESPConnection then
+                HealthESPConnection = RunService.RenderStepped:Connect(function()
+                    for p, data in pairs(HealthESPObjects) do
+                        if p and p.Character and IsAlive(p) and p ~= LocalPlayer then
+                            local root = p.Character:FindFirstChild("HumanoidRootPart")
+                            local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                            if root and hum then
+                                local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+                                if onScreen then
+                                    local distance = (Camera.CFrame.Position - root.Position).Magnitude
+                                    local factor = 1 / (distance / 3)
+                                    local w, h = 1000 * factor, 1500 * factor
+                                    local healthPct = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
+                                    local barColor = Color3.new(1 - healthPct, healthPct, 0)
+                                    data.Bg.Size = Vector2.new(4, h)
+                                    data.Bg.Position = Vector2.new(pos.X - w/2 - 6, pos.Y - h/2)
+                                    data.Bg.Visible = true
+                                    data.Bar.Size = Vector2.new(2, h * healthPct)
+                                    data.Bar.Position = Vector2.new(pos.X - w/2 - 5, (pos.Y - h/2) + (h - (h * healthPct)))
+                                    data.Bar.Color = barColor
+                                    data.Bar.Visible = true
+                                else
+                                    data.Bg.Visible = false
+                                    data.Bar.Visible = false
+                                end
+                            else
+                                data.Bg.Visible = false
+                                data.Bar.Visible = false
+                            end
+                        else
+                            data.Bg.Visible = false
+                            data.Bar.Visible = false
+                        end
+                    end
+                end)
+            end
+        else
+            if HealthESPConnection then HealthESPConnection:Disconnect(); HealthESPConnection = nil end
+            for p, data in pairs(HealthESPObjects) do
+                data.Bg.Visible = false
+                data.Bar.Visible = false
+            end
+        end
+    end
+})
+
+Players.PlayerAdded:Connect(CreateHealthESP)
+Players.PlayerRemoving:Connect(RemoveHealthESP)
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║                       AIMLOCK                           ║
+-- ║                       AIMLOCK TAB                       ║
 -- ╚══════════════════════════════════════════════════════════╝
 getgenv().Aimlock = { Enabled=false, ToggleOn=false }
 
@@ -785,7 +893,6 @@ end
 
 local function GetAimPart(char)
 	if not char then return nil end
-	
 	if AimConfig.AimPart == "Head" then
 		return char:FindFirstChild("Head") or char:FindFirstChildWhichIsA("BasePart")
 	elseif AimConfig.AimPart == "Torso" then
@@ -837,13 +944,10 @@ local function UpdateSmartESP()
 	if FrameCounter % 3 == 0 then
 		local origin = Camera.CFrame.Position
 		local dir = (head.Position - origin).Unit * 1500 
-		
 		if SmartRayParams.FilterDescendantsInstances[1] ~= LocalPlayer.Character then
 			SmartRayParams.FilterDescendantsInstances = {LocalPlayer.Character}
 		end
-		
 		local r = workspace:Raycast(origin, dir, SmartRayParams)
-		
 		if r then
 			if r.Instance:IsDescendantOf(char) then
 				SmartHighlight.FillColor = Color3.fromRGB(0, 255, 0)
@@ -987,122 +1091,11 @@ Tabs.Aimlock:AddParagraph({
     Content = "0.20 recomedado"
 })
 
--- [ TRIGGERBOT ]
-local TriggerbotLoop = nil
-local isShooting = false
-local TriggerDelay = 0.05
-local TriggerTeamCheck = false
-local TriggerWallCheck = false
-
-local TriggerRayParams = RaycastParams.new()
-TriggerRayParams.FilterType = Enum.RaycastFilterType.Exclude
-TriggerRayParams.IgnoreWater = true
-
-local function IsSameTeam(plr)
-	if not plr then return false end
-	if plr == LocalPlayer then return true end
-
-	if plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then return true end
-	if plr.TeamColor and LocalPlayer.TeamColor and plr.TeamColor == LocalPlayer.TeamColor and tostring(plr.TeamColor) ~= "White" then return true end
-
-	for _, valName in ipairs({"Team", "TeamName", "Role", "role", "DefusalTeam"}) do
-		local myVal = LocalPlayer:FindFirstChild(valName)
-		local enVal = plr:FindFirstChild(valName)
-		if myVal and enVal and myVal.ClassName == enVal.ClassName and myVal.Value == enVal.Value then return true end
-		
-		local myAttr = LocalPlayer:GetAttribute(valName)
-		local enAttr = plr:GetAttribute(valName)
-		if myAttr ~= nil and enAttr ~= nil and myAttr == enAttr then return true end
-	end
-	
-	local myChar = LocalPlayer.Character
-	local enChar = plr.Character
-	if myChar and enChar then
-		if myChar.Parent == enChar.Parent and myChar.Parent ~= workspace then return true end
-		for _, valName in ipairs({"Team", "TeamName"}) do
-			local myAttr = myChar:GetAttribute(valName)
-			local enAttr = enChar:GetAttribute(valName)
-			if myAttr ~= nil and enAttr ~= nil and myAttr == enAttr then return true end
-		end
-	end
-	
-	return false
-end
-
-
-Tabs.Aimlock:AddToggle("Triggerbot", {
-	Title   = "Triggerbot (Auto Disparo)",
-	Default = false,
-	Callback = function(v)
-		if v then
-			TriggerbotLoop = RunService.RenderStepped:Connect(function()
-				if isShooting then return end
-				local target = Mouse.Target
-				
-				if target and target.Parent then
-					local model = target.Parent
-					if model and not model:FindFirstChildOfClass("Humanoid") then
-						if model.Parent and model.Parent:FindFirstChildOfClass("Humanoid") then
-							model = model.Parent
-						end
-					end
-					
-					local targetHum = model:FindFirstChildOfClass("Humanoid")
-					if targetHum and model.Name ~= LocalPlayer.Name then
-						local targetPlr = Players:GetPlayerFromCharacter(model) or Players:FindFirstChild(model.Name)
-						
-						if TriggerTeamCheck and targetPlr and IsSameTeam(targetPlr) then return end
-						
-						if TriggerWallCheck then
-							if TriggerRayParams.FilterDescendantsInstances[1] ~= LocalPlayer.Character then
-								TriggerRayParams.FilterDescendantsInstances = {LocalPlayer.Character}
-							end
-							
-							local origin = Camera.CFrame.Position
-							local dir = (Mouse.Hit.Position - origin).Unit * 1500
-							local ray = workspace:Raycast(origin, dir, TriggerRayParams)
-							
-							if ray and not ray.Instance:IsDescendantOf(model) then
-								if ray.Instance.Transparency < 1 and ray.Instance.CanCollide then
-									return 
-								end
-							end
-						end
-						
-						isShooting = true
-						task.spawn(function()
-							if mouse1click then pcall(mouse1click) end
-							task.wait(TriggerDelay) 
-							isShooting = false
-						end)
-					end
-				end
-			end)
-		else
-			if TriggerbotLoop then TriggerbotLoop:Disconnect(); TriggerbotLoop = nil end
-		end
-	end
-})
-
-Tabs.Aimlock:AddToggle("TriggerTeam", {
-	Title   = "Triggerbot: Team Check",
-	Default = false,
-	Callback = function(v) TriggerTeamCheck = v end
-})
-
-Tabs.Aimlock:AddToggle("TriggerWall", {
-	Title   = "Triggerbot: Wall Check",
-	Default = false,
-	Callback = function(v) TriggerWallCheck = v end
-})
-
-Tabs.Aimlock:AddSlider("TriggerDelay", {
-	Title    = "Retraso del Triggerbot",
-	Min      = 0.01,
-	Max      = 0.5,
-	Default  = 0.05,
-	Rounding = 2,
-	Callback = function(v) TriggerDelay = v end
+Tabs.Aimlock:AddDropdown("AimPart", {
+	Title   = "Aim Part Priority",
+	Values  = {"Head","Torso","Auto"},
+	Default = "Head",
+	Callback = function(v) AimConfig.AimPart = v end
 })
 
 Tabs.Aimlock:AddToggle("SmartESP", {
@@ -1111,12 +1104,69 @@ Tabs.Aimlock:AddToggle("SmartESP", {
 	Callback = function(v) SmartESPEnabled = v end
 })
 
-Tabs.Aimlock:AddDropdown("AimPart", {
-	Title   = "Aim Part Priority",
-	Values  = {"Head","Torso","Auto"},
-	Default = "Head",
-	Callback = function(v) AimConfig.AimPart = v end
+-- Tracers
+local TracersEnabled = false
+local TracersObjects = {}
+local TracersConnection = nil
+
+local function CreateTracer(plr)
+    if plr == LocalPlayer then return end
+    if TracersObjects[plr] then return end
+    local line = Drawing.new("Line")
+    line.Visible = false
+    line.Color = Color3.fromRGB(175, 25, 255)
+    line.Thickness = 1
+    line.Transparency = 1
+    TracersObjects[plr] = line
+end
+
+local function RemoveTracer(plr)
+    if TracersObjects[plr] then
+        TracersObjects[plr]:Remove()
+        TracersObjects[plr] = nil
+    end
+end
+
+Tabs.Aimlock:AddToggle("Tracers", {
+    Title   = "Tracers (Líneas al jugador)",
+    Default = false,
+    Callback = function(v)
+        TracersEnabled = v
+        if v then
+            for _, p in pairs(Players:GetPlayers()) do CreateTracer(p) end
+            if not TracersConnection then
+                TracersConnection = RunService.RenderStepped:Connect(function()
+                    local mousePos = UserInputService:GetMouseLocation()
+                    for p, line in pairs(TracersObjects) do
+                        if p and p.Character and IsAlive(p) and p ~= LocalPlayer then
+                            local root = p.Character:FindFirstChild("HumanoidRootPart")
+                            if root then
+                                local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+                                if onScreen then
+                                    line.From = mousePos
+                                    line.To = Vector2.new(pos.X, pos.Y)
+                                    line.Visible = true
+                                else
+                                    line.Visible = false
+                                end
+                            else
+                                line.Visible = false
+                            end
+                        else
+                            line.Visible = false
+                        end
+                    end
+                end)
+            end
+        else
+            if TracersConnection then TracersConnection:Disconnect(); TracersConnection = nil end
+            for p, line in pairs(TracersObjects) do line.Visible = false end
+        end
+    end
 })
+
+Players.PlayerAdded:Connect(CreateTracer)
+Players.PlayerRemoving:Connect(RemoveTracer)
 
 Tabs.Aimlock:AddSlider("MaxDist", {
 	Title    = "Max Distance",
@@ -1149,25 +1199,289 @@ Tabs.Aimlock:AddToggle("UseFOV", {
 })
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║                    SCRIPTS TAB                          ║
+-- ║                     SILENT AIM TAB                      ║
 -- ╚══════════════════════════════════════════════════════════╝
-Tabs.Troll:AddButton({
-	Title    = "flingmierda",
-	Callback = function()
-		loadstring(game:HttpGet("https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt"))()
+local SilentAimEnabled = false
+local OldNamecall
+
+if hookmetamethod and getnamecallmethod and checkcaller then
+    OldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+        if SilentAimEnabled and not checkcaller() and (method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRayWithWhitelist" or method == "FindPartOnRay" or method == "Raycast") then
+            local closestPlayer = GetClosest()
+            if closestPlayer and closestPlayer.Character then
+                local part = GetAimPart(closestPlayer.Character)
+                if part then
+                    if method == "Raycast" then
+                        args[2] = (part.Position - args[1]).Unit * args[2].Magnitude
+                    elseif method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRayWithWhitelist" or method == "FindPartOnRay" then
+                        args[1] = Ray.new(args[1].Origin, (part.Position - args[1].Origin).Unit * args[1].Direction.Magnitude)
+                    end
+                end
+            end
+        end
+        return OldNamecall(self, unpack(args))
+    end)
+end
+
+Tabs.SilentAim:AddToggle("SilentAim", {
+    Title   = "Silent Aim",
+    Default = false,
+    Callback = function(v) SilentAimEnabled = v end
+})
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                     TRIGGERBOT TAB                      ║
+-- ╚══════════════════════════════════════════════════════════╝
+local TriggerbotLoop = nil
+local isShooting = false
+local TriggerDelay = 0.05
+local TriggerTeamCheck = false
+local TriggerWallCheck = false
+
+local TriggerRayParams = RaycastParams.new()
+TriggerRayParams.FilterType = Enum.RaycastFilterType.Exclude
+TriggerRayParams.IgnoreWater = true
+
+local function IsSameTeam(plr)
+	if not plr then return false end
+	if plr == LocalPlayer then return true end
+	if plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then return true end
+	if plr.TeamColor and LocalPlayer.TeamColor and plr.TeamColor == LocalPlayer.TeamColor and tostring(plr.TeamColor) ~= "White" then return true end
+
+	for _, valName in ipairs({"Team", "TeamName", "Role", "role", "DefusalTeam"}) do
+		local myVal = LocalPlayer:FindFirstChild(valName)
+		local enVal = plr:FindFirstChild(valName)
+		if myVal and enVal and myVal.ClassName == enVal.ClassName and myVal.Value == enVal.Value then return true end
+		
+		local myAttr = LocalPlayer:GetAttribute(valName)
+		local enAttr = plr:GetAttribute(valName)
+		if myAttr ~= nil and enAttr ~= nil and myAttr == enAttr then return true end
+	end
+	
+	local myChar = LocalPlayer.Character
+	local enChar = plr.Character
+	if myChar and enChar then
+		if myChar.Parent == enChar.Parent and myChar.Parent ~= workspace then return true end
+		for _, valName in ipairs({"Team", "TeamName"}) do
+			local myAttr = myChar:GetAttribute(valName)
+			local enAttr = enChar:GetAttribute(valName)
+			if myAttr ~= nil and enAttr ~= nil and myAttr == enAttr then return true end
+		end
+	end
+	return false
+end
+
+Tabs.Triggerbot:AddToggle("Triggerbot", {
+	Title   = "Triggerbot (Auto Disparo)",
+	Default = false,
+	Callback = function(v)
+		if v then
+			TriggerbotLoop = RunService.RenderStepped:Connect(function()
+				if isShooting then return end
+				local target = Mouse.Target
+				if target and target.Parent then
+					local model = target.Parent
+					if model and not model:FindFirstChildOfClass("Humanoid") then
+						if model.Parent and model.Parent:FindFirstChildOfClass("Humanoid") then
+							model = model.Parent
+						end
+					end
+					local targetHum = model:FindFirstChildOfClass("Humanoid")
+					if targetHum and model.Name ~= LocalPlayer.Name then
+						local targetPlr = Players:GetPlayerFromCharacter(model) or Players:FindFirstChild(model.Name)
+						if TriggerTeamCheck and targetPlr and IsSameTeam(targetPlr) then return end
+						if TriggerWallCheck then
+							if TriggerRayParams.FilterDescendantsInstances[1] ~= LocalPlayer.Character then
+								TriggerRayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+							end
+							local origin = Camera.CFrame.Position
+							local dir = (Mouse.Hit.Position - origin).Unit * 1500
+							local ray = workspace:Raycast(origin, dir, TriggerRayParams)
+							if ray and not ray.Instance:IsDescendantOf(model) then
+								if ray.Instance.Transparency < 1 and ray.Instance.CanCollide then return end
+							end
+						end
+						isShooting = true
+						task.spawn(function()
+							if mouse1click then pcall(mouse1click) end
+							task.wait(TriggerDelay) 
+							isShooting = false
+						end)
+					end
+				end
+			end)
+		else
+			if TriggerbotLoop then TriggerbotLoop:Disconnect(); TriggerbotLoop = nil end
+		end
 	end
 })
 
-Tabs.Troll:AddButton({
-	Title    = "invisible",
-	Callback = function()
-		loadstring(game:HttpGet('https://pastebin.com/raw/3Rnd9rHf'))()
+Tabs.Triggerbot:AddToggle("TriggerTeam", {
+	Title   = "Team Check",
+	Default = false,
+	Callback = function(v) TriggerTeamCheck = v end
+})
+
+Tabs.Triggerbot:AddToggle("TriggerWall", {
+	Title   = "Wall Check",
+	Default = false,
+	Callback = function(v) TriggerWallCheck = v end
+})
+
+Tabs.Triggerbot:AddSlider("TriggerDelay", {
+	Title    = "Retraso de Disparo",
+	Min      = 0.01,
+	Max      = 0.5,
+	Default  = 0.05,
+	Rounding = 2,
+	Callback = function(v) TriggerDelay = v end
+})
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                       EXTRAS TAB                        ║
+-- ╚══════════════════════════════════════════════════════════╝
+local FOVToggleEnabled = false
+local TargetFOV = 70
+local OriginalFOV = 70
+local FOVLoop = nil
+
+Tabs.Extras:AddToggle("FOVChangerToggle", {
+    Title   = "FOV Changer",
+    Default = false,
+    Callback = function(v)
+        FOVToggleEnabled = v
+        if v then
+            OriginalFOV = Camera.FieldOfView
+            FOVLoop = RunService.RenderStepped:Connect(function()
+                Camera.FieldOfView = TargetFOV
+            end)
+        else
+            if FOVLoop then FOVLoop:Disconnect(); FOVLoop = nil end
+            Camera.FieldOfView = OriginalFOV
+        end
+    end
+})
+
+Tabs.Extras:AddSlider("FOVChangerSlider", {
+    Title    = "Field of View",
+    Min      = 1,
+    Max      = 120,
+    Default  = 70,
+    Rounding = 0,
+    Callback = function(v) TargetFOV = v end
+})
+
+local KeepClickTP = false
+
+local function GiveClickTP()
+	if not LocalPlayer.Backpack:FindFirstChild("Click TP") and LocalPlayer.Character then
+		local tool = Instance.new("Tool")
+		tool.RequiresHandle = false
+		tool.Name = "Click TP"
+		tool.ToolTip = "Haz click en cualquier lado para teletransportarte"
+		tool.Activated:Connect(function()
+            local params = RaycastParams.new()
+            params.FilterType = Enum.RaycastFilterType.Exclude
+            params.FilterDescendantsInstances = {LocalPlayer.Character}
+            local unitRay = Mouse.UnitRay
+            local raycastResult = workspace:Raycast(unitRay.Origin, unitRay.Direction * 1000, params)
+            if raycastResult then
+                local pos = raycastResult.Position
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    char:PivotTo(CFrame.new(pos + Vector3.new(0, 3, 0)))
+                end
+            end
+		end)
+		tool.Parent = LocalPlayer.Backpack
+	end
+end
+
+Tabs.Extras:AddToggle("AutoClickTP", {
+	Title   = "Click TP (Auto Equipar)",
+	Default = false,
+	Callback = function(v)
+		KeepClickTP = v
+		if v then
+			GiveClickTP()
+			Fluent:Notify({Title="Herramienta", Content="Click TP Activado", Duration=1.5})
+		else
+			local char = LocalPlayer.Character
+			local tool = LocalPlayer.Backpack:FindFirstChild("Click TP") or (char and char:FindFirstChild("Click TP"))
+			if tool then tool:Destroy() end
+		end
+	end
+})
+
+local FreecamPart = nil
+local FC_Loop = nil
+
+Tabs.Extras:AddToggle("Freecam", {
+	Title   = "Freecam (Cámara Libre)",
+	Default = false,
+	Callback = function(v)
+		if v then
+			if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+			FreecamPart = Instance.new("Part")
+			FreecamPart.Size = Vector3.new(1, 1, 1)
+			FreecamPart.Transparency = 1
+			FreecamPart.Anchored = true
+			FreecamPart.CanCollide = false
+			FreecamPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+			FreecamPart.Parent = workspace
+			workspace.CurrentCamera.CameraSubject = FreecamPart
+			FC_Loop = RunService.RenderStepped:Connect(function()
+				local cam = workspace.CurrentCamera
+				local move = Vector3.new()
+				if UserInputService:IsKeyDown(Enum.KeyCode.W) then move = move + cam.CFrame.LookVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - cam.CFrame.LookVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - cam.CFrame.RightVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + cam.CFrame.RightVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.E) then move = move + Vector3.new(0,1,0) end
+				if UserInputService:IsKeyDown(Enum.KeyCode.Q) then move = move - Vector3.new(0,1,0) end
+				FreecamPart.CFrame = FreecamPart.CFrame + (move * 3)
+			end)
+		else
+			if FC_Loop then FC_Loop:Disconnect(); FC_Loop = nil end
+			if FreecamPart then FreecamPart:Destroy(); FreecamPart = nil end
+			if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+				workspace.CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
+			end
+		end
+	end
+})
+
+local OriginalLighting = {}
+local Lighting = game:GetService("Lighting")
+
+Tabs.Extras:AddToggle("Fullbright", {
+	Title   = "Fullbright (Visión Nocturna)",
+	Default = false,
+	Callback = function(v)
+		if v then
+			OriginalLighting.Ambient = Lighting.Ambient
+			OriginalLighting.OutdoorAmbient = Lighting.OutdoorAmbient
+			OriginalLighting.Brightness = Lighting.Brightness
+			OriginalLighting.GlobalShadows = Lighting.GlobalShadows
+			Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+			Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+			Lighting.Brightness = 1
+			Lighting.GlobalShadows = false
+		else
+			if OriginalLighting.Ambient then
+				Lighting.Ambient = OriginalLighting.Ambient
+				Lighting.OutdoorAmbient = OriginalLighting.OutdoorAmbient
+				Lighting.Brightness = OriginalLighting.Brightness
+				Lighting.GlobalShadows = OriginalLighting.GlobalShadows
+			end
+		end
 	end
 })
 
 local OriginalTransparencies = {}
-
-Tabs.Troll:AddToggle("XRay", {
+Tabs.Extras:AddToggle("XRay", {
 	Title   = "X-Ray (Paredes de Cristal)",
 	Default = false,
 	Callback = function(v)
@@ -1194,7 +1508,6 @@ Tabs.Troll:AddToggle("XRay", {
 })
 
 local KeepBTools = false
-
 local function GiveBTools()
 	if not LocalPlayer.Backpack:FindFirstChild("BTools") and LocalPlayer.Character then
 		local btools = Instance.new("HopperBin")
@@ -1204,14 +1517,14 @@ local function GiveBTools()
 	end
 end
 
-Tabs.Troll:AddToggle("AutoBTools", {
+Tabs.Extras:AddToggle("AutoBTools", {
 	Title   = "BTools (Auto Equipar)",
 	Default = false,
 	Callback = function(v)
 		KeepBTools = v
 		if v then
 			GiveBTools()
-			Fluent:Notify({Title="Troll", Content="BTools Activado", Duration=1.5})
+			Fluent:Notify({Title="Extras", Content="BTools Activado", Duration=1.5})
 		else
 			local char = LocalPlayer.Character
 			local btools = LocalPlayer.Backpack:FindFirstChild("BTools") or (char and char:FindFirstChild("BTools"))
@@ -1220,7 +1533,7 @@ Tabs.Troll:AddToggle("AutoBTools", {
 	end
 })
 
-Tabs.Troll:AddToggle("AntiFling", {
+Tabs.Extras:AddToggle("AntiFling", {
 	Title   = "Anti-Fling",
 	Default = false,
 	Callback = function(v)
@@ -1231,6 +1544,42 @@ Tabs.Troll:AddToggle("AntiFling", {
 	end
 })
 
+Tabs.Extras:AddButton({
+    Title    = "FPS Boost (Remover texturas)",
+    Callback = function()
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") and not v.Parent:FindFirstChild("Humanoid") then
+                v.Material = Enum.Material.SmoothPlastic
+            elseif v:IsA("Decal") or v:IsA("Texture") then
+                v:Destroy()
+            end
+        end
+        game:GetService("Lighting").GlobalShadows = false
+        Fluent:Notify({Title="Extras", Content="FPS Boost Activado (Texturas Removidas)", Duration=2})
+    end
+})
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                        TROLL TAB                        ║
+-- ╚══════════════════════════════════════════════════════════╝
+Tabs.Troll:AddButton({
+	Title    = "flingmierda",
+	Callback = function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt"))()
+	end
+})
+
+Tabs.Troll:AddButton({
+	Title    = "invisible",
+	Callback = function()
+		loadstring(game:HttpGet('https://pastebin.com/raw/3Rnd9rHf'))()
+	end
+})
+
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                      SETTINGS TAB                       ║
+-- ╚══════════════════════════════════════════════════════════╝
 Tabs.Settings:AddSlider("TimeOfDay", {
 	Title    = "Hora del Servidor (0 a 24)",
 	Min      = 0,
@@ -1241,7 +1590,6 @@ Tabs.Settings:AddSlider("TimeOfDay", {
 		game:GetService("Lighting").ClockTime = v
 	end
 })
-
 
 Window:SelectTab(1)
 
@@ -1261,3 +1609,4 @@ LocalPlayer.CharacterAdded:Connect(function()
 	if KeepClickTP then GiveClickTP() end
 	if KeepBTools then GiveBTools() end
 end)
+
