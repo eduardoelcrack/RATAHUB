@@ -1,5 +1,5 @@
 -- ============================================================
---  RATAHUB V2 |  by Bambi  |  Fluent UI
+--  RATAHUB V4 |  by Bambi  |  Fluent UI
 -- ============================================================
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
@@ -30,6 +30,7 @@ end
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                     FLUENT WINDOW                       ║
 -- ╚══════════════════════════════════════════════════════════╝
+
 local Window = Fluent:CreateWindow({
 	Title    = "RATAHUB",
 	SubTitle = "by Bambi",
@@ -55,6 +56,7 @@ local Options = Fluent.Options
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                         FLY                             ║
 -- ╚══════════════════════════════════════════════════════════╝
+
 local FlyToggleEnabled = false
 local FlyActive        = false
 local FlySpeed         = 140
@@ -165,7 +167,6 @@ end)
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                    INFINITE JUMP                        ║
 -- ╚══════════════════════════════════════════════════════════╝
-local InfiniteJumpEnabled = false
 Tabs.Main:AddToggle("InfJump", {
 	Title   = "Infinite Jump",
 	Default = false,
@@ -180,7 +181,7 @@ end)
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                      JUMP POWER                         ║
 -- ╚══════════════════════════════════════════════════════════╝
-local JumpPowerToggleEnabled = false
+
 local TargetJumpPower = 50
 local OriginalJumpPower = nil
 local JumpPowerLoop = nil
@@ -239,6 +240,7 @@ Tabs.Main:AddSlider("JPSlider", {
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                      WALKSPEED                          ║
 -- ╚══════════════════════════════════════════════════════════╝
+
 local WSToggleEnabled = false
 local WSActive        = false
 local TargetWalkSpeed = 140
@@ -304,6 +306,7 @@ end)
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                  HITBOX EXPANDER                        ║
 -- ╚══════════════════════════════════════════════════════════╝
+
 getgenv().HBE        = false
 getgenv().HitboxSize = 5
 
@@ -346,7 +349,6 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
--- ⚠️ ESTA ES LA MAGIA ANTI-LAG FÍSICO ⚠️
 RunService.Stepped:Connect(function()
 	if not getgenv().HBE then return end
 	for _, p in pairs(Players:GetPlayers()) do
@@ -366,7 +368,7 @@ Tabs.Main:AddToggle("HBE", {
 })
 
 Tabs.Main:AddSlider("HBESize", {
-	Title    = "Tamaño del Hitbox",
+	Title    = "TamaÃ±o del Hitbox",
 	Min      = 1,
 	Max      = 150,
 	Default  = 5,
@@ -375,8 +377,9 @@ Tabs.Main:AddSlider("HBESize", {
 })
 
 -- ╔══════════════════════════════════════════════════════════╗
--- ║                  NOCLIP (Sin Lag / Optimizado)          ║
+-- ║                       NOCLIP                             ║
 -- ╚══════════════════════════════════════════════════════════╝
+
 local noclipEnabled    = false
 local noclipConnection = nil
 local noclipAddedConn  = nil
@@ -865,6 +868,7 @@ Players.PlayerRemoving:Connect(RemoveHealthESP)
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                       AIMLOCK TAB                       ║
 -- ╚══════════════════════════════════════════════════════════╝
+
 getgenv().Aimlock = { Enabled=false, ToggleOn=false }
 
 local AimConfig = {
@@ -1103,18 +1107,17 @@ Tabs.Aimlock:AddToggle("SmartESP", {
 	Callback = function(v) SmartESPEnabled = v end
 })
 
--- Tracers
+-- Tracer Visual (Apunta a TODOS, sin función de apuntado)
 local TracersEnabled = false
 local TracersObjects = {}
-local TracersConnection = nil
 
 local function CreateTracer(plr)
     if plr == LocalPlayer then return end
     if TracersObjects[plr] then return end
     local line = Drawing.new("Line")
     line.Visible = false
-    line.Color = Color3.fromRGB(175, 25, 255)
-    line.Thickness = 1
+    line.Color = Color3.fromRGB(255, 0, 0)
+    line.Thickness = 1.5
     line.Transparency = 1
     TracersObjects[plr] = line
 end
@@ -1126,39 +1129,40 @@ local function RemoveTracer(plr)
     end
 end
 
-Tabs.Aimlock:AddToggle("Tracers", {
-    Title   = "Tracers (Líneas al jugador)",
+RunService.RenderStepped:Connect(function()
+    -- Obtenemos la posición del ratón para que las líneas salgan de él
+    local mousePos = UserInputService:GetMouseLocation()
+    
+    for p, line in pairs(TracersObjects) do
+        if TracersEnabled and p and p.Character and IsAlive(p) and p ~= LocalPlayer then
+            local root = p.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                -- WorldToViewportPoint mantiene la línea centrada en el torso del jugador
+                local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+                if onScreen then
+                    line.From = mousePos
+                    line.To = Vector2.new(pos.X, pos.Y)
+                    line.Visible = true
+                else
+                    line.Visible = false
+                end
+            else
+                line.Visible = false
+            end
+        else
+            line.Visible = false
+        end
+    end
+end)
+
+Tabs.Aimlock:AddToggle("ShowTracer", {
+    Title   = "Tracer Visual a TODOS (Rojo)",
     Default = false,
     Callback = function(v)
         TracersEnabled = v
         if v then
             for _, p in pairs(Players:GetPlayers()) do CreateTracer(p) end
-            if not TracersConnection then
-                TracersConnection = RunService.RenderStepped:Connect(function()
-                    local mousePos = UserInputService:GetMouseLocation()
-                    for p, line in pairs(TracersObjects) do
-                        if p and p.Character and IsAlive(p) and p ~= LocalPlayer then
-                            local root = p.Character:FindFirstChild("HumanoidRootPart")
-                            if root then
-                                local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
-                                if onScreen then
-                                    line.From = mousePos
-                                    line.To = Vector2.new(pos.X, pos.Y)
-                                    line.Visible = true
-                                else
-                                    line.Visible = false
-                                end
-                            else
-                                line.Visible = false
-                            end
-                        else
-                            line.Visible = false
-                        end
-                    end
-                end)
-            end
         else
-            if TracersConnection then TracersConnection:Disconnect(); TracersConnection = nil end
             for p, line in pairs(TracersObjects) do line.Visible = false end
         end
     end
@@ -1200,6 +1204,7 @@ Tabs.Aimlock:AddToggle("UseFOV", {
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                     TRIGGERBOT TAB                      ║
 -- ╚══════════════════════════════════════════════════════════╝
+
 local TriggerbotLoop = nil
 local isShooting = false
 local TriggerDelay = 0.05
@@ -1308,6 +1313,7 @@ Tabs.Triggerbot:AddSlider("TriggerDelay", {
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                       EXTRAS TAB                        ║
 -- ╚══════════════════════════════════════════════════════════╝
+
 local FOVToggleEnabled = false
 local TargetFOV = 70
 local OriginalFOV = 70
@@ -1385,7 +1391,7 @@ local FreecamPart = nil
 local FC_Loop = nil
 
 Tabs.Extras:AddToggle("Freecam", {
-	Title   = "Freecam (Cámara Libre)",
+	Title   = "Freecam (CÃ¡mara Libre)",
 	Default = false,
 	Callback = function(v)
 		if v then
@@ -1423,7 +1429,7 @@ local OriginalLighting = {}
 local Lighting = game:GetService("Lighting")
 
 Tabs.Extras:AddToggle("Fullbright", {
-	Title   = "Fullbright (Visión Nocturna)",
+	Title   = "Fullbright (VisiÃ³n Nocturna)",
 	Default = false,
 	Callback = function(v)
 		if v then
@@ -1528,6 +1534,7 @@ Tabs.Extras:AddButton({
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                        TROLL TAB                        ║
 -- ╚══════════════════════════════════════════════════════════╝
+
 Tabs.Troll:AddButton({
 	Title    = "flingmierda",
 	Callback = function()
@@ -1546,6 +1553,7 @@ Tabs.Troll:AddButton({
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                      SETTINGS TAB                       ║
 -- ╚══════════════════════════════════════════════════════════╝
+
 Tabs.Settings:AddSlider("TimeOfDay", {
 	Title    = "Hora del Servidor (0 a 24)",
 	Min      = 0,
@@ -1568,11 +1576,10 @@ SaveManager:BuildConfigSection(Tabs.Settings)
 SaveManager:LoadAutoloadConfig()
 
 print("RATAHUB gg")
-Fluent:Notify({Title="RATAHUB", Content="maldito 😝", Duration=4})
+Fluent:Notify({Title="RATAHUB", Content="maldito ðŸ˜", Duration=4})
 
 LocalPlayer.CharacterAdded:Connect(function()
 	task.wait(0.5)
 	if KeepClickTP then GiveClickTP() end
 	if KeepBTools then GiveBTools() end
 end)
-
