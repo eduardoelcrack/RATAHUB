@@ -43,7 +43,7 @@ local Window = Fluent:CreateWindow({
 local Tabs = {
 	Main       = Window:AddTab({ Title = "Main",       Icon = "zap" }),
 	ESP        = Window:AddTab({ Title = "ESP",        Icon = "eye" }),
-	Aimlock    = Window:AddTab({ Title = "Aimlock",    Icon = "crosshair" })
+	Aimlock    = Window:AddTab({ Title = "Aimlock",    Icon = "crosshair" }),
 	Triggerbot = Window:AddTab({ Title = "Triggerbot", Icon = "mouse-pointer" }),
 	Extras     = Window:AddTab({ Title = "Extras",     Icon = "plus" }),
 	Troll      = Window:AddTab({ Title = "Troll",      Icon = "code" }),
