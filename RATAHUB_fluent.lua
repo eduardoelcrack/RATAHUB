@@ -1412,7 +1412,7 @@ local FreecamPart = nil
 local FC_Loop = nil
 
 Tabs.Extras:AddToggle("Freecam", {
-	Title   = "Freecam (CÃ¡mara Libre)",
+	Title   = "Freecam (Camara Libre)",
 	Default = false,
 	Callback = function(v)
 		if v then
@@ -1450,7 +1450,7 @@ local OriginalLighting = {}
 local Lighting = game:GetService("Lighting")
 
 Tabs.Extras:AddToggle("Fullbright", {
-	Title   = "Fullbright (VisiÃ³n Nocturna)",
+	Title   = "Fullbright (Vision Nocturna)",
 	Default = false,
 	Callback = function(v)
 		if v then
@@ -1597,7 +1597,7 @@ SaveManager:BuildConfigSection(Tabs.Settings)
 SaveManager:LoadAutoloadConfig()
 
 print("RATAHUB gg")
-Fluent:Notify({Title="RATAHUB", Content="maldito ðŸ˜", Duration=4})
+Fluent:Notify({Title="RATAHUB", Content="maldito", Duration=4})
 
 LocalPlayer.CharacterAdded:Connect(function()
 	task.wait(0.5)
