@@ -1,5 +1,5 @@
--- ============================================================d
---  RATAHUB V4 |  by Bambi  |  Fluent UI
+-- ============================================================
+--  RATAHUB V4 |  by Bambi  |  Fluent UI CHINGA TU MADRE
 -- ============================================================
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
