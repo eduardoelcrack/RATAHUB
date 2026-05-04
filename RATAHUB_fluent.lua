@@ -240,7 +240,6 @@ Tabs.Main:AddSlider("JPSlider", {
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║                      WALKSPEED                          ║
 -- ╚══════════════════════════════════════════════════════════╝
-
 local WSToggleEnabled = false
 local WSActive        = false
 local TargetWalkSpeed = 140
@@ -249,22 +248,30 @@ local WalkSpeedLoop   = nil
 
 local function StartWalkSpeedLoop()
 	if WalkSpeedLoop then return end
-	WalkSpeedLoop = RunService.Heartbeat:Connect(function()
+
+	WalkSpeedLoop = RunService.RenderStepped:Connect(function()
 		local char = LocalPlayer.Character
 		if not char then return end
+
 		local hum = char:FindFirstChildOfClass("Humanoid")
 		if not hum then return end
-		if not OriginalWalkSpeed then OriginalWalkSpeed = hum.WalkSpeed end
-		hum.WalkSpeed = WSActive and TargetWalkSpeed or OriginalWalkSpeed
+
+		if not OriginalWalkSpeed then
+			OriginalWalkSpeed = hum.WalkSpeed
+		end
+
+		if WSActive then
+			hum.WalkSpeed = TargetWalkSpeed
+		else
+			hum.WalkSpeed = OriginalWalkSpeed
+		end
 	end)
 end
 
 local function StopWalkSpeedLoop()
-	if WalkSpeedLoop then WalkSpeedLoop:Disconnect(); WalkSpeedLoop = nil end
-	local char = LocalPlayer.Character
-	if char then
-		local hum = char:FindFirstChildOfClass("Humanoid")
-		if hum and OriginalWalkSpeed then hum.WalkSpeed = OriginalWalkSpeed end
+	if WalkSpeedLoop then
+		WalkSpeedLoop:Disconnect()
+		WalkSpeedLoop = nil
 	end
 end
 
@@ -273,8 +280,22 @@ Tabs.Main:AddToggle("WSToggle", {
 	Default = false,
 	Callback = function(v)
 		WSToggleEnabled = v
-		if not v then WSActive = false; StopWalkSpeedLoop()
-		else StartWalkSpeedLoop() end
+
+		if not v then
+			WSActive = false
+
+			local char = LocalPlayer.Character
+			if char then
+				local hum = char:FindFirstChildOfClass("Humanoid")
+				if hum and OriginalWalkSpeed then
+					hum.WalkSpeed = OriginalWalkSpeed
+				end
+			end
+
+			StopWalkSpeedLoop()
+		else
+			StartWalkSpeedLoop()
+		end
 	end
 })
 
