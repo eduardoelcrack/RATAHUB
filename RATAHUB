@@ -2,4 +2,2199 @@
 --                RATAHUB V5 |  by Bambi  14/08/26
 -- ============================================================
 
-local v0=loadstring(game:HttpGet("https://sirius.menu/rayfield"))();local v1=v0:CreateWindow({Name="RATAHUB V5",Icon=0,LoadingTitle="RATAHUB V5",LoadingSubtitle="by Bambi",Theme="Default",ToggleUIKeybind="K",ConfigurationSaving={Enabled=false}});repeat task.wait();until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer.Character  local v2=game:GetService("Players");local v3=game:GetService("RunService");local v4=game:GetService("UserInputService");local v5=game:GetService("CoreGui");local v6=game:GetService("GuiService");local v7=game:GetService("Lighting");local v8=game:GetService("Stats");local v9=game:GetService("TeleportService");local v10=game:GetService("HttpService");local v11=game:GetService("SoundService");local v12=game:GetService("Teams");local v13=v2.LocalPlayer;local v14=workspace.CurrentCamera;local v15=v13:GetMouse();local function v16(v209) return v209 and v209.Character and v209.Character:FindFirstChildOfClass("Humanoid") and (v209.Character:FindFirstChildOfClass("Humanoid").Health>0) ;end local function v17(v210) if ( not v210 or (v210==v13)) then return true;end if (v210.Team and v13.Team and (v210.Team==v13.Team)) then return true;end return false;end local v18={};local v19={};local function v20(v211) if ( not v211 or  not v211.Team) then return false;end if (type(v18)=="table") then for v664,v665 in pairs(v18) do if (v665==v211.Team.Name) then return true;end end elseif (type(v18)=="string") then return v18==v211.Team.Name ;end return false;end local v21={};local function v22(v212) if (type(v21)=="table") then for v666,v667 in pairs(v21) do if (v667==v212) then return true;end end elseif (type(v21)=="string") then return v21==v212 ;end return false;end local function v23(v213,v214) if ( not v213 or (v213==v13)) then return false;end if v20(v213) then return false;end if (v214 and (v214~="Disabled")) then local v551=v22(v213.Name);if ((v214=="Ignore Whitelist") and v551) then return false;elseif ((v214=="Only Whitelist") and  not v551) then return false;end end return true;end local v24={["Skeet / Gamesense"]="rbxassetid://4817809188",["Neverlose Hit"]="rbxassetid://6607204501",["CS:GO Hit"]="rbxassetid://160432334",["TF2 Critical Hit"]="rbxassetid://296102734",["Bubble Pop"]="rbxassetid://6026900223",["Rust Headshot"]="rbxassetid://1255040462"};local v25={"Skeet / Gamesense","Neverlose Hit","CS:GO Hit","TF2 Critical Hit","Bubble Pop","Rust Headshot"};local v26="Neverlose Hit";local v27="Skeet / Gamesense";local v28="Neverlose Hit";local v29=true;local v30=false;local function v31(v215) local v216=v24[v215];if v216 then local v552=Instance.new("Sound");v552.SoundId=v216;v552.Volume=1;v552.Parent=v11;v552:Play();v552.Ended:Connect(function() v552:Destroy();end);end end local v32=nil;local v33=nil;local v34=false;local v35=nil;local v36=nil;local v37=nil;local v38=nil;local v39=nil;local v40=nil;local v41=nil;local function v42() if v33 then v33:Disconnect();v33=nil;end if v32 then v32:Destroy();v32=nil;end v35=nil;end local function v43() v42();v32=Instance.new("ScreenGui");v32.Name="RataHub_Watermark";v32.Parent=v5;local v219=Instance.new("Frame",v32);v219.Size=UDim2.new(0,170,0,95);v219.Position=UDim2.new(1, -180,0,20);v219.BackgroundColor3=Color3.fromRGB(15,15,20);v219.BackgroundTransparency=0.25;v219.BorderSizePixel=0;local v225=Instance.new("UICorner",v219);v225.CornerRadius=UDim.new(0,8);local v227=Instance.new("UIStroke",v219);v227.Color=Color3.fromRGB(175,25,255);v227.Thickness=1.5;local v230=Instance.new("TextLabel",v219);v230.Size=UDim2.new(1, -10,1, -10);v230.Position=UDim2.new(0,5,0,5);v230.BackgroundTransparency=1;v230.TextColor3=Color3.fromRGB(255,255,255);v230.TextXAlignment=Enum.TextXAlignment.Left;v230.TextYAlignment=Enum.TextYAlignment.Top;v230.Font=Enum.Font.SourceSansBold;v230.TextSize=13;v35=Instance.new("Frame",v32);v35.Name="TargetInfoFrame";v35.Size=UDim2.new(0,170,0,115);v35.Position=UDim2.new(1, -180,0,120);v35.BackgroundColor3=Color3.fromRGB(15,15,20);v35.BackgroundTransparency=0.25;v35.BorderSizePixel=0;v35.Visible=false;local v249=Instance.new("UICorner",v35);v249.CornerRadius=UDim.new(0,8);local v251=Instance.new("UIStroke",v35);v251.Color=Color3.fromRGB(175,25,255);v251.Thickness=1.5;v36=Instance.new("TextLabel",v35);v36.Size=UDim2.new(1, -10,0,18);v36.Position=UDim2.new(0,5,0,4);v36.BackgroundTransparency=1;v36.Text="Target: None";v36.TextColor3=Color3.fromRGB(255,255,255);v36.Font=Enum.Font.SourceSansBold;v36.TextSize=12;v36.TextXAlignment=Enum.TextXAlignment.Left;v37=Instance.new("TextLabel",v35);v37.Size=UDim2.new(1, -10,0,14);v37.Position=UDim2.new(0,5,0,22);v37.BackgroundTransparency=1;v37.Text="Ping: ? ms";v37.TextColor3=Color3.fromRGB(100,220,255);v37.Font=Enum.Font.SourceSans;v37.TextSize=11;v37.TextXAlignment=Enum.TextXAlignment.Left;v38=Instance.new("TextLabel",v35);v38.Size=UDim2.new(1, -10,0,14);v38.Position=UDim2.new(0,5,0,38);v38.BackgroundTransparency=1;v38.Text="Dist: 0 studs";v38.TextColor3=Color3.fromRGB(200,200,200);v38.Font=Enum.Font.SourceSans;v38.TextSize=11;v38.TextXAlignment=Enum.TextXAlignment.Left;local v279=Instance.new("Frame",v35);v279.Size=UDim2.new(1, -10,0,13);v279.Position=UDim2.new(0,5,0,56);v279.BackgroundColor3=Color3.fromRGB(40,40,45);v279.BorderSizePixel=0;Instance.new("UICorner",v279).CornerRadius=UDim.new(0,3);v40=Instance.new("Frame",v279);v40.Size=UDim2.new(1,0,1,0);v40.BackgroundColor3=Color3.fromRGB(0,255,120);v40.BorderSizePixel=0;Instance.new("UICorner",v40).CornerRadius=UDim.new(0,3);v41=Instance.new("TextLabel",v279);v41.Size=UDim2.new(1,0,1,0);v41.BackgroundTransparency=1;v41.Text="100 HP";v41.TextColor3=Color3.fromRGB(255,255,255);v41.Font=Enum.Font.SourceSansBold;v41.TextSize=10;v39=Instance.new("TextLabel",v35);v39.Size=UDim2.new(1, -10,0,14);v39.Position=UDim2.new(0,5,0,74);v39.BackgroundTransparency=1;v39.Text="Equipo: Ninguno";v39.TextColor3=Color3.fromRGB(180,180,255);v39.Font=Enum.Font.SourceSans;v39.TextSize=11;v39.TextXAlignment=Enum.TextXAlignment.Left;local v303=0;v33=v3.RenderStepped:Connect(function(v496) v303=math.floor(1/v496 );local v497=0;pcall(function() if v13.GetNetworkPing then v497=math.floor(v13:GetNetworkPing() * 1000 );else v497=math.floor(v8.PerformanceStats.Ping:GetValue());end end);local v498=os.date("%H:%M:%S");local v499= #v2:GetPlayers();v230.Text=string.format("<b>RATAHUB V5</b>\nFPS: %d\nPing: %d ms\nJugadores: %d\nHora: %s\nUsuario: %s",v303,v497,v499,v498,v13.Name);v230.RichText=true;end);end local function v44(v304) if  not v35 then return;end if ( not v304 or  not v16(v304)) then v35.Visible=false;return;end v35.Visible=true;v36.Text="Target: "   .. v304.Name ;pcall(function() local v502=0;if v304:FindFirstChild("Ping") then v502=v304.Ping.Value;elseif v304:GetAttribute("Ping") then v502=v304:GetAttribute("Ping");else v502=math.floor(v8.PerformanceStats.Ping:GetValue());end v37.Text=string.format("Ping: %d ms",v502);end);local v307=v13.Character;local v308=v307 and v307:FindFirstChild("HumanoidRootPart") ;local v309=v304.Character and v304.Character:FindFirstChild("HumanoidRootPart") ;if (v308 and v309) then local v557=math.floor((v308.Position-v309.Position).Magnitude);v38.Text=string.format("Dist: %d studs",v557);else v38.Text="Dist: ? studs";end local v310=v304.Character:FindFirstChildOfClass("Humanoid");if v310 then local v560=math.max(0,math.floor(v310.Health));local v561=math.floor(v310.MaxHealth);local v562=math.clamp(v560/v561 ,0,1);v40.Size=UDim2.new(v562,0,1,0);v41.Text=string.format("%d / %d HP (%d%%)",v560,v561,math.floor(v562 * 100 ));v40.BackgroundColor3=Color3.fromRGB(math.floor(255 * (1 -v562) ),math.floor(255 * v562 ),100);end v39.Text="Equipo: "   .. ((v304.Team and v304.Team.Name) or "Ninguno") ;end local function v45(v312) v34=v312;if v312 then v43();else v42();end end local v46=v1:CreateTab("Main",nil);v46:CreateSection("Movement");local v47=false;local v48=false;local v49=140;local v50,v51=nil,nil;local v52=nil;local v53=nil;local function v54() v48=false;if v53 then v53:Disconnect();v53=nil;end if v50 then v50:Destroy();v50=nil;end if v51 then v51:Destroy();v51=nil;end local v313=v13.Character;if v313 then local v566=v313:FindFirstChildOfClass("Humanoid");if v566 then v566.PlatformStand=false;end if v52 then v52.Parent=v313;v52=nil;end end end local function v55() local v314=v13.Character;if ( not v314 or  not v314:FindFirstChild("HumanoidRootPart")) then return;end local v315=v314:FindFirstChildOfClass("Humanoid");local v316=v314.HumanoidRootPart;if v315 then v315.PlatformStand=true;end if v314:FindFirstChild("Animate") then v52=v314.Animate:Clone();v314.Animate:Destroy();end v50=Instance.new("BodyVelocity");v50.MaxForce=Vector3.new(100000,100000,100000);v50.Velocity=Vector3.zero;v50.Parent=v316;v51=Instance.new("BodyGyro");v51.MaxTorque=Vector3.new(100000,100000,100000);v51.P=20000;v51.D=800;v51.Parent=v316;v53=v3.RenderStepped:Connect(function() if  not v48 then return;end local v504=v14.CFrame.LookVector;local v505=v504:Cross(Vector3.new(0,1,0));local v506=Vector3.zero;if v4:IsKeyDown(Enum.KeyCode.W) then v506+=v504 end if v4:IsKeyDown(Enum.KeyCode.S) then v506-=v504 end if v4:IsKeyDown(Enum.KeyCode.A) then v506-=v505 end if v4:IsKeyDown(Enum.KeyCode.D) then v506+=v505 end if v4:IsKeyDown(Enum.KeyCode.Space) then v506+=Vector3.new(0,1,0) end if v4:IsKeyDown(Enum.KeyCode.LeftControl) then v506-=Vector3.new(0,1,0) end v50.Velocity=v506 * v49 ;v51.CFrame=v14.CFrame;end);end v46:CreateToggle({Name="Fly",CurrentValue=false,Callback=function(v325) v47=v325;v48=false;v54();end});v46:CreateKeybind({Name="Fly Keybind",CurrentKeybind="V",HoldToInteract=false,Callback=function() if  not v47 then return;end v48= not v48;if v48 then v55();v0:Notify({Title="Fly",Content="Activado",Duration=1.5});else v54();v0:Notify({Title="Fly",Content="Desactivado",Duration=1.5});end end});v46:CreateSlider({Name="Fly Speed",Range={50,600},Increment=10,CurrentValue=140,Callback=function(v326) v49=v326;end});local v56=false;local v57=false;local v58=140;local v59=nil;local v60=nil;local function v61() if v60 then v60:Disconnect();v60=nil;end local v327=v13.Character;if (v327 and v59) then local v568=v327:FindFirstChildOfClass("Humanoid");if v568 then v568.WalkSpeed=v59;end end end local function v62() if v60 then return;end v60=v3.RenderStepped:Connect(function() local v510=v13.Character;if  not v510 then return;end local v511=v510:FindFirstChildOfClass("Humanoid");if  not v511 then return;end if  not v59 then v59=v511.WalkSpeed;end local v512=(v57 and v58) or v59 ;if (v511.WalkSpeed~=v512) then v511.WalkSpeed=v512;end end);end v46:CreateToggle({Name="WalkSpeed",CurrentValue=false,Callback=function(v328) v56=v328;if  not v328 then v57=false;v61();else v62();end end});v46:CreateKeybind({Name="WalkSpeed Keybind",CurrentKeybind="C",HoldToInteract=false,Callback=function() if v56 then v57= not v57;end end});v46:CreateSlider({Name="WalkSpeed Slider",Range={16,300},Increment=1,CurrentValue=140,Callback=function(v329) v58=v329;end});local v63=false;local v64=50;local v65=nil;local v66=nil;local function v67() if v66 then v66:Disconnect();v66=nil;end local v330=v13.Character;if (v330 and v65) then local v569=v330:FindFirstChildOfClass("Humanoid");if v569 then if v569.UseJumpPower then v569.JumpPower=v65;else v569.JumpHeight=v65;end end end end local function v68() if v66 then return;end v66=v3.Heartbeat:Connect(function() local v513=v13.Character;if  not v513 then return;end local v514=v513:FindFirstChildOfClass("Humanoid");if  not v514 then return;end if  not v65 then v65=(v514.UseJumpPower and v514.JumpPower) or v514.JumpHeight ;end local v515=(v514.UseJumpPower and v514.JumpPower) or v514.JumpHeight ;local v516=(v63 and v64) or v65 ;if (v515~=v516) then if v514.UseJumpPower then v514.JumpPower=v516;else v514.JumpHeight=v516;end end end);end v46:CreateToggle({Name="JumpPower",CurrentValue=false,Callback=function(v331) v63=v331;if v331 then v68();else v67();end end});v46:CreateSlider({Name="JumpPower Slider",Range={50,300},Increment=5,CurrentValue=50,Callback=function(v332) v64=v332;end});local v69=false;local v70=196.2;local v71=nil;local function v72() if v71 then v71:Disconnect();v71=nil;end workspace.Gravity=196.2;end local function v73() if v71 then return;end v71=v3.RenderStepped:Connect(function() if v69 then workspace.Gravity=v70;else workspace.Gravity=196.2;end end);end v46:CreateToggle({Name="Gravity",CurrentValue=false,Callback=function(v334) v69=v334;if v334 then v73();else v72();end end});v46:CreateSlider({Name="Gravity Slider",Range={0,196.2},Increment=1,CurrentValue=196.2,Callback=function(v335) v70=v335;end});local v74=false;local v75=nil;v46:CreateToggle({Name="Infinite Jump",CurrentValue=false,Callback=function(v336) v74=v336;if (v336 and  not v75) then v75=v4.JumpRequest:Connect(function() if (v74 and v13.Character) then local v736=v13.Character:FindFirstChildOfClass("Humanoid");if v736 then v736:ChangeState(Enum.HumanoidStateType.Jumping);end end end);elseif ( not v336 and v75) then v75:Disconnect();v75=nil;end end});local v76=false;local v77=nil;local v78=nil;local v79={};local v80={};local function v81() if v77 then v77:Disconnect();v77=nil;end if v78 then v78:Disconnect();v78=nil;end for v517,v518 in pairs(v79) do if (v517 and v517.Parent) then v517.CanCollide=v518;end end table.clear(v79);table.clear(v80);end local function v82() v81();local v337=v13.Character;if  not v337 then return;end for v519,v520 in pairs(v337:GetDescendants()) do if v520:IsA("BasePart") then table.insert(v80,v520);if (v79[v520]==nil) then v79[v520]=v520.CanCollide;end end end v78=v337.DescendantAdded:Connect(function(v521) if v521:IsA("BasePart") then table.insert(v80,v521);if (v79[v521]==nil) then v79[v521]=v521.CanCollide;end end end);v77=v3.Stepped:Connect(function() if v76 then for v716,v717 in ipairs(v80) do if (v717 and v717.Parent) then v717.CanCollide=false;end end end end);end v46:CreateToggle({Name="Noclip",CurrentValue=false,Callback=function(v338) v76=v338;if v338 then v82();else v81();end end});v46:CreateSection("Player");v46:CreateButton({Name="Reset Personaje (Desbuguear / Respawn)",Callback=function() pcall(function() if v13.Character then v13.Character:BreakJoints();end end);v0:Notify({Title="Reset",Content="Reiniciando personaje...",Duration=1.5});end});getgenv().HBE=false;getgenv().HitboxSize=5;local v85="Disabled";local v86={};local v87=nil;local v88=nil;v2.PlayerRemoving:Connect(function(v339) v86[v339]=nil;end);local function v89(v341) local v342=v341.Character and v341.Character:FindFirstChild("HumanoidRootPart") ;if (v342 and v86[v341]) then v342.Size=v86[v341];v342.Transparency=1;v342.CanCollide=true;v342:SetAttribute("IsExpandedHitbox",nil);v86[v341]=nil;end end local function v90(v343) if v343 then if  not v87 then v87=v3.Heartbeat:Connect(function() if  not getgenv().HBE then return;end local v741=Vector3.new(getgenv().HitboxSize,getgenv().HitboxSize,getgenv().HitboxSize);for v774,v775 in ipairs(v2:GetPlayers()) do if ((v775~=v13) and v16(v775)) then local v804=v775.Character:FindFirstChild("HumanoidRootPart");if v804 then if v23(v775,v85) then v86[v775]=v86[v775] or v804.Size ;if (v804.Size~=v741) then v804.Size=v741;v804.Transparency=0.5;v804.Material=Enum.Material.Neon;v804.Color=Color3.fromRGB(175,25,255);v804:SetAttribute("IsExpandedHitbox",true);end else v89(v775);end end end end end);end if  not v88 then v88=v3.Stepped:Connect(function() if  not getgenv().HBE then return;end for v776,v777 in ipairs(v2:GetPlayers()) do if ((v777~=v13) and v777.Character) then local v805=v777.Character:FindFirstChild("HumanoidRootPart");if (v805 and v805:GetAttribute("IsExpandedHitbox") and v805.CanCollide) then v805.CanCollide=false;end end end end);end else if v87 then v87:Disconnect();v87=nil;end if v88 then v88:Disconnect();v88=nil;end for v674,v675 in ipairs(v2:GetPlayers()) do v89(v675);end table.clear(v86);end end v46:CreateToggle({Name="Hitbox Expander",CurrentValue=false,Callback=function(v344) getgenv().HBE=v344;v90(v344);end});v46:CreateSlider({Name="Hitbox Size",Range={1,150},Increment=1,CurrentValue=5,Callback=function(v346) getgenv().HitboxSize=v346;end});v46:CreateDropdown({Name="Hitbox Whitelist Mode",Options={"Disabled","Ignore Whitelist","Only Whitelist"},CurrentOption="Disabled",Callback=function(v348) v85=((type(v348)=="table") and v348[1]) or v348 ;end});local v91=nil;local v92={};local function v93() local v349={};for v522,v523 in pairs(v2:GetPlayers()) do if (v523~=v13) then table.insert(v349,v523.Name);end end for v524,v525 in ipairs(v92) do pcall(function() v525:Refresh(v349,true);end);end end local function v94() local v350={};pcall(function() for v574,v575 in ipairs(v12:GetTeams()) do table.insert(v350,v575.Name);end end);if ( #v350==0) then table.insert(v350,"Sin Equipos");end for v526,v527 in ipairs(v19) do pcall(function() v527:Refresh(v350,true);end);end end local v95=v46:CreateDropdown({Name="Seleccionar Objetivo Whitelist",Options={},CurrentOption={},MultipleOptions=true,Callback=function(v351) v21=v351;end});table.insert(v92,v95);local v96=v46:CreateDropdown({Name="Seleccionar Jugador TP",Options={},CurrentOption="",Callback=function(v352) v91=((type(v352)=="table") and v352[1]) or v352 ;end});table.insert(v92,v96);v46:CreateButton({Name="Teletransportarse al Jugador",Callback=function() if v91 then local v576=v2:FindFirstChild(v91);if (v576 and v576.Character and v576.Character:FindFirstChild("HumanoidRootPart")) then local v718=v13.Character;local v719=v718 and v718:FindFirstChild("HumanoidRootPart") ;if v719 then v719.AssemblyLinearVelocity=Vector3.zero;v719.AssemblyAngularVelocity=Vector3.zero;v719.CFrame=v576.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,3) ;v0:Notify({Title="Teleport",Content="Teletransportado a "   .. v91 ,Duration=2});end end end end});v46:CreateSection("Utility");v46:CreateToggle({Name="Watermark (HUD Info & Inspector)",CurrentValue=false,Callback=v45});local v97=1;v46:CreateDropdown({Name="Target Server Players (1-10)",Options={"1","2","3","4","5","6","7","8","9","10"},CurrentOption="1",Callback=function(v353) local v354=((type(v353)=="table") and v353[1]) or v353 ;v97=tonumber(v354) or 1 ;end});v46:CreateButton({Name="Unirse a Servidor con esa Cantidad",Callback=function() v0:Notify({Title="Server Finder",Content="Buscando servidor con "   .. v97   .. " jugadores..." ,Duration=3});task.spawn(function() local v528,v529=pcall(function() local v577=game:HttpGet("https://games.roblox.com/v1/games/"   .. game.PlaceId   .. "/servers/Public?sortOrder=Asc&limit=100" );return v10:JSONDecode(v577);end);if (v528 and v529 and v529.data) then for v720,v721 in ipairs(v529.data) do if (v721.playing and (v721.playing==v97) and (v721.id~=game.JobId)) then v9:TeleportToPlaceInstance(game.PlaceId,v721.id,v13);return;end end for v722,v723 in ipairs(v529.data) do if (v723.playing and (v723.playing<=v97) and (v723.id~=game.JobId)) then v9:TeleportToPlaceInstance(game.PlaceId,v723.id,v13);return;end end v0:Notify({Title="Server Finder",Content="No se encontró servidor con esa cantidad exacta",Duration=3});else v0:Notify({Title="Error",Content="Falló la consulta de servidores",Duration=2});end end);end});local v98=nil;v46:CreateButton({Name="Anti-AFK",Callback=function() if v98 then v98:Disconnect();v98=nil;v0:Notify({Title="Anti-AFK",Content="Desactivado",Duration=1.5});else v98=v13.Idled:Connect(function() game:GetService("VirtualUser"):ClickButton2(Vector2.zero);end);v0:Notify({Title="Anti-AFK",Content="Activado",Duration=1.5});end end});v46:CreateButton({Name="Rejoin Same Server (Mismo Servidor)",Callback=function() v0:Notify({Title="Rejoin",Content="Reconectando al mismo servidor...",Duration=2});v9:TeleportToPlaceInstance(game.PlaceId,game.JobId,v13);end});local v99=v1:CreateTab("ESP",nil);local v100="Disabled";local v101=false;local v102=false;local v103=false;local v104=false;local v105=false;local v106=nil;local v107=0;local v108=3;local v109=13;local v110=Color3.fromRGB(175,25,255);local v111=Color3.fromRGB(175,25,255);local v112=nil;local v113={};local v114={};local v115=nil;local v116=false;local v117=false;local v118=false;local v119=false;local v120=false;local v121=false;local v122=false;local v123=false;local v124=false;local v125=false;local v126=false;local v127=false;local v128={MaxDistance=1000,UseFOV=false,FOVRadius=150,AimPart="Head",UseMaxDistance=true,Smoothness=1,WhitelistMode="Disabled",Prediction=false,PredictionTime=0.135,TeamCheck=false};local v129="Disabled";local function v130() if v112 then for v676,v677 in ipairs(v112:GetChildren()) do if v677:IsA("BillboardGui") then v677.StudsOffset=Vector3.new(v107,v108,0);local v743=v677:FindFirstChildOfClass("TextLabel");if v743 then v743.TextSize=v109;end end end end for v530,v531 in pairs(v114) do if v531.Gui then v531.Gui.StudsOffset=Vector3.new(v107,v108,0);if v531.Name then v531.Name.TextSize=v109;end if v531.Dist then v531.Dist.TextSize=v109;end if v531.Health then v531.Health.TextSize=v109;end end end end v99:CreateSection("Highlight ESP");local v131={};local v132=nil;local function v133(v355) v102=v355;if v132 then v132:Destroy();v132=nil;end for v532,v533 in pairs(v131) do v533:Disconnect();end v131={};if  not v355 then return;end v132=Instance.new("Folder");v132.Name="Highlight_Storage";v132.Parent=v5;local function v358(v534) if (v534==v13) then return;end local function v535(v578) if ( not v578 or  not v132) then return;end local v579=v132:FindFirstChild(v534.Name);if v579 then v579:Destroy();end if  not v23(v534,v100) then return;end local v580=Instance.new("Highlight");v580.Name=v534.Name;v580.DepthMode=Enum.HighlightDepthMode.AlwaysOnTop;v580.FillColor=v110;v580.OutlineColor=v111;v580.FillTransparency=0.5;v580.OutlineTransparency=0;v580.Adornee=v578;v580.Parent=v132;end if v534.Character then task.spawn(v535,v534.Character);end local v536=v534.CharacterAdded:Connect(function(v591) v591:WaitForChild("HumanoidRootPart",5);task.wait(0.1);v535(v591);end);table.insert(v131,v536);end for v537,v538 in ipairs(v2:GetPlayers()) do v358(v538);end table.insert(v131,v2.PlayerAdded:Connect(v358));table.insert(v131,v2.PlayerRemoving:Connect(function(v539) if (v132 and v132:FindFirstChild(v539.Name)) then v132[v539.Name]:Destroy();end end));end v99:CreateToggle({Name="ESP Highlight",CurrentValue=false,Callback=v133});v99:CreateSection("Name ESP");local function v134(v359) v103=v359;if v112 then v112:Destroy();v112=nil;end for v540,v541 in ipairs(v113) do v541:Disconnect();end table.clear(v113);if  not v359 then return;end v112=Instance.new("Folder");v112.Name="NameESP_Storage";v112.Parent=v5;local function v362(v542) if (v542==v13) then return;end local function v543(v592) if ( not v592 or  not v112) then return;end local v593=v592:WaitForChild("Head",5);if ( not v593 or  not v112) then return;end if v112:FindFirstChild(v542.Name) then v112[v542.Name]:Destroy();end if  not v23(v542,v100) then return;end local v594=Instance.new("BillboardGui");v594.Name=v542.Name;v594.Adornee=v593;v594.Size=UDim2.new(0,140,0,26);v594.StudsOffset=Vector3.new(v107,v108,0);v594.AlwaysOnTop=true;v594.Parent=v112;local v602=Instance.new("TextLabel");v602.Size=UDim2.new(1,0,1,0);v602.BackgroundTransparency=1;v602.Text=v542.Name;v602.TextColor3=Color3.fromRGB(255,255,255);v602.TextStrokeColor3=Color3.new(0,0,0);v602.TextStrokeTransparency=0;v602.Font=Enum.Font.Arcade;v602.TextSize=v109;v602.Parent=v594;end if v542.Character then task.spawn(v543,v542.Character);end table.insert(v113,v542.CharacterAdded:Connect(function(v613) task.spawn(v543,v613);end));end for v544,v545 in ipairs(v2:GetPlayers()) do v362(v545);end table.insert(v113,v2.PlayerAdded:Connect(v362));table.insert(v113,v2.PlayerRemoving:Connect(function(v546) if (v112 and v112:FindFirstChild(v546.Name)) then v112[v546.Name]:Destroy();end end));end local function v135(v363) if ((v363==v13) or v114[v363]) then return;end local v364=Instance.new("BillboardGui");v364.Size=UDim2.new(0,140,0,42);v364.AlwaysOnTop=true;v364.StudsOffset=Vector3.new(v107,v108,0);local v368=Instance.new("TextLabel",v364);v368.Size=UDim2.new(1,0,0.4,0);v368.Position=UDim2.new(0,0,0,0);v368.BackgroundTransparency=1;v368.TextColor3=Color3.fromRGB(255,255,255);v368.TextStrokeTransparency=0;v368.TextSize=v109;v368.Text=v363.Name;local v377=Instance.new("TextLabel",v364);v377.Size=UDim2.new(1,0,0.3,0);v377.Position=UDim2.new(0,0,0.4,0);v377.BackgroundTransparency=1;v377.TextColor3=Color3.fromRGB(200,200,200);v377.TextStrokeTransparency=0.2;v377.TextSize=v109;local v384=Instance.new("TextLabel",v364);v384.Size=UDim2.new(1,0,0.3,0);v384.Position=UDim2.new(0,0,0.7,0);v384.BackgroundTransparency=1;v384.TextStrokeTransparency=0.2;v384.TextSize=v109;v114[v363]={Gui=v364,Name=v368,Dist=v377,Health=v384};end local function v136(v391) v104=v391;if v391 then for v679,v680 in pairs(v2:GetPlayers()) do v135(v680);end if  not v115 then v115=v3.RenderStepped:Connect(function() if  not v104 then return;end local v747=v13.Character;local v748=v747 and v747:FindFirstChild("HumanoidRootPart") ;if  not v748 then return;end for v782,v783 in pairs(v114) do local v784=v782.Character;local v785=v784 and v784:FindFirstChild("HumanoidRootPart") ;local v786=v784 and v784:FindFirstChildOfClass("Humanoid") ;if (v785 and v786 and v23(v782,v100)) then v783.Gui.Parent=v785;v783.Gui.StudsOffset=Vector3.new(v107,v108,0);local v808=(v748.Position-v785.Position).Magnitude;v783.Dist.Text=math.floor(v808)   .. " studs" ;local v810=math.clamp(v786.Health/v786.MaxHealth ,0,1);v783.Health.Text="HP: "   .. math.floor(v786.Health)   .. " ("   .. math.floor(v810 * 100 )   .. "%)" ;if (v810>0.7) then v783.Health.TextColor3=Color3.fromRGB(0,255,100);elseif (v810>0.3) then v783.Health.TextColor3=Color3.fromRGB(255,200,0);else v783.Health.TextColor3=Color3.fromRGB(255,50,50);end else v783.Gui.Parent=nil;end end end);end else if v115 then v115:Disconnect();v115=nil;end for v681,v682 in pairs(v114) do if v682.Gui then v682.Gui:Destroy();end end table.clear(v114);end end v99:CreateToggle({Name="ESP Nombres",CurrentValue=false,Callback=v134});v99:CreateToggle({Name="ESP Nombre + Studs + Vida",CurrentValue=false,Callback=v136});v99:CreateSlider({Name="Posicion Offset X (Lados)",Range={ -10,10},Increment=0.5,CurrentValue=0,Callback=function(v392) v107=v392;v130();end});v99:CreateSlider({Name="Posicion Offset Y (Altura)",Range={ -5,15},Increment=0.5,CurrentValue=3,Callback=function(v393) v108=v393;v130();end});v99:CreateSlider({Name="Tamaño de Texto ESP",Range={8,30},Increment=1,CurrentValue=13,Callback=function(v394) v109=v394;v130();end});v99:CreateSection("Whitelist");local function v137() if v102 then v133(true);end if v103 then v134(true);end if v104 then v136(true);end end v99:CreateDropdown({Name="ESP Whitelist Mode",Options={"Disabled","Ignore Whitelist","Only Whitelist"},CurrentOption="Disabled",Callback=function(v395) v100=((type(v395)=="table") and v395[1]) or v395 ;v137();if v116 then v128.WhitelistMode=v100;end if v117 then v129=v100;end end});local v138=v99:CreateDropdown({Name="Seleccionar Objetivo Whitelist",Options={},CurrentOption={},MultipleOptions=true,Callback=function(v396) v21=v396;v137();end});table.insert(v92,v138);v99:CreateToggle({Name="Sincronizar con Aimlock",CurrentValue=false,Callback=function(v397) v116=v397;if v397 then v128.WhitelistMode=v100;end end});v99:CreateToggle({Name="Sincronizar con Triggerbot",CurrentValue=false,Callback=function(v398) v117=v398;if v398 then v129=v100;end end});v99:CreateSection("Visual");v99:CreateDropdown({Name="Color Highlight",Options={"Morado","Rojo","Azul","Verde Neon","Cyan","Blanco"},CurrentOption="Morado",Callback=function(v399) local v400=((type(v399)=="table") and v399[1]) or v399 ;if (v400=="Morado") then v110=Color3.fromRGB(175,25,255);v111=Color3.fromRGB(175,25,255);elseif (v400=="Rojo") then v110=Color3.fromRGB(255,30,30);v111=Color3.fromRGB(255,30,30);elseif (v400=="Azul") then v110=Color3.fromRGB(30,140,255);v111=Color3.fromRGB(30,140,255);elseif (v400=="Verde Neon") then v110=Color3.fromRGB(30,255,100);v111=Color3.fromRGB(30,255,100);elseif (v400=="Cyan") then v110=Color3.fromRGB(0,255,255);v111=Color3.fromRGB(0,255,255);elseif (v400=="Blanco") then v110=Color3.fromRGB(255,255,255);v111=Color3.fromRGB(255,255,255);end if v102 then v133(true);end end});v99:CreateToggle({Name="Rainbow ESP",CurrentValue=false,Callback=function(v401) v105=v401;if v401 then if  not v106 then v106=v3.RenderStepped:Connect(function() if  not v105 then return;end local v749=Color3.fromHSV((tick()%4)/4 ,1,1);v110=v749;v111=v749;if v132 then for v813,v814 in ipairs(v132:GetChildren()) do if v814:IsA("Highlight") then v814.FillColor=v749;v814.OutlineColor=v749;end end end end);end elseif v106 then v106:Disconnect();v106=nil;end end});v99:CreateSection("Team Check");local v139=v99:CreateDropdown({Name="Equipos a Ignorar",Options={},CurrentOption={},MultipleOptions=true,Callback=function(v402) v18=v402;v137();if AimTracersEnabled then UpdateAimTracersState(true);end end});table.insert(v19,v139);v99:CreateToggle({Name="Sincronizar con Aimlock",CurrentValue=false,Callback=function(v403) v122=v403;end});v99:CreateToggle({Name="Sincronizar con Triggerbot",CurrentValue=false,Callback=function(v404) v123=v404;end});local v140=false;local v141="Mouse";local v142={};local v143=nil;local v144=nil;local v145=nil;local function v146(v405) if v142[v405] then pcall(function() v142[v405]:Remove();end);v142[v405]=nil;end end local function v147(v406) if ((v406==v13) or v142[v406]) then return;end local v407=Drawing.new("Line");v407.Visible=false;v407.Color=Color3.fromRGB(255,0,0);v407.Thickness=1.5;v407.Transparency=1;v142[v406]=v407;end local function v148(v413) v140=v413;if v413 then for v683,v684 in ipairs(v2:GetPlayers()) do v147(v684);end if  not v143 then v143=v3.RenderStepped:Connect(function() if  not v140 then return;end local v750=v4:GetMouseLocation();if (v141=="Bottom") then local v794=v6:GetGuiInset();v750=Vector2.new(v14.ViewportSize.X/2 ,v14.ViewportSize.Y-v794.Y );end for v787,v788 in pairs(v142) do if (v787 and v787.Character and v16(v787) and v23(v787,v100)) then local v815=v787.Character:FindFirstChild("HumanoidRootPart");if v815 then local v825,v826=v14:WorldToViewportPoint(v815.Position);if v826 then v788.From=v750;v788.To=Vector2.new(v825.X,v825.Y);v788.Visible=true;else v788.Visible=false;end else v788.Visible=false;end else v788.Visible=false;end end end);end else if v143 then v143:Disconnect();v143=nil;end for v685,v686 in pairs(v142) do v146(v685);end table.clear(v142);end end local v149=false;local v150={};local v151=nil;local function v152(v414) if v150[v414] then pcall(function() v150[v414]:Remove();end);v150[v414]=nil;end end local function v153(v415) if ((v415==v13) or v150[v415]) then return;end local v416=Drawing.new("Line");v416.Visible=false;v416.Color=Color3.fromRGB(255,0,0);v416.Thickness=1.5;v416.Transparency=1;v150[v415]=v416;end local function v154(v422) v149=v422;if v422 then for v687,v688 in ipairs(v2:GetPlayers()) do v153(v688);end if  not v151 then v151=v3.RenderStepped:Connect(function() if  not v149 then return;end local v751=v4:GetMouseLocation();if (v141=="Bottom") then local v795=v6:GetGuiInset();v751=Vector2.new(v14.ViewportSize.X/2 ,v14.ViewportSize.Y-v795.Y );end for v789,v790 in pairs(v150) do if (v789 and v789.Character and v16(v789) and v23(v789,v128.WhitelistMode) and  not (v128.TeamCheck and v17(v789))) then local v817=v789.Character:FindFirstChild("HumanoidRootPart");if v817 then local v828,v829=v14:WorldToViewportPoint(v817.Position);if v829 then v790.From=v751;v790.To=Vector2.new(v828.X,v828.Y);v790.Visible=true;else v790.Visible=false;end else v790.Visible=false;end else v790.Visible=false;end end end);end else if v151 then v151:Disconnect();v151=nil;end for v689,v690 in pairs(v150) do v152(v689);end table.clear(v150);end end v144=v99:CreateToggle({Name="Tracer Whitelist (Rojo)",CurrentValue=false,Callback=function(v423) if (v423 and v145) then v145:Set(false);end v148(v423);end});local v155=v1:CreateTab("Aimlock",nil);getgenv().Aimlock={Enabled=false,ToggleOn=false};local v157=nil;local v158=nil;local v159=nil;local function v160() if v159 then v159:Destroy();v159=nil;end end local function v161(v424) v160();if ( not v424 or  not v424.Character) then return;end v159=Instance.new("Highlight");v159.Name="AimlockESP";v159.Adornee=v424.Character;v159.FillColor=Color3.fromRGB(255,0,0);v159.OutlineColor=Color3.fromRGB(255,255,255);v159.FillTransparency=0.5;v159.OutlineTransparency=0;v159.DepthMode=Enum.HighlightDepthMode.AlwaysOnTop;v159.Parent=v424.Character;end local function v162(v435) if  not v435 then return nil;end if (v128.AimPart=="Head") then return v435:FindFirstChild("Head") or v435:FindFirstChildWhichIsA("BasePart") ;elseif (v128.AimPart=="Torso") then return v435:FindFirstChild("UpperTorso") or v435:FindFirstChild("Torso") or v435:FindFirstChild("HumanoidRootPart") or v435:FindFirstChildWhichIsA("BasePart") ;else for v752,v753 in ipairs({"Head","UpperTorso","Torso","HumanoidRootPart"}) do local v754=v435:FindFirstChild(v753);if v754 then return v754;end end return v435:FindFirstChildWhichIsA("BasePart");end end local function v163() local v436=nil;local v437=math.huge;for v547,v548 in ipairs(v2:GetPlayers()) do if ((v548~=v13) and v16(v548) and v23(v548,v128.WhitelistMode)) then if (v128.TeamCheck and v17(v548)) then continue;end local v691=v548.Character;if  not v691 then continue;end local v692=v691:FindFirstChild("Head");if  not v692 then continue;end local v693,v694=v14:WorldToViewportPoint(v692.Position);if  not v694 then continue;end local v695=(Vector2.new(v693.X,v693.Y) -Vector2.new(v15.X,v15.Y)).Magnitude;if (v128.UseFOV and (v695>v128.FOVRadius)) then continue;end if (v695<v437) then v437=v695;v436=v548;end end end return v436;end local function v164() getgenv().Aimlock.Enabled=false;v157=nil;v160();v44(nil);if v158 then v158:Disconnect();v158=nil;end end local function v165() v164();v157=v163();if  not v157 then v0:Notify({Title="Aimlock",Content="Sin targets",Duration=1.5});return;end getgenv().Aimlock.Enabled=true;v161(v157);if v29 then v31(v26);end v158=v3.Heartbeat:Connect(function() if  not getgenv().Aimlock.Enabled then return;end if (v157 and  not v16(v157)) then v164();v0:Notify({Title="Aimlock",Content="Objetivo perdido",Duration=1.5});return;end if (v157 and v157.Character) then local v696=v162(v157.Character);if v696 then local v755,v756=v14:WorldToViewportPoint(v696.Position);local v757=(v696.Position-v14.CFrame.Position).Magnitude;if ( not v756 or (v128.UseMaxDistance and (v757>v128.MaxDistance))) then v164();v0:Notify({Title="Aimlock",Content="Objetivo fuera de rango",Duration=1.5});return;end else v164();v0:Notify({Title="Aimlock",Content="Objetivo perdido",Duration=1.5});return;end end if (v157 and v157.Character) then if (v159 and (v159.Parent~=v157.Character)) then v161(v157);end local v697=v162(v157.Character);if v697 then local v758=v697.Position;if v128.Prediction then local v796=v697.AssemblyLinearVelocity or Vector3.zero ;v758=v758 + (v796 * v128.PredictionTime) ;end local v759=CFrame.lookAt(v14.CFrame.Position,v758);v14.CFrame=v14.CFrame:Lerp(v759,v128.Smoothness);end v44(v157);end end);end v155:CreateSection("General");v155:CreateToggle({Name="Aimlock",CurrentValue=false,Callback=function(v440) getgenv().Aimlock.ToggleOn=v440;if  not v440 then v164();end end});v155:CreateKeybind({Name="Aimlock Keybind",CurrentKeybind="RightShift",HoldToInteract=false,Callback=function() if  not getgenv().Aimlock.ToggleOn then return;end if getgenv().Aimlock.Enabled then v164();v0:Notify({Title="Aimlock",Content="Desactivado",Duration=1.5});else v165();end end});v155:CreateSlider({Name="Smoothness",Range={0.01,1},Increment=0.05,CurrentValue=1,Callback=function(v442) v128.Smoothness=v442;end});v155:CreateToggle({Name="Prediction Aimlock",CurrentValue=false,Callback=function(v444) v128.Prediction=v444;end});v155:CreateSlider({Name="Prediction Time",Range={0.01,0.5},Increment=0.005,CurrentValue=0.135,Callback=function(v446) v128.PredictionTime=v446;end});v155:CreateToggle({Name="Team Check (No lockear equipo)",CurrentValue=false,Callback=function(v448) v128.TeamCheck=v448;end});v155:CreateSection("Target");v155:CreateDropdown({Name="Aim Part",Options={"Head","Torso","Auto"},CurrentOption="Head",Callback=function(v450) v128.AimPart=((type(v450)=="table") and v450[1]) or v450 ;end});v155:CreateSlider({Name="Max Distance",Range={100,5000},Increment=50,CurrentValue=1000,Callback=function(v452) v128.MaxDistance=v452;end});v155:CreateToggle({Name="Use Max Distance",CurrentValue=true,Callback=function(v454) v128.UseMaxDistance=v454;end});local v166=Drawing.new("Circle");v166.Color=Color3.fromRGB(175,25,255);v166.Thickness=2;v166.Filled=false;v166.Visible=false;v166.Radius=v128.FOVRadius;local v173=nil;local function v174(v456) v128.UseFOV=v456;if v456 then if  not v173 then v173=v3.RenderStepped:Connect(function() if  not v128.UseFOV then v166.Visible=false;return;end local v761=v6:GetGuiInset();v166.Position=Vector2.new(v15.X,v15.Y + v761.Y );v166.Radius=v128.FOVRadius;v166.Visible=true;end);end else if v173 then v173:Disconnect();v173=nil;end v166.Visible=false;end end v155:CreateToggle({Name="Use FOV",CurrentValue=false,Callback=v174});v155:CreateSlider({Name="FOV Size",Range={50,500},Increment=10,CurrentValue=150,Callback=function(v458) v128.FOVRadius=v458;end});v155:CreateSection("Visual");v145=v155:CreateToggle({Name="Tracer Enemigos (Aimlock)",CurrentValue=false,Callback=function(v460) if (v460 and v144) then v144:Set(false);end v154(v460);end});v155:CreateDropdown({Name="Tracer Origin",Options={"Mouse","Bottom"},CurrentOption="Mouse",Callback=function(v461) v141=((type(v461)=="table") and v461[1]) or v461 ;end});v155:CreateSection("Whitelist");v155:CreateDropdown({Name="Aimlock Whitelist Mode",Options={"Disabled","Ignore Whitelist","Only Whitelist"},CurrentOption="Disabled",Callback=function(v462) v128.WhitelistMode=((type(v462)=="table") and v462[1]) or v462 ;if v118 then v100=v128.WhitelistMode;v137();end if v119 then v129=v128.WhitelistMode;end end});local v175=v155:CreateDropdown({Name="Seleccionar Objetivo Whitelist",Options={},CurrentOption={},MultipleOptions=true,Callback=function(v464) v21=v464;end});table.insert(v92,v175);v155:CreateToggle({Name="Sincronizar con ESP",CurrentValue=false,Callback=function(v465) v118=v465;if v465 then v100=v128.WhitelistMode;v137();end end});v155:CreateToggle({Name="Sincronizar con Triggerbot",CurrentValue=false,Callback=function(v466) v119=v466;if v466 then v129=v128.WhitelistMode;end end});v155:CreateSection("Team Check");local v176=v155:CreateDropdown({Name="Equipos a Ignorar",Options={},CurrentOption={},MultipleOptions=true,Callback=function(v467) v18=v467;v137();if v149 then v154(true);end end});table.insert(v19,v176);v155:CreateToggle({Name="Sincronizar con ESP",CurrentValue=false,Callback=function(v468) v124=v468;end});v155:CreateToggle({Name="Sincronizar con Triggerbot",CurrentValue=false,Callback=function(v469) v125=v469;end});local v177=v1:CreateTab("Triggerbot",nil);local v178=nil;local v179=false;local v180=0.05;local v181=false;local v182=false;local v183=RaycastParams.new();v183.FilterType=Enum.RaycastFilterType.Exclude;v177:CreateSection("General");v177:CreateToggle({Name="Triggerbot",CurrentValue=false,Callback=function(v470) if v470 then if  not v178 then v178=v3.RenderStepped:Connect(function() if v179 then return;end local v766=v15.Target;if (v766 and v766.Parent) then local v798=v766.Parent;if ( not v798:FindFirstChildOfClass("Humanoid") and v798.Parent) then v798=v798.Parent;end local v799=v798:FindFirstChildOfClass("Humanoid");if (v799 and (v798.Name~=v13.Name)) then local v820=v2:GetPlayerFromCharacter(v798);if  not v820 then return;end if  not v23(v820,v129) then return;end if (v181 and v17(v820)) then return;end if v182 then v183.FilterDescendantsInstances={v13.Character};local v832=v14.CFrame.Position;local v833=(v15.Hit.Position-v832).Unit * 1500 ;local v834=workspace:Raycast(v832,v833,v183);if (v834 and  not v834.Instance:IsDescendantOf(v798)) then if ((v834.Instance.Transparency<1) and v834.Instance.CanCollide) then return;end end end v179=true;task.spawn(function() if v30 then v31(v27);end if mouse1click then pcall(mouse1click);end task.wait(v180);v179=false;end);end end end);end elseif v178 then v178:Disconnect();v178=nil;end end});v177:CreateSlider({Name="Trigger Delay",Range={0.01,0.5},Increment=0.01,CurrentValue=0.05,Callback=function(v471) v180=v471;end});v177:CreateSection("Checks");v177:CreateToggle({Name="Team Check (No disparar equipo)",CurrentValue=false,Callback=function(v472) v181=v472;end});v177:CreateToggle({Name="Wall Check",CurrentValue=false,Callback=function(v473) v182=v473;end});v177:CreateSection("Whitelist");v177:CreateDropdown({Name="Triggerbot Whitelist Mode",Options={"Disabled","Ignore Whitelist","Only Whitelist"},CurrentOption="Disabled",Callback=function(v474) v129=((type(v474)=="table") and v474[1]) or v474 ;if v120 then v100=v129;v137();end if v121 then v128.WhitelistMode=v129;end end});local v186=v177:CreateDropdown({Name="Seleccionar Objetivo Whitelist",Options={},CurrentOption={},MultipleOptions=true,Callback=function(v475) v21=v475;end});table.insert(v92,v186);v177:CreateToggle({Name="Sincronizar con ESP",CurrentValue=false,Callback=function(v476) v120=v476;if v476 then v100=v129;v137();end end});v177:CreateToggle({Name="Sincronizar con Aimlock",CurrentValue=false,Callback=function(v477) v121=v477;if v477 then v128.WhitelistMode=v129;end end});v177:CreateSection("Team Check");local v187=v177:CreateDropdown({Name="Equipos a Ignorar",Options={},CurrentOption={},MultipleOptions=true,Callback=function(v478) v18=v478;v137();if v149 then v154(true);end end});table.insert(v19,v187);v177:CreateToggle({Name="Sincronizar con ESP",CurrentValue=false,Callback=function(v479) v126=v479;end});v177:CreateToggle({Name="Sincronizar con Aimlock",CurrentValue=false,Callback=function(v480) v127=v480;end});local v188=v1:CreateTab("Extras",nil);v188:CreateSection("Camera");v188:CreateToggle({Name="Unlock Max Camera Distance (Zoom Infinito)",CurrentValue=false,Callback=function(v481) if v481 then v13.CameraMaxZoomDistance=999999;v13.CameraMinZoomDistance=0.5;else v13.CameraMaxZoomDistance=128;v13.CameraMinZoomDistance=0.5;end end});local v189=false;local v190=70;local v191=70;local v192=nil;local function v193(v482) v189=v482;if v482 then v191=v14.FieldOfView;if  not v192 then v192=v3.RenderStepped:Connect(function() v14.FieldOfView=v190;end);end else if v192 then v192:Disconnect();v192=nil;end v14.FieldOfView=v191;end end v188:CreateToggle({Name="FOV Changer",CurrentValue=false,Callback=v193});v188:CreateSlider({Name="FOV Slider",Range={1,120},Increment=1,CurrentValue=70,Callback=function(v483) v190=v483;end});local v194=nil;local v195=nil;local v196=false;local function v197(v484) if v484 then local v631=v13.Character;local v632=v631 and v631:FindFirstChild("HumanoidRootPart") ;local v633=v631 and v631:FindFirstChildOfClass("Humanoid") ;if ( not v632 or  not v633) then return;end v196=v632.Anchored;v632.Anchored=true;v194=Instance.new("Part");v194.Size=Vector3.new(1,1,1);v194.Transparency=1;v194.Anchored=true;v194.CanCollide=false;v194.CFrame=v632.CFrame;v194.Parent=workspace;workspace.CurrentCamera.CameraSubject=v194;v195=v3.RenderStepped:Connect(function() local v698=workspace.CurrentCamera;local v699=Vector3.new();if v4:IsKeyDown(Enum.KeyCode.W) then v699=v699 + v698.CFrame.LookVector ;end if v4:IsKeyDown(Enum.KeyCode.S) then v699=v699-v698.CFrame.LookVector ;end if v4:IsKeyDown(Enum.KeyCode.A) then v699=v699-v698.CFrame.RightVector ;end if v4:IsKeyDown(Enum.KeyCode.D) then v699=v699 + v698.CFrame.RightVector ;end if v4:IsKeyDown(Enum.KeyCode.E) then v699=v699 + Vector3.new(0,1,0) ;end if v4:IsKeyDown(Enum.KeyCode.Q) then v699=v699-Vector3.new(0,1,0) ;end v194.CFrame=v194.CFrame + (v699 * 3) ;end);else if v195 then v195:Disconnect();v195=nil;end if v194 then v194:Destroy();v194=nil;end local v643=v13.Character;if v643 then local v724=v643:FindFirstChild("HumanoidRootPart");local v725=v643:FindFirstChildOfClass("Humanoid");if v724 then v724.Anchored=v196;end if v725 then workspace.CurrentCamera.CameraSubject=v725;end end end end v188:CreateToggle({Name="Freecam",CurrentValue=false,Callback=v197});v188:CreateSection("Vision");local v198={};local function v199(v485) if v485 then v198.Ambient=v7.Ambient;v198.OutdoorAmbient=v7.OutdoorAmbient;v198.Brightness=v7.Brightness;v198.GlobalShadows=v7.GlobalShadows;v7.Ambient=Color3.fromRGB(255,255,255);v7.OutdoorAmbient=Color3.fromRGB(255,255,255);v7.Brightness=1;v7.GlobalShadows=false;elseif v198.Ambient then v7.Ambient=v198.Ambient;v7.OutdoorAmbient=v198.OutdoorAmbient;v7.Brightness=v198.Brightness;v7.GlobalShadows=v198.GlobalShadows;end end v188:CreateToggle({Name="Fullbright",CurrentValue=false,Callback=v199});local v200={};local function v201(v486) if v486 then for v701,v702 in pairs(workspace:GetDescendants()) do if (v702:IsA("BasePart") and  not v702.Parent:FindFirstChild("Humanoid")) then if (v200[v702]==nil) then v200[v702]=v702.Transparency;end if (v702.Transparency<0.5) then v702.Transparency=0.5;end end end else for v703,v704 in pairs(v200) do if (v703 and v703.Parent) then v703.Transparency=v704;end end v200={};end end v188:CreateToggle({Name="X-Ray",CurrentValue=false,Callback=v201});v188:CreateSection("Tools");local v202=false;local function v203() if ( not v13.Backpack:FindFirstChild("Click TP") and v13.Character) then local v652=Instance.new("Tool");v652.RequiresHandle=false;v652.Name="Click TP";v652.ToolTip="Haz click en cualquier lado para teletransportarte";v652.Activated:Connect(function() local v705=RaycastParams.new();v705.FilterType=Enum.RaycastFilterType.Exclude;v705.FilterDescendantsInstances={v13.Character};local v709=v15.UnitRay;local v710=workspace:Raycast(v709.Origin,v709.Direction * 1000 ,v705);if v710 then local v769=v710.Position;local v770=v13.Character;if (v770 and v770:FindFirstChild("HumanoidRootPart")) then v770:PivotTo(CFrame.new(v769 + Vector3.new(0,3,0) ));end end end);v652.Parent=v13.Backpack;end end v188:CreateToggle({Name="Click TP",CurrentValue=false,Callback=function(v487) v202=v487;if v487 then v203();v0:Notify({Title="Herramienta",Content="Click TP Activado",Duration=1.5});end end});local v204=false;local function v205() if ( not v13.Backpack:FindFirstChild("BTools") and v13.Character) then local v658=Instance.new("HopperBin");v658.Name="BTools";v658.BinType=Enum.BinType.Hammer;v658.Parent=v13.Backpack;end end v188:CreateToggle({Name="BTools",CurrentValue=false,Callback=function(v488) v204=v488;if v488 then v205();v0:Notify({Title="Extras",Content="BTools Activado",Duration=1.5});end end});v188:CreateSection("Performance");v188:CreateButton({Name="FPS Boost",Callback=function() for v549,v550 in pairs(workspace:GetDescendants()) do if v550:IsA("BasePart") then v550.Material=Enum.Material.SmoothPlastic;elseif (v550:IsA("Decal") or v550:IsA("Texture")) then v550:Destroy();elseif (v550:IsA("ParticleEmitter") or v550:IsA("Smoke") or v550:IsA("Fire")) then v550.Enabled=false;end end v0:Notify({Title="FPS Boost",Content="FPS Boost Aplicado",Duration=2});end});v188:CreateToggle({Name="Anti-Fling",CurrentValue=false,Callback=function(v489) if v489 then loadstring(game:HttpGet("https://raw.githubusercontent.com/HarcangiRobloxProjects/AntiFling/refs/heads/main/antifling.lua"))();v0:Notify({Title="Escudo",Content="Anti-Fling Activado",Duration=2});end end});local v206=v1:CreateTab("Troll",nil);v206:CreateSection("Scripts");v206:CreateButton({Name="Fling",Callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt"))();end});v206:CreateButton({Name="Invisible",Callback=function() loadstring(game:HttpGet("https://pastebin.com/raw/3Rnd9rHf"))();end});local v207=v1:CreateTab("Sounds",nil);v207:CreateSection("Configuracion de Sonidos");v207:CreateToggle({Name="Lock Sound (Sonido al fijar)",CurrentValue=true,Callback=function(v490) v29=v490;end});v207:CreateDropdown({Name="Sonido para Lock Target",Options=v25,CurrentOption="Neverlose Hit",Callback=function(v491) v26=((type(v491)=="table") and v491[1]) or v491 ;end});v207:CreateToggle({Name="Hit Sound (Sonido al golpear/disparar)",CurrentValue=false,Callback=function(v492) v30=v492;end});v207:CreateDropdown({Name="Sonido para Hit / Disparo",Options=v25,CurrentOption="Skeet / Gamesense",Callback=function(v493) v27=((type(v493)=="table") and v493[1]) or v493 ;end});v207:CreateSection("Probar & Escuchar Sonidos");v207:CreateDropdown({Name="Lista de Sonidos 100% Verificados",Options=v25,CurrentOption="Neverlose Hit",Callback=function(v494) v28=((type(v494)=="table") and v494[1]) or v494 ;end});v207:CreateButton({Name="🔊 Reproducir Sonido Seleccionado",Callback=function() v31(v28);v0:Notify({Title="Audio Test",Content="Reproduciendo: "   .. v28 ,Duration=1.5});end});v2.PlayerAdded:Connect(function() task.wait(0.5);v93();end);v2.PlayerRemoving:Connect(function() task.wait(0.5);v93();end);v12.ChildAdded:Connect(function() task.wait(0.5);v94();end);v12.ChildRemoved:Connect(function() task.wait(0.5);v94();end);task.spawn(function() task.wait(1);v93();v94();end);local function v208() v54();v61();v67();v72();v81();v42();getgenv().HBE=false;v90(false);v164();v174(false);pcall(function() if v166 then v166:Remove();end end);v148(false);v154(false);v105=false;if v106 then v106:Disconnect();v106=nil;end v133(false);v134(false);v136(false);v193(false);v197(false);v199(false);v201(false);if v98 then v98:Disconnect();v98=nil;end v0:Destroy();end v46:CreateButton({Name="🚨 Destroy Hub (Apagar Todo)",Callback=v208});v13.CharacterAdded:Connect(function() task.wait(0.5);if v202 then v203();end if v204 then v205();end end);print("RATAHUB tu puta obsesion😝😝😝");v0:Notify({Title="RATAHUB V5",Content="RATAHUB tu puta obsesion😝😝😝",Duration=3});
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+	Name = "RATAHUB V5",
+	Icon = 0,
+	LoadingTitle = "RATAHUB V5",
+	LoadingSubtitle = "by Bambi",
+	Theme = "Default",
+	ToggleUIKeybind = "K",
+	ConfigurationSaving = {Enabled = false}
+})
+
+repeat task.wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer.Character
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                      SERVICIOS                          ║
+-- ╚══════════════════════════════════════════════════════════╝
+local Players          = game:GetService("Players")
+local RunService       = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui          = game:GetService("CoreGui")
+local GuiService       = game:GetService("GuiService")
+local Lighting         = game:GetService("Lighting")
+local Stats            = game:GetService("Stats")
+local TeleportService  = game:GetService("TeleportService")
+local HttpService      = game:GetService("HttpService")
+local SoundService     = game:GetService("SoundService")
+local Teams            = game:GetService("Teams")
+
+local LocalPlayer      = Players.LocalPlayer
+local Camera           = workspace.CurrentCamera
+local Mouse            = LocalPlayer:GetMouse()
+
+local function IsAlive(plr)
+	return plr and plr.Character
+		and plr.Character:FindFirstChildOfClass("Humanoid")
+		and plr.Character:FindFirstChildOfClass("Humanoid").Health > 0
+end
+
+local function IsSameTeam(plr)
+	if not plr or plr == LocalPlayer then return true end
+	if plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then return true end
+	return false
+end
+
+local IgnoredTeamsTable = {}
+local AllTeamDropdowns   = {}
+
+local function IsTeamIgnored(plr)
+	if not plr or not plr.Team then return false end
+	if type(IgnoredTeamsTable) == "table" then
+		for _, name in pairs(IgnoredTeamsTable) do
+			if name == plr.Team.Name then return true end
+		end
+	elseif type(IgnoredTeamsTable) == "string" then
+		return IgnoredTeamsTable == plr.Team.Name
+	end
+	return false
+end
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║               SISTEMA DE WHITELIST MULTI                ║
+-- ╚══════════════════════════════════════════════════════════╝
+local GlobalWhitelistTable = {}
+
+local function IsInWhitelist(plrName)
+	if type(GlobalWhitelistTable) == "table" then
+		for _, name in pairs(GlobalWhitelistTable) do
+			if name == plrName then return true end
+		end
+	elseif type(GlobalWhitelistTable) == "string" then
+		return GlobalWhitelistTable == plrName
+	end
+	return false
+end
+
+local function ShouldTargetPlayer(plr, mode)
+	if not plr or plr == LocalPlayer then return false end
+	
+	-- Filtro 1: Team Check (Ignorar Equipos)
+	if IsTeamIgnored(plr) then return false end
+
+	-- Filtro 2: Whitelist
+	if mode and mode ~= "Disabled" then
+		local isWhitelisted = IsInWhitelist(plr.Name)
+		if mode == "Ignore Whitelist" and isWhitelisted then
+			return false
+		elseif mode == "Only Whitelist" and not isWhitelisted then
+			return false
+		end
+	end
+	return true
+end
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║        SONIDOS 100% FUNCIONALES Y VERIFICADOS           ║
+-- ╚══════════════════════════════════════════════════════════╝
+local SoundList = {
+    ["Skeet / Gamesense"]      = "rbxassetid://4817809188",
+    ["Neverlose Hit"]          = "rbxassetid://6607204501",
+    ["CS:GO Hit"]              = "rbxassetid://160432334",
+    ["TF2 Critical Hit"]       = "rbxassetid://296102734",
+    ["Bubble Pop"]             = "rbxassetid://6026900223",
+    ["Rust Headshot"]          = "rbxassetid://1255040462"
+}
+
+local SoundNames = {
+    "Skeet / Gamesense",
+    "Neverlose Hit",
+    "CS:GO Hit",
+    "TF2 Critical Hit",
+    "Bubble Pop",
+    "Rust Headshot"
+}
+
+local SelectedLockSound  = "Neverlose Hit"
+local SelectedHitSound   = "Skeet / Gamesense"
+local PreviewSoundChoice = "Neverlose Hit"
+
+local LockSoundEnabled = true
+local HitSoundEnabled  = false
+
+local function PlaySoundByName(soundName)
+    local id = SoundList[soundName]
+    if id then
+        local s = Instance.new("Sound")
+        s.SoundId = id
+        s.Volume = 1
+        s.Parent = SoundService
+        s:Play()
+        s.Ended:Connect(function() s:Destroy() end)
+    end
+end
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║        WATERMARK SYSTEM & TARGET INFO DISPLAY            ║
+-- ╚══════════════════════════════════════════════════════════╝
+local WatermarkGui     = nil
+local WatermarkConn    = nil
+local WatermarkEnabled = false
+
+local TargetInfoFrame = nil
+local TargetNameLabel = nil
+local TargetPingLabel = nil
+local TargetDistLabel = nil
+local TargetTeamLabel = nil
+local HealthBarFill   = nil
+local HealthLabel      = nil
+
+local function DestroyWatermark()
+	if WatermarkConn then WatermarkConn:Disconnect(); WatermarkConn = nil end
+	if WatermarkGui then WatermarkGui:Destroy(); WatermarkGui = nil end
+    TargetInfoFrame = nil
+end
+
+local function CreateWatermark()
+	DestroyWatermark()
+	WatermarkGui = Instance.new("ScreenGui")
+	WatermarkGui.Name = "RataHub_Watermark"
+	WatermarkGui.Parent = CoreGui
+
+	-- Watermark Frame (Arriba a la derecha)
+	local frame = Instance.new("Frame", WatermarkGui)
+	frame.Size = UDim2.new(0, 170, 0, 95)
+	frame.Position = UDim2.new(1, -180, 0, 20)
+	frame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+	frame.BackgroundTransparency = 0.25
+	frame.BorderSizePixel = 0
+
+	local corner = Instance.new("UICorner", frame)
+	corner.CornerRadius = UDim.new(0, 8)
+
+	local stroke = Instance.new("UIStroke", frame)
+	stroke.Color = Color3.fromRGB(175, 25, 255)
+	stroke.Thickness = 1.5
+
+	local label = Instance.new("TextLabel", frame)
+	label.Size = UDim2.new(1, -10, 1, -10)
+	label.Position = UDim2.new(0, 5, 0, 5)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.TextYAlignment = Enum.TextYAlignment.Top
+	label.Font = Enum.Font.SourceSansBold
+	label.TextSize = 13
+
+	-- Target Info Display Frame (Justo DEBAJO del Watermark)
+	TargetInfoFrame = Instance.new("Frame", WatermarkGui)
+	TargetInfoFrame.Name = "TargetInfoFrame"
+	TargetInfoFrame.Size = UDim2.new(0, 170, 0, 115)
+	TargetInfoFrame.Position = UDim2.new(1, -180, 0, 120)
+	TargetInfoFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+	TargetInfoFrame.BackgroundTransparency = 0.25
+	TargetInfoFrame.BorderSizePixel = 0
+	TargetInfoFrame.Visible = false
+
+	local tiCorner = Instance.new("UICorner", TargetInfoFrame)
+	tiCorner.CornerRadius = UDim.new(0, 8)
+
+	local tiStroke = Instance.new("UIStroke", TargetInfoFrame)
+	tiStroke.Color = Color3.fromRGB(175, 25, 255)
+	tiStroke.Thickness = 1.5
+
+	TargetNameLabel = Instance.new("TextLabel", TargetInfoFrame)
+	TargetNameLabel.Size = UDim2.new(1, -10, 0, 18)
+	TargetNameLabel.Position = UDim2.new(0, 5, 0, 4)
+	TargetNameLabel.BackgroundTransparency = 1
+	TargetNameLabel.Text = "Target: None"
+	TargetNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	TargetNameLabel.Font = Enum.Font.SourceSansBold
+	TargetNameLabel.TextSize = 12
+	TargetNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+	TargetPingLabel = Instance.new("TextLabel", TargetInfoFrame)
+	TargetPingLabel.Size = UDim2.new(1, -10, 0, 14)
+	TargetPingLabel.Position = UDim2.new(0, 5, 0, 22)
+	TargetPingLabel.BackgroundTransparency = 1
+	TargetPingLabel.Text = "Ping: ? ms"
+	TargetPingLabel.TextColor3 = Color3.fromRGB(100, 220, 255)
+	TargetPingLabel.Font = Enum.Font.SourceSans
+	TargetPingLabel.TextSize = 11
+	TargetPingLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+	TargetDistLabel = Instance.new("TextLabel", TargetInfoFrame)
+	TargetDistLabel.Size = UDim2.new(1, -10, 0, 14)
+	TargetDistLabel.Position = UDim2.new(0, 5, 0, 38)
+	TargetDistLabel.BackgroundTransparency = 1
+	TargetDistLabel.Text = "Dist: 0 studs"
+	TargetDistLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+	TargetDistLabel.Font = Enum.Font.SourceSans
+	TargetDistLabel.TextSize = 11
+	TargetDistLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+	local healthBarBg = Instance.new("Frame", TargetInfoFrame)
+	healthBarBg.Size = UDim2.new(1, -10, 0, 13)
+	healthBarBg.Position = UDim2.new(0, 5, 0, 56)
+	healthBarBg.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+	healthBarBg.BorderSizePixel = 0
+	Instance.new("UICorner", healthBarBg).CornerRadius = UDim.new(0, 3)
+
+	HealthBarFill = Instance.new("Frame", healthBarBg)
+	HealthBarFill.Size = UDim2.new(1, 0, 1, 0)
+	HealthBarFill.BackgroundColor3 = Color3.fromRGB(0, 255, 120)
+	HealthBarFill.BorderSizePixel = 0
+	Instance.new("UICorner", HealthBarFill).CornerRadius = UDim.new(0, 3)
+
+	HealthLabel = Instance.new("TextLabel", healthBarBg)
+	HealthLabel.Size = UDim2.new(1, 0, 1, 0)
+	HealthLabel.BackgroundTransparency = 1
+	HealthLabel.Text = "100 HP"
+	HealthLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	HealthLabel.Font = Enum.Font.SourceSansBold
+	HealthLabel.TextSize = 10
+
+	TargetTeamLabel = Instance.new("TextLabel", TargetInfoFrame)
+	TargetTeamLabel.Size = UDim2.new(1, -10, 0, 14)
+	TargetTeamLabel.Position = UDim2.new(0, 5, 0, 74)
+	TargetTeamLabel.BackgroundTransparency = 1
+	TargetTeamLabel.Text = "Equipo: Ninguno"
+	TargetTeamLabel.TextColor3 = Color3.fromRGB(180, 180, 255)
+	TargetTeamLabel.Font = Enum.Font.SourceSans
+	TargetTeamLabel.TextSize = 11
+	TargetTeamLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+	local fps = 0
+	WatermarkConn = RunService.RenderStepped:Connect(function(step)
+		fps = math.floor(1 / step)
+		local ping = 0
+		pcall(function()
+			if LocalPlayer.GetNetworkPing then
+				ping = math.floor(LocalPlayer:GetNetworkPing() * 1000)
+			else
+				ping = math.floor(Stats.PerformanceStats.Ping:GetValue())
+			end
+		end)
+		local timeStr = os.date("%H:%M:%S")
+		local playerCount = #Players:GetPlayers()
+		label.Text = string.format(
+			"<b>RATAHUB V5</b>\nFPS: %d\nPing: %d ms\nJugadores: %d\nHora: %s\nUsuario: %s",
+			fps, ping, playerCount, timeStr, LocalPlayer.Name
+		)
+		label.RichText = true
+	end)
+end
+
+local function UpdateTargetInfoDisplay(target)
+    if not TargetInfoFrame then return end
+    if not target or not IsAlive(target) then
+        TargetInfoFrame.Visible = false
+        return
+    end
+
+    TargetInfoFrame.Visible = true
+    TargetNameLabel.Text = "Target: " .. target.Name
+
+    -- Ping del target (obtenido de manera segura desde Stats o atributo)
+    pcall(function()
+        local targetPing = 0
+        if target:FindFirstChild("Ping") then
+            targetPing = target.Ping.Value
+        elseif target:GetAttribute("Ping") then
+            targetPing = target:GetAttribute("Ping")
+        else
+            -- Si Roblox/Exploit no da el ping exacto del otro jugador, obtenemos el de Stats
+            targetPing = math.floor(Stats.PerformanceStats.Ping:GetValue())
+        end
+        TargetPingLabel.Text = string.format("Ping: %d ms", targetPing)
+    end)
+
+    local myChar = LocalPlayer.Character
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    local tRoot  = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+
+    if myRoot and tRoot then
+        local studs = math.floor((myRoot.Position - tRoot.Position).Magnitude)
+        TargetDistLabel.Text = string.format("Dist: %d studs", studs)
+    else
+        TargetDistLabel.Text = "Dist: ? studs"
+    end
+
+    local hum = target.Character:FindFirstChildOfClass("Humanoid")
+    if hum then
+        local hp = math.max(0, math.floor(hum.Health))
+        local maxHp = math.floor(hum.MaxHealth)
+        local pct = math.clamp(hp / maxHp, 0, 1)
+        HealthBarFill.Size = UDim2.new(pct, 0, 1, 0)
+        HealthLabel.Text = string.format("%d / %d HP (%d%%)", hp, maxHp, math.floor(pct * 100))
+        HealthBarFill.BackgroundColor3 = Color3.fromRGB(math.floor(255 * (1 - pct)), math.floor(255 * pct), 100)
+    end
+
+    TargetTeamLabel.Text = "Equipo: " .. (target.Team and target.Team.Name or "Ninguno")
+end
+
+local function ToggleWatermark(v)
+	WatermarkEnabled = v
+	if v then CreateWatermark() else DestroyWatermark() end
+end
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                      MAIN TAB                           ║
+-- ╚══════════════════════════════════════════════════════════╝
+local MainTab = Window:CreateTab("Main", nil)
+
+-- ----- Movement -----
+MainTab:CreateSection("Movement")
+
+local FlyToggleEnabled = false
+local FlyActive        = false
+local FlySpeed         = 140
+local BV, BG           = nil, nil
+local OldAnimate       = nil
+local FlyLoop          = nil
+
+local function StopFly()
+	FlyActive = false
+	if FlyLoop then FlyLoop:Disconnect(); FlyLoop = nil end
+	if BV then BV:Destroy(); BV = nil end
+	if BG then BG:Destroy(); BG = nil end
+
+	local char = LocalPlayer.Character
+	if char then
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if hum then hum.PlatformStand = false end
+		if OldAnimate then OldAnimate.Parent = char; OldAnimate = nil end
+	end
+end
+
+local function StartFly()
+	local char = LocalPlayer.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+	local hum  = char:FindFirstChildOfClass("Humanoid")
+	local root = char.HumanoidRootPart
+
+	if hum then hum.PlatformStand = true end
+	if char:FindFirstChild("Animate") then
+		OldAnimate = char.Animate:Clone()
+		char.Animate:Destroy()
+	end
+
+	BV = Instance.new("BodyVelocity")
+	BV.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+	BV.Velocity = Vector3.zero
+	BV.Parent = root
+
+	BG = Instance.new("BodyGyro")
+	BG.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+	BG.P = 20000
+	BG.D = 800
+	BG.Parent = root
+
+	FlyLoop = RunService.RenderStepped:Connect(function()
+		if not FlyActive then return end
+
+		local look  = Camera.CFrame.LookVector
+		local right = look:Cross(Vector3.new(0,1,0))
+		local move  = Vector3.zero
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.W)           then move += look end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S)           then move -= look end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A)           then move -= right end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D)           then move += right end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space)       then move += Vector3.new(0,1,0) end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then move -= Vector3.new(0,1,0) end
+
+		BV.Velocity = move * FlySpeed
+		BG.CFrame   = Camera.CFrame
+	end)
+end
+
+MainTab:CreateToggle({
+	Name = "Fly", CurrentValue = false,
+	Callback = function(v) FlyToggleEnabled = v; FlyActive = false; StopFly() end
+})
+
+MainTab:CreateKeybind({
+	Name = "Fly Keybind", CurrentKeybind = "V", HoldToInteract = false,
+	Callback = function()
+		if not FlyToggleEnabled then return end
+		FlyActive = not FlyActive
+		if FlyActive then StartFly(); Rayfield:Notify({Title="Fly", Content="Activado", Duration=1.5})
+		else StopFly(); Rayfield:Notify({Title="Fly", Content="Desactivado", Duration=1.5}) end
+	end
+})
+
+MainTab:CreateSlider({
+	Name = "Fly Speed", Range = {50, 600}, Increment = 10, CurrentValue = 140,
+	Callback = function(v) FlySpeed = v end
+})
+
+local WSToggleEnabled = false
+local WSActive        = false
+local TargetWalkSpeed = 140
+local OriginalWalkSpeed = nil
+local WalkSpeedLoop   = nil
+
+local function StopWalkSpeedLoop()
+	if WalkSpeedLoop then WalkSpeedLoop:Disconnect(); WalkSpeedLoop = nil end
+	local char = LocalPlayer.Character
+	if char and OriginalWalkSpeed then
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if hum then hum.WalkSpeed = OriginalWalkSpeed end
+	end
+end
+
+local function StartWalkSpeedLoop()
+	if WalkSpeedLoop then return end
+	WalkSpeedLoop = RunService.RenderStepped:Connect(function()
+		local char = LocalPlayer.Character
+		if not char then return end
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if not hum then return end
+
+		if not OriginalWalkSpeed then OriginalWalkSpeed = hum.WalkSpeed end
+		local desiredSpeed = WSActive and TargetWalkSpeed or OriginalWalkSpeed
+
+		if hum.WalkSpeed ~= desiredSpeed then hum.WalkSpeed = desiredSpeed end
+	end)
+end
+
+MainTab:CreateToggle({
+	Name = "WalkSpeed", CurrentValue = false,
+	Callback = function(v)
+		WSToggleEnabled = v
+		if not v then WSActive = false; StopWalkSpeedLoop() else StartWalkSpeedLoop() end
+	end
+})
+
+MainTab:CreateKeybind({
+	Name = "WalkSpeed Keybind", CurrentKeybind = "C", HoldToInteract = false,
+	Callback = function() if WSToggleEnabled then WSActive = not WSActive end end
+})
+
+MainTab:CreateSlider({
+	Name = "WalkSpeed Slider", Range = {16, 300}, Increment = 1, CurrentValue = 140,
+	Callback = function(v) TargetWalkSpeed = v end
+})
+
+local JumpPowerToggleEnabled = false
+local TargetJumpPower = 50
+local OriginalJumpPower = nil
+local JumpPowerLoop = nil
+
+local function StopJumpPowerLoop()
+	if JumpPowerLoop then JumpPowerLoop:Disconnect(); JumpPowerLoop = nil end
+	local char = LocalPlayer.Character
+	if char and OriginalJumpPower then
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if hum then
+			if hum.UseJumpPower then hum.JumpPower = OriginalJumpPower
+			else hum.JumpHeight = OriginalJumpPower end
+		end
+	end
+end
+
+local function StartJumpPowerLoop()
+	if JumpPowerLoop then return end
+	JumpPowerLoop = RunService.Heartbeat:Connect(function()
+		local char = LocalPlayer.Character
+		if not char then return end
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if not hum then return end
+
+		if not OriginalJumpPower then 
+			OriginalJumpPower = hum.UseJumpPower and hum.JumpPower or hum.JumpHeight
+		end
+
+		local current = hum.UseJumpPower and hum.JumpPower or hum.JumpHeight
+		local target  = JumpPowerToggleEnabled and TargetJumpPower or OriginalJumpPower
+
+		if current ~= target then
+			if hum.UseJumpPower then hum.JumpPower = target
+			else hum.JumpHeight = target end
+		end
+	end)
+end
+
+MainTab:CreateToggle({
+	Name = "JumpPower", CurrentValue = false,
+	Callback = function(v) JumpPowerToggleEnabled = v; if v then StartJumpPowerLoop() else StopJumpPowerLoop() end end
+})
+
+MainTab:CreateSlider({
+	Name = "JumpPower Slider", Range = {50, 300}, Increment = 5, CurrentValue = 50,
+	Callback = function(v) TargetJumpPower = v end
+})
+
+local GravityEnabled = false
+local TargetGravity  = 196.2
+local GravityLoop    = nil
+
+local function StopGravityLoop()
+	if GravityLoop then GravityLoop:Disconnect(); GravityLoop = nil end
+	workspace.Gravity = 196.2
+end
+
+local function StartGravityLoop()
+	if GravityLoop then return end
+	GravityLoop = RunService.RenderStepped:Connect(function()
+		if GravityEnabled then workspace.Gravity = TargetGravity else workspace.Gravity = 196.2 end
+	end)
+end
+
+MainTab:CreateToggle({
+	Name = "Gravity", CurrentValue = false,
+	Callback = function(v) GravityEnabled = v; if v then StartGravityLoop() else StopGravityLoop() end end
+})
+
+MainTab:CreateSlider({
+	Name = "Gravity Slider", Range = {0, 196.2}, Increment = 1, CurrentValue = 196.2,
+	Callback = function(v) TargetGravity = v end
+})
+
+local InfiniteJumpEnabled = false
+local InfJumpConn = nil
+
+MainTab:CreateToggle({
+	Name = "Infinite Jump", CurrentValue = false,
+	Callback = function(v)
+		InfiniteJumpEnabled = v
+		if v and not InfJumpConn then
+			InfJumpConn = UserInputService.JumpRequest:Connect(function()
+				if InfiniteJumpEnabled and LocalPlayer.Character then
+					local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+					if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+				end
+			end)
+		elseif not v and InfJumpConn then
+			InfJumpConn:Disconnect(); InfJumpConn = nil
+		end
+	end
+})
+
+local noclipEnabled      = false
+local noclipConnection   = nil
+local noclipAddedConn    = nil
+local OriginalCanCollide = {}
+local CharPartsCache     = {}
+
+local function stopNoclip()
+	if noclipConnection then noclipConnection:Disconnect(); noclipConnection = nil end
+	if noclipAddedConn then noclipAddedConn:Disconnect(); noclipAddedConn = nil end
+
+	for part, state in pairs(OriginalCanCollide) do
+		if part and part.Parent then part.CanCollide = state end
+	end
+	table.clear(OriginalCanCollide)
+	table.clear(CharPartsCache)
+end
+
+local function startNoclip()
+	stopNoclip()
+	local char = LocalPlayer.Character
+	if not char then return end
+
+	for _, part in pairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			table.insert(CharPartsCache, part)
+			if OriginalCanCollide[part] == nil then OriginalCanCollide[part] = part.CanCollide end
+		end
+	end
+
+	noclipAddedConn = char.DescendantAdded:Connect(function(part)
+		if part:IsA("BasePart") then
+			table.insert(CharPartsCache, part)
+			if OriginalCanCollide[part] == nil then OriginalCanCollide[part] = part.CanCollide end
+		end
+	end)
+
+	noclipConnection = RunService.Stepped:Connect(function()
+		if noclipEnabled then
+			for _, part in ipairs(CharPartsCache) do
+				if part and part.Parent then part.CanCollide = false end
+			end
+		end
+	end)
+end
+
+MainTab:CreateToggle({
+	Name = "Noclip", CurrentValue = false,
+	Callback = function(v) noclipEnabled = v; if v then startNoclip() else stopNoclip() end end
+})
+
+-- ----- Player -----
+MainTab:CreateSection("Player")
+
+-- RESET PERSONAJE (DESBUGUEAR MANUAL)
+MainTab:CreateButton({
+    Name = "Reset Personaje (Desbuguear / Respawn)",
+    Callback = function()
+        pcall(function()
+            if LocalPlayer.Character then
+                LocalPlayer.Character:BreakJoints()
+            end
+        end)
+        Rayfield:Notify({Title="Reset", Content="Reiniciando personaje...", Duration=1.5})
+    end
+})
+
+getgenv().HBE        = false
+getgenv().HitboxSize = 5
+local HBE_WhitelistMode = "Disabled"
+
+local OriginalSizes    = {}
+local HBEHeartbeatConn = nil
+local HBESteppedConn   = nil
+
+Players.PlayerRemoving:Connect(function(plr) OriginalSizes[plr] = nil end)
+
+local function RestoreHitbox(plr)
+	local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+	if hrp and OriginalSizes[plr] then
+		hrp.Size         = OriginalSizes[plr]
+		hrp.Transparency = 1
+		hrp.CanCollide   = true
+		hrp:SetAttribute("IsExpandedHitbox", nil)
+		OriginalSizes[plr] = nil
+	end
+end
+
+local function ToggleHBELoops(enable)
+	if enable then
+		if not HBEHeartbeatConn then
+			HBEHeartbeatConn = RunService.Heartbeat:Connect(function()
+				if not getgenv().HBE then return end
+				local targetSize = Vector3.new(getgenv().HitboxSize, getgenv().HitboxSize, getgenv().HitboxSize)
+				for _, p in ipairs(Players:GetPlayers()) do
+					if p ~= LocalPlayer and IsAlive(p) then
+						local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+						if hrp then
+							if ShouldTargetPlayer(p, HBE_WhitelistMode) then
+								OriginalSizes[p] = OriginalSizes[p] or hrp.Size
+								if hrp.Size ~= targetSize then
+									hrp.Size         = targetSize
+									hrp.Transparency = 0.5
+									hrp.Material     = Enum.Material.Neon
+									hrp.Color        = Color3.fromRGB(175,25,255)
+									hrp:SetAttribute("IsExpandedHitbox", true)
+								end
+							else
+								RestoreHitbox(p)
+							end
+						end
+					end
+				end
+			end)
+		end
+		if not HBESteppedConn then
+			HBESteppedConn = RunService.Stepped:Connect(function()
+				if not getgenv().HBE then return end
+				for _, p in ipairs(Players:GetPlayers()) do
+					if p ~= LocalPlayer and p.Character then
+						local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+						if hrp and hrp:GetAttribute("IsExpandedHitbox") and hrp.CanCollide then
+							hrp.CanCollide = false
+						end
+					end
+				end
+			end)
+		end
+	else
+		if HBEHeartbeatConn then HBEHeartbeatConn:Disconnect(); HBEHeartbeatConn = nil end
+		if HBESteppedConn then HBESteppedConn:Disconnect(); HBESteppedConn = nil end
+		for _, p in ipairs(Players:GetPlayers()) do RestoreHitbox(p) end
+		table.clear(OriginalSizes)
+	end
+end
+
+MainTab:CreateToggle({
+	Name = "Hitbox Expander", CurrentValue = false,
+	Callback = function(v) getgenv().HBE = v; ToggleHBELoops(v) end
+})
+
+MainTab:CreateSlider({
+	Name = "Hitbox Size", Range = {1, 150}, Increment = 1, CurrentValue = 5,
+	Callback = function(v) getgenv().HitboxSize = v end
+})
+
+MainTab:CreateDropdown({
+	Name = "Hitbox Whitelist Mode",
+	Options = {"Disabled", "Ignore Whitelist", "Only Whitelist"},
+	CurrentOption = "Disabled",
+	Callback = function(v) HBE_WhitelistMode = type(v) == "table" and v[1] or v end
+})
+
+local TeleportTarget = nil
+local AllPlayerDropdowns = {}
+
+local function RefreshGlobalPlayerDropdowns()
+	local list = {}
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer then table.insert(list, p.Name) end
+	end
+	for _, drop in ipairs(AllPlayerDropdowns) do
+		pcall(function()
+            drop:Refresh(list, true)
+        end)
+	end
+end
+
+local function RefreshGlobalTeamDropdowns()
+	local list = {}
+	pcall(function()
+		for _, t in ipairs(Teams:GetTeams()) do
+			table.insert(list, t.Name)
+		end
+	end)
+	if #list == 0 then table.insert(list, "Sin Equipos") end
+	for _, drop in ipairs(AllTeamDropdowns) do
+		pcall(function()
+			drop:Refresh(list, true)
+		end)
+	end
+end
+
+local HBEWhitelistDrop = MainTab:CreateDropdown({
+	Name = "Seleccionar Objetivo Whitelist", Options = {}, CurrentOption = {},
+	MultipleOptions = true,
+	Callback = function(v)
+		GlobalWhitelistTable = v
+	end
+})
+table.insert(AllPlayerDropdowns, HBEWhitelistDrop)
+
+local MainPlayerDrop = MainTab:CreateDropdown({
+	Name = "Seleccionar Jugador TP", Options = {}, CurrentOption = "",
+	Callback = function(v)
+		TeleportTarget = type(v) == "table" and v[1] or v
+	end
+})
+table.insert(AllPlayerDropdowns, MainPlayerDrop)
+
+MainTab:CreateButton({
+	Name = "Teletransportarse al Jugador",
+	Callback = function()
+		if TeleportTarget then
+			local targetPlr = Players:FindFirstChild(TeleportTarget)
+			if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") then
+				local myChar = LocalPlayer.Character
+				local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+				if myHrp then
+					myHrp.AssemblyLinearVelocity = Vector3.zero
+					myHrp.AssemblyAngularVelocity = Vector3.zero
+					myHrp.CFrame = targetPlr.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+					Rayfield:Notify({Title="Teleport", Content="Teletransportado a " .. TeleportTarget, Duration=2})
+				end
+			end
+		end
+	end
+})
+
+-- ----- Utility -----
+MainTab:CreateSection("Utility")
+
+MainTab:CreateToggle({
+	Name = "Watermark (HUD Info & Inspector)", CurrentValue = false,
+	Callback = ToggleWatermark
+})
+
+-- SERVIDOR POR CANTIDAD DE JUGADORES (Dropdown 1-10 + Botón Unirse)
+local TargetServerPlayers = 1
+MainTab:CreateDropdown({
+    Name = "Target Server Players (1-10)",
+    Options = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"},
+    CurrentOption = "1",
+    Callback = function(v)
+        local val = type(v) == "table" and v[1] or v
+        TargetServerPlayers = tonumber(val) or 1
+    end
+})
+
+MainTab:CreateButton({
+    Name = "Unirse a Servidor con esa Cantidad",
+    Callback = function()
+        Rayfield:Notify({Title="Server Finder", Content="Buscando servidor con " .. TargetServerPlayers .. " jugadores...", Duration=3})
+        task.spawn(function()
+            local success, result = pcall(function()
+                local raw = game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100")
+                return HttpService:JSONDecode(raw)
+            end)
+            if success and result and result.data then
+                for _, server in ipairs(result.data) do
+                    if server.playing and server.playing == TargetServerPlayers and server.id ~= game.JobId then
+                        TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+                        return
+                    end
+                end
+                for _, server in ipairs(result.data) do
+                    if server.playing and server.playing <= TargetServerPlayers and server.id ~= game.JobId then
+                        TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+                        return
+                    end
+                end
+                Rayfield:Notify({Title="Server Finder", Content="No se encontró servidor con esa cantidad exacta", Duration=3})
+            else
+                Rayfield:Notify({Title="Error", Content="Falló la consulta de servidores", Duration=2})
+            end
+        end)
+    end
+})
+
+local AntiAFKConn = nil
+MainTab:CreateButton({
+	Name = "Anti-AFK",
+	Callback = function()
+		if AntiAFKConn then
+			AntiAFKConn:Disconnect(); AntiAFKConn = nil
+			Rayfield:Notify({Title="Anti-AFK", Content="Desactivado", Duration=1.5})
+		else
+			AntiAFKConn = LocalPlayer.Idled:Connect(function()
+				game:GetService("VirtualUser"):ClickButton2(Vector2.zero)
+			end)
+			Rayfield:Notify({Title="Anti-AFK", Content="Activado", Duration=1.5})
+		end
+	end
+})
+
+MainTab:CreateButton({
+	Name = "Rejoin Same Server (Mismo Servidor)",
+	Callback = function()
+        Rayfield:Notify({Title="Rejoin", Content="Reconectando al mismo servidor...", Duration=2})
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+    end
+})
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                       ESP TAB                            ║
+-- ╚══════════════════════════════════════════════════════════╝
+local ESPTab = Window:CreateTab("ESP", nil)
+
+local ESP_WhitelistMode  = "Disabled"
+local ESP_TeamCheck      = false
+local ESPHighlightActive = false
+local ESPNamesActive     = false
+local ESPStudsActive     = false
+local RainbowESPEnabled  = false
+local RainbowLoop        = nil
+
+local ESPOffsetX   = 0
+local ESPOffsetY   = 3
+local ESPTextSize  = 13
+
+local ESPFillColor    = Color3.fromRGB(175, 25, 255)
+local ESPOutlineColor = Color3.fromRGB(175, 25, 255)
+
+local NameESPFolder = nil
+local nameConns     = {}
+local ESPStudsObjects = {}
+local ESPStudsConn    = nil
+
+local Sync_ESP_To_Aimlock = false
+local Sync_ESP_To_Trigger = false
+local Sync_Aim_To_ESP     = false
+local Sync_Aim_To_Trigger = false
+local Sync_Trig_To_ESP     = false
+local Sync_Trig_To_Aim     = false
+
+local Sync_Team_ESP_To_Aim  = false
+local Sync_Team_ESP_To_Trig = false
+local Sync_Team_Aim_To_ESP  = false
+local Sync_Team_Aim_To_Trig = false
+local Sync_Team_Trig_To_ESP  = false
+local Sync_Team_Trig_To_Aim  = false
+
+local AimConfig = {
+	MaxDistance    = 1000,
+	UseFOV         = false,
+	FOVRadius      = 150,
+	AimPart        = "Head",
+	UseMaxDistance = true,
+	Smoothness     = 1,
+	WhitelistMode  = "Disabled",
+    Prediction     = false,
+    PredictionTime = 0.135,
+    TeamCheck      = false
+}
+
+local Trigger_Whitelist = "Disabled"
+
+local function UpdateESPVisuals()
+	if NameESPFolder then
+		for _, bg in ipairs(NameESPFolder:GetChildren()) do
+			if bg:IsA("BillboardGui") then
+				bg.StudsOffset = Vector3.new(ESPOffsetX, ESPOffsetY, 0)
+				local txt = bg:FindFirstChildOfClass("TextLabel")
+				if txt then txt.TextSize = ESPTextSize end
+			end
+		end
+	end
+	for player, data in pairs(ESPStudsObjects) do
+		if data.Gui then
+			data.Gui.StudsOffset = Vector3.new(ESPOffsetX, ESPOffsetY, 0)
+			if data.Name then data.Name.TextSize = ESPTextSize end
+			if data.Dist then data.Dist.TextSize = ESPTextSize end
+			if data.Health then data.Health.TextSize = ESPTextSize end
+		end
+	end
+end
+
+-- ----- Highlight ESP -----
+ESPTab:CreateSection("Highlight ESP")
+
+local ESPConns   = {}
+local ESPStorage = nil
+
+local function SetupHighlightESP(Value)
+	ESPHighlightActive = Value
+	if ESPStorage then ESPStorage:Destroy(); ESPStorage = nil end
+	for _, c in pairs(ESPConns) do c:Disconnect() end
+	ESPConns = {}
+
+	if not Value then return end
+
+	ESPStorage = Instance.new("Folder")
+	ESPStorage.Name   = "Highlight_Storage"
+	ESPStorage.Parent = CoreGui
+
+	local function Highlight(plr)
+		if plr == LocalPlayer then return end
+		local function apply(char)
+			if not char or not ESPStorage then return end
+			local existing = ESPStorage:FindFirstChild(plr.Name)
+			if existing then existing:Destroy() end
+
+			if not ShouldTargetPlayer(plr, ESP_WhitelistMode) then return end
+
+			local h = Instance.new("Highlight")
+			h.Name                = plr.Name
+			h.DepthMode           = Enum.HighlightDepthMode.AlwaysOnTop
+			h.FillColor           = ESPFillColor
+			h.OutlineColor        = ESPOutlineColor
+			h.FillTransparency    = 0.5
+			h.OutlineTransparency = 0
+			h.Adornee             = char
+			h.Parent              = ESPStorage
+		end
+
+		if plr.Character then task.spawn(apply, plr.Character) end
+
+		local conn = plr.CharacterAdded:Connect(function(char)
+			char:WaitForChild("HumanoidRootPart", 5)
+			task.wait(0.1)
+			apply(char)
+		end)
+		table.insert(ESPConns, conn)
+	end
+
+	for _, p in ipairs(Players:GetPlayers()) do Highlight(p) end
+	table.insert(ESPConns, Players.PlayerAdded:Connect(Highlight))
+	table.insert(ESPConns, Players.PlayerRemoving:Connect(function(plr)
+		if ESPStorage and ESPStorage:FindFirstChild(plr.Name) then 
+			ESPStorage[plr.Name]:Destroy() 
+		end
+	end))
+end
+
+ESPTab:CreateToggle({
+	Name = "ESP Highlight", CurrentValue = false,
+	Callback = SetupHighlightESP
+})
+
+-- ----- Name ESP -----
+ESPTab:CreateSection("Name ESP")
+
+local function SetupNameESP(enabled)
+	ESPNamesActive = enabled
+	if NameESPFolder then NameESPFolder:Destroy(); NameESPFolder = nil end
+	for _, c in ipairs(nameConns) do c:Disconnect() end
+	table.clear(nameConns)
+
+	if not enabled then return end
+
+	NameESPFolder        = Instance.new("Folder")
+	NameESPFolder.Name   = "NameESP_Storage"
+	NameESPFolder.Parent = CoreGui
+
+	local function createNameTag(plr)
+		if plr == LocalPlayer then return end
+		local function apply(char)
+			if not char or not NameESPFolder then return end
+			local head = char:WaitForChild("Head", 5)
+			if not head or not NameESPFolder then return end
+
+			if NameESPFolder:FindFirstChild(plr.Name) then NameESPFolder[plr.Name]:Destroy() end
+
+			if not ShouldTargetPlayer(plr, ESP_WhitelistMode) then return end
+
+			local bg = Instance.new("BillboardGui")
+			bg.Name        = plr.Name
+			bg.Adornee     = head
+			bg.Size        = UDim2.new(0, 140, 0, 26)
+			bg.StudsOffset = Vector3.new(ESPOffsetX, ESPOffsetY, 0)
+			bg.AlwaysOnTop = true
+			bg.Parent      = NameESPFolder
+
+			local txt = Instance.new("TextLabel")
+			txt.Size                   = UDim2.new(1, 0, 1, 0)
+			txt.BackgroundTransparency = 1
+			txt.Text                   = plr.Name
+			txt.TextColor3             = Color3.fromRGB(255, 255, 255)
+			txt.TextStrokeColor3       = Color3.new(0, 0, 0)
+			txt.TextStrokeTransparency = 0
+			txt.Font                   = Enum.Font.Arcade
+			txt.TextSize               = ESPTextSize
+			txt.Parent                 = bg
+		end
+
+		if plr.Character then task.spawn(apply, plr.Character) end
+		table.insert(nameConns, plr.CharacterAdded:Connect(function(char) task.spawn(apply, char) end))
+	end
+
+	for _, p in ipairs(Players:GetPlayers()) do createNameTag(p) end
+	table.insert(nameConns, Players.PlayerAdded:Connect(createNameTag))
+	table.insert(nameConns, Players.PlayerRemoving:Connect(function(plr)
+		if NameESPFolder and NameESPFolder:FindFirstChild(plr.Name) then
+			NameESPFolder[plr.Name]:Destroy()
+		end
+	end))
+end
+
+local function createESPStuds(player)
+	if player == LocalPlayer or ESPStudsObjects[player] then return end
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Size = UDim2.new(0, 140, 0, 42)
+	billboard.AlwaysOnTop = true
+	billboard.StudsOffset = Vector3.new(ESPOffsetX, ESPOffsetY, 0)
+
+	local nameLabel = Instance.new("TextLabel", billboard)
+	nameLabel.Size = UDim2.new(1, 0, 0.4, 0)
+	nameLabel.Position = UDim2.new(0, 0, 0, 0)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	nameLabel.TextStrokeTransparency = 0
+	nameLabel.TextSize = ESPTextSize
+	nameLabel.Text = player.Name
+
+	local distLabel = Instance.new("TextLabel", billboard)
+	distLabel.Size = UDim2.new(1, 0, 0.3, 0)
+	distLabel.Position = UDim2.new(0, 0, 0.4, 0)
+	distLabel.BackgroundTransparency = 1
+	distLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+	distLabel.TextStrokeTransparency = 0.2
+	distLabel.TextSize = ESPTextSize
+
+	local healthLabel = Instance.new("TextLabel", billboard)
+	healthLabel.Size = UDim2.new(1, 0, 0.3, 0)
+	healthLabel.Position = UDim2.new(0, 0, 0.7, 0)
+	healthLabel.BackgroundTransparency = 1
+	healthLabel.TextStrokeTransparency = 0.2
+	healthLabel.TextSize = ESPTextSize
+
+	ESPStudsObjects[player] = {
+		Gui = billboard, Name = nameLabel, Dist = distLabel, Health = healthLabel
+	}
+end
+
+local function ToggleESPStuds(v)
+	ESPStudsActive = v
+	if v then
+		for _, p in pairs(Players:GetPlayers()) do createESPStuds(p) end
+		if not ESPStudsConn then
+			ESPStudsConn = RunService.RenderStepped:Connect(function()
+				if not ESPStudsActive then return end
+				local myChar = LocalPlayer.Character
+				local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+				if not myHRP then return end
+
+				for player, data in pairs(ESPStudsObjects) do
+					local char = player.Character
+					local hrp = char and char:FindFirstChild("HumanoidRootPart")
+					local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+					if hrp and hum and ShouldTargetPlayer(player, ESP_WhitelistMode) then
+						data.Gui.Parent = hrp
+						data.Gui.StudsOffset = Vector3.new(ESPOffsetX, ESPOffsetY, 0)
+
+						local dist = (myHRP.Position - hrp.Position).Magnitude
+						data.Dist.Text = math.floor(dist) .. " studs"
+
+						local hpPercent = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
+						data.Health.Text = "HP: " .. math.floor(hum.Health) .. " (" .. math.floor(hpPercent * 100) .. "%)"
+						if hpPercent > 0.7 then data.Health.TextColor3 = Color3.fromRGB(0, 255, 100)
+						elseif hpPercent > 0.3 then data.Health.TextColor3 = Color3.fromRGB(255, 200, 0)
+						else data.Health.TextColor3 = Color3.fromRGB(255, 50, 50) end
+					else
+						data.Gui.Parent = nil
+					end
+				end
+			end)
+		end
+	else
+		if ESPStudsConn then ESPStudsConn:Disconnect(); ESPStudsConn = nil end
+		for p, data in pairs(ESPStudsObjects) do if data.Gui then data.Gui:Destroy() end end
+		table.clear(ESPStudsObjects)
+	end
+end
+
+ESPTab:CreateToggle({
+	Name = "ESP Nombres", CurrentValue = false,
+	Callback = SetupNameESP
+})
+
+ESPTab:CreateToggle({
+	Name = "ESP Nombre + Studs + Vida", CurrentValue = false,
+	Callback = ToggleESPStuds
+})
+
+ESPTab:CreateSlider({
+	Name = "Posicion Offset X (Lados)", Range = {-10, 10}, Increment = 0.5, CurrentValue = 0,
+	Callback = function(v) ESPOffsetX = v; UpdateESPVisuals() end
+})
+
+ESPTab:CreateSlider({
+	Name = "Posicion Offset Y (Altura)", Range = {-5, 15}, Increment = 0.5, CurrentValue = 3,
+	Callback = function(v) ESPOffsetY = v; UpdateESPVisuals() end
+})
+
+ESPTab:CreateSlider({
+	Name = "Tamaño de Texto ESP", Range = {8, 30}, Increment = 1, CurrentValue = 13,
+	Callback = function(v) ESPTextSize = v; UpdateESPVisuals() end
+})
+
+-- ----- Whitelist -----
+ESPTab:CreateSection("Whitelist")
+
+local function RefreshAllESP()
+	if ESPHighlightActive then SetupHighlightESP(true) end
+	if ESPNamesActive then SetupNameESP(true) end
+	if ESPStudsActive then ToggleESPStuds(true) end
+end
+
+ESPTab:CreateDropdown({
+	Name = "ESP Whitelist Mode",
+	Options = {"Disabled", "Ignore Whitelist", "Only Whitelist"},
+	CurrentOption = "Disabled",
+	Callback = function(v)
+		ESP_WhitelistMode = type(v) == "table" and v[1] or v
+		RefreshAllESP()
+		if Sync_ESP_To_Aimlock then AimConfig.WhitelistMode = ESP_WhitelistMode end
+		if Sync_ESP_To_Trigger then Trigger_Whitelist = ESP_WhitelistMode end
+	end
+})
+
+local ESPWhitelistDrop = ESPTab:CreateDropdown({
+	Name = "Seleccionar Objetivo Whitelist", Options = {}, CurrentOption = {},
+	MultipleOptions = true,
+	Callback = function(v)
+		GlobalWhitelistTable = v
+		RefreshAllESP()
+	end
+})
+table.insert(AllPlayerDropdowns, ESPWhitelistDrop)
+
+ESPTab:CreateToggle({
+	Name = "Sincronizar con Aimlock", CurrentValue = false,
+	Callback = function(v)
+		Sync_ESP_To_Aimlock = v
+		if v then AimConfig.WhitelistMode = ESP_WhitelistMode end
+	end
+})
+
+ESPTab:CreateToggle({
+	Name = "Sincronizar con Triggerbot", CurrentValue = false,
+	Callback = function(v)
+		Sync_ESP_To_Trigger = v
+		if v then Trigger_Whitelist = ESP_WhitelistMode end
+	end
+})
+
+-- ----- Visual -----
+ESPTab:CreateSection("Visual")
+
+ESPTab:CreateDropdown({
+	Name = "Color Highlight",
+	Options = {"Morado", "Rojo", "Azul", "Verde Neon", "Cyan", "Blanco"},
+	CurrentOption = "Morado",
+	Callback = function(opt)
+		local choice = type(opt) == "table" and opt[1] or opt
+		if choice == "Morado"      then ESPFillColor = Color3.fromRGB(175, 25, 255); ESPOutlineColor = Color3.fromRGB(175, 25, 255)
+		elseif choice == "Rojo"    then ESPFillColor = Color3.fromRGB(255, 30, 30);  ESPOutlineColor = Color3.fromRGB(255, 30, 30)
+		elseif choice == "Azul"    then ESPFillColor = Color3.fromRGB(30, 140, 255); ESPOutlineColor = Color3.fromRGB(30, 140, 255)
+		elseif choice == "Verde Neon" then ESPFillColor = Color3.fromRGB(30, 255, 100); ESPOutlineColor = Color3.fromRGB(30, 255, 100)
+		elseif choice == "Cyan"    then ESPFillColor = Color3.fromRGB(0, 255, 255);   ESPOutlineColor = Color3.fromRGB(0, 255, 255)
+		elseif choice == "Blanco"  then ESPFillColor = Color3.fromRGB(255, 255, 255); ESPOutlineColor = Color3.fromRGB(255, 255, 255)
+		end
+		if ESPHighlightActive then SetupHighlightESP(true) end
+	end
+})
+
+ESPTab:CreateToggle({
+	Name = "Rainbow ESP", CurrentValue = false,
+	Callback = function(v)
+		RainbowESPEnabled = v
+		if v then
+			if not RainbowLoop then
+				RainbowLoop = RunService.RenderStepped:Connect(function()
+					if not RainbowESPEnabled then return end
+					local c = Color3.fromHSV((tick() % 4) / 4, 1, 1)
+					ESPFillColor = c
+					ESPOutlineColor = c
+					if ESPStorage then
+						for _, h in ipairs(ESPStorage:GetChildren()) do
+							if h:IsA("Highlight") then h.FillColor = c; h.OutlineColor = c end
+						end
+					end
+				end)
+			end
+		else
+			if RainbowLoop then RainbowLoop:Disconnect(); RainbowLoop = nil end
+		end
+	end
+})
+
+-- ----- Team Check -----
+ESPTab:CreateSection("Team Check")
+
+local ESPTeamWhitelistDrop = ESPTab:CreateDropdown({
+	Name = "Equipos a Ignorar", Options = {}, CurrentOption = {},
+	MultipleOptions = true,
+	Callback = function(v)
+		IgnoredTeamsTable = v
+		RefreshAllESP()
+		if AimTracersEnabled then UpdateAimTracersState(true) end
+	end
+})
+table.insert(AllTeamDropdowns, ESPTeamWhitelistDrop)
+
+ESPTab:CreateToggle({
+	Name = "Sincronizar con Aimlock", CurrentValue = false,
+	Callback = function(v)
+		Sync_Team_ESP_To_Aim = v
+	end
+})
+
+ESPTab:CreateToggle({
+	Name = "Sincronizar con Triggerbot", CurrentValue = false,
+	Callback = function(v)
+		Sync_Team_ESP_To_Trig = v
+	end
+})
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║               SISTEMA DE MULTI-TRACERS                   ║
+-- ╚══════════════════════════════════════════════════════════╝
+local TracersEnabled = false
+local TracerOrigin   = "Mouse"
+local TracersObjects = {}
+local TracersConn    = nil
+
+local ESPTracerToggle = nil
+local AimTracerToggle = nil
+
+local function RemoveTracer(plr)
+	if TracersObjects[plr] then
+		pcall(function() TracersObjects[plr]:Remove() end)
+		TracersObjects[plr] = nil
+	end
+end
+
+local function CreateTracer(plr)
+	if plr == LocalPlayer or TracersObjects[plr] then return end
+	local line = Drawing.new("Line")
+	line.Visible = false
+	line.Color = Color3.fromRGB(255, 0, 0)
+	line.Thickness = 1.5
+	line.Transparency = 1
+	TracersObjects[plr] = line
+end
+
+local function UpdateTracersState(enable)
+	TracersEnabled = enable
+	if enable then
+		for _, p in ipairs(Players:GetPlayers()) do CreateTracer(p) end
+		if not TracersConn then
+			TracersConn = RunService.RenderStepped:Connect(function()
+				if not TracersEnabled then return end
+				local startPos = UserInputService:GetMouseLocation()
+				if TracerOrigin == "Bottom" then
+					local inset = GuiService:GetGuiInset()
+					startPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y - inset.Y)
+				end
+
+				for p, line in pairs(TracersObjects) do
+					if p and p.Character and IsAlive(p) and ShouldTargetPlayer(p, ESP_WhitelistMode) then
+						local root = p.Character:FindFirstChild("HumanoidRootPart")
+						if root then
+							local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+							if onScreen then
+								line.From = startPos
+								line.To = Vector2.new(pos.X, pos.Y)
+								line.Visible = true
+							else line.Visible = false end
+						else line.Visible = false end
+					else line.Visible = false end
+				end
+			end)
+		end
+	else
+		if TracersConn then TracersConn:Disconnect(); TracersConn = nil end
+		for p, line in pairs(TracersObjects) do RemoveTracer(p) end
+		table.clear(TracersObjects)
+	end
+end
+
+local AimTracersEnabled = false
+local AimTracersObjects = {}
+local AimTracersConn    = nil
+
+local function RemoveAimTracer(plr)
+	if AimTracersObjects[plr] then
+		pcall(function() AimTracersObjects[plr]:Remove() end)
+		AimTracersObjects[plr] = nil
+	end
+end
+
+local function CreateAimTracer(plr)
+	if plr == LocalPlayer or AimTracersObjects[plr] then return end
+	local line = Drawing.new("Line")
+	line.Visible = false
+	line.Color = Color3.fromRGB(255, 0, 0)
+	line.Thickness = 1.5
+	line.Transparency = 1
+	AimTracersObjects[plr] = line
+end
+
+local function UpdateAimTracersState(enable)
+	AimTracersEnabled = enable
+	if enable then
+		for _, p in ipairs(Players:GetPlayers()) do CreateAimTracer(p) end
+		if not AimTracersConn then
+			AimTracersConn = RunService.RenderStepped:Connect(function()
+				if not AimTracersEnabled then return end
+				local startPos = UserInputService:GetMouseLocation()
+				if TracerOrigin == "Bottom" then
+					local inset = GuiService:GetGuiInset()
+					startPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y - inset.Y)
+				end
+
+				for p, line in pairs(AimTracersObjects) do
+					if p and p.Character and IsAlive(p) and ShouldTargetPlayer(p, AimConfig.WhitelistMode) and not (AimConfig.TeamCheck and IsSameTeam(p)) then
+						local root = p.Character:FindFirstChild("HumanoidRootPart")
+						if root then
+							local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+							if onScreen then
+								line.From = startPos
+								line.To = Vector2.new(pos.X, pos.Y)
+								line.Visible = true
+							else line.Visible = false end
+						else line.Visible = false end
+					else line.Visible = false end
+				end
+			end)
+		end
+	else
+		if AimTracersConn then AimTracersConn:Disconnect(); AimTracersConn = nil end
+		for p, line in pairs(AimTracersObjects) do RemoveAimTracer(p) end
+		table.clear(AimTracersObjects)
+	end
+end
+
+ESPTracerToggle = ESPTab:CreateToggle({
+	Name = "Tracer Whitelist (Rojo)", CurrentValue = false,
+	Callback = function(v)
+		if v and AimTracerToggle then
+			AimTracerToggle:Set(false)
+		end
+		UpdateTracersState(v)
+	end
+})
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                       AIMLOCK TAB                       ║
+-- ╚══════════════════════════════════════════════════════════╝
+local AimlockTab = Window:CreateTab("Aimlock", nil)
+
+getgenv().Aimlock = { Enabled=false, ToggleOn=false }
+
+local LockedTarget  = nil
+local HeartbeatConn = nil
+local AimHighlight  = nil
+
+local function ClearAimESP()
+	if AimHighlight then AimHighlight:Destroy(); AimHighlight = nil end
+end
+
+local function CreateAimESP(plr)
+	ClearAimESP()
+	if not plr or not plr.Character then return end
+	AimHighlight = Instance.new("Highlight")
+	AimHighlight.Name                = "AimlockESP"
+	AimHighlight.Adornee             = plr.Character
+	AimHighlight.FillColor           = Color3.fromRGB(255, 0, 0)
+	AimHighlight.OutlineColor        = Color3.fromRGB(255, 255, 255)
+	AimHighlight.FillTransparency    = 0.5
+	AimHighlight.OutlineTransparency = 0
+	AimHighlight.DepthMode           = Enum.HighlightDepthMode.AlwaysOnTop
+	AimHighlight.Parent              = plr.Character
+end
+
+local function GetAimPart(char)
+	if not char then return nil end
+	if AimConfig.AimPart == "Head" then return char:FindFirstChild("Head") or char:FindFirstChildWhichIsA("BasePart")
+	elseif AimConfig.AimPart == "Torso" then return char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart") or char:FindFirstChildWhichIsA("BasePart")
+	else
+		for _, name in ipairs({"Head", "UpperTorso", "Torso", "HumanoidRootPart"}) do
+			local p = char:FindFirstChild(name)
+			if p then return p end
+		end
+		return char:FindFirstChildWhichIsA("BasePart")
+	end
+end
+
+local function GetClosestTarget()
+	local closestPlayer = nil
+	local shortest      = math.huge
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer and IsAlive(plr) and ShouldTargetPlayer(plr, AimConfig.WhitelistMode) then
+			if AimConfig.TeamCheck and IsSameTeam(plr) then continue end
+			local char = plr.Character
+			if not char then continue end
+			local head = char:FindFirstChild("Head")
+			if not head then continue end
+
+			local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+			if not onScreen then continue end
+
+			local dist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+			if AimConfig.UseFOV and dist > AimConfig.FOVRadius then continue end
+
+			if dist < shortest then
+				shortest      = dist
+				closestPlayer = plr
+			end
+		end
+	end
+	return closestPlayer
+end
+
+local function StopAimlock()
+	getgenv().Aimlock.Enabled = false
+	LockedTarget = nil
+	ClearAimESP()
+    UpdateTargetInfoDisplay(nil)
+	if HeartbeatConn then HeartbeatConn:Disconnect(); HeartbeatConn = nil end
+end
+
+local function StartAimlock()
+	StopAimlock()
+
+	LockedTarget = GetClosestTarget()
+	if not LockedTarget then
+		Rayfield:Notify({Title="Aimlock", Content="Sin targets", Duration=1.5})
+		return
+	end
+
+	getgenv().Aimlock.Enabled = true
+	CreateAimESP(LockedTarget)
+    if LockSoundEnabled then PlaySoundByName(SelectedLockSound) end
+
+	HeartbeatConn = RunService.Heartbeat:Connect(function()
+		if not getgenv().Aimlock.Enabled then return end
+
+		if LockedTarget and not IsAlive(LockedTarget) then
+			StopAimlock()
+			Rayfield:Notify({Title="Aimlock", Content="Objetivo perdido", Duration=1.5})
+			return
+		end
+
+		if LockedTarget and LockedTarget.Character then
+			local part = GetAimPart(LockedTarget.Character)
+			if part then
+				local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+				local worldDist = (part.Position - Camera.CFrame.Position).Magnitude
+
+				if not onScreen or (AimConfig.UseMaxDistance and worldDist > AimConfig.MaxDistance) then
+					StopAimlock()
+					Rayfield:Notify({Title="Aimlock", Content="Objetivo fuera de rango", Duration=1.5})
+					return
+				end
+			else
+				StopAimlock()
+				Rayfield:Notify({Title="Aimlock", Content="Objetivo perdido", Duration=1.5})
+				return
+			end
+		end
+
+		if LockedTarget and LockedTarget.Character then
+			if AimHighlight and AimHighlight.Parent ~= LockedTarget.Character then
+				CreateAimESP(LockedTarget)
+			end
+
+			local part = GetAimPart(LockedTarget.Character)
+			if part then
+                local targetPos = part.Position
+                if AimConfig.Prediction then
+                    local velocity = part.AssemblyLinearVelocity or Vector3.zero
+                    targetPos = targetPos + (velocity * AimConfig.PredictionTime)
+                end
+				local targetCFrame = CFrame.lookAt(Camera.CFrame.Position, targetPos)
+				Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, AimConfig.Smoothness)
+			end
+            UpdateTargetInfoDisplay(LockedTarget)
+		end
+	end)
+end
+
+-- ----- General -----
+AimlockTab:CreateSection("General")
+
+AimlockTab:CreateToggle({
+	Name = "Aimlock", CurrentValue = false,
+	Callback = function(v) getgenv().Aimlock.ToggleOn = v; if not v then StopAimlock() end end
+})
+
+AimlockTab:CreateKeybind({
+	Name = "Aimlock Keybind", CurrentKeybind = "RightShift", HoldToInteract = false,
+	Callback = function()
+		if not getgenv().Aimlock.ToggleOn then return end
+		if getgenv().Aimlock.Enabled then StopAimlock(); Rayfield:Notify({Title="Aimlock", Content="Desactivado", Duration=1.5})
+		else StartAimlock() end
+	end
+})
+
+AimlockTab:CreateSlider({
+	Name = "Smoothness", Range = {0.01, 1}, Increment = 0.05, CurrentValue = 1,
+	Callback = function(v) AimConfig.Smoothness = v end
+})
+
+AimlockTab:CreateToggle({
+    Name = "Prediction Aimlock", CurrentValue = false,
+    Callback = function(v) AimConfig.Prediction = v end
+})
+
+AimlockTab:CreateSlider({
+    Name = "Prediction Time", Range = {0.01, 0.5}, Increment = 0.005, CurrentValue = 0.135,
+    Callback = function(v) AimConfig.PredictionTime = v end
+})
+
+-- CHECKS AIMLOCK
+AimlockTab:CreateToggle({
+    Name = "Team Check (No lockear equipo)", CurrentValue = false,
+    Callback = function(v) AimConfig.TeamCheck = v end
+})
+
+-- ----- Target -----
+AimlockTab:CreateSection("Target")
+
+AimlockTab:CreateDropdown({
+	Name = "Aim Part", Options = {"Head","Torso","Auto"}, CurrentOption = "Head",
+	Callback = function(opt) AimConfig.AimPart = type(opt) == "table" and opt[1] or opt end
+})
+
+AimlockTab:CreateSlider({
+	Name = "Max Distance", Range = {100, 5000}, Increment = 50, CurrentValue = 1000,
+	Callback = function(v) AimConfig.MaxDistance = v end
+})
+
+AimlockTab:CreateToggle({
+	Name = "Use Max Distance", CurrentValue = true,
+	Callback = function(v) AimConfig.UseMaxDistance = v end
+})
+
+local FOVCircle     = Drawing.new("Circle")
+FOVCircle.Color     = Color3.fromRGB(175,25,255)
+FOVCircle.Thickness = 2
+FOVCircle.Filled    = false
+FOVCircle.Visible   = false
+FOVCircle.Radius    = AimConfig.FOVRadius
+
+local FOVConn = nil
+local function ToggleFOVLoop(enable)
+	AimConfig.UseFOV = enable
+	if enable then
+		if not FOVConn then
+			FOVConn = RunService.RenderStepped:Connect(function()
+				if not AimConfig.UseFOV then FOVCircle.Visible = false; return end
+				local inset = GuiService:GetGuiInset()
+				FOVCircle.Position = Vector2.new(Mouse.X, Mouse.Y + inset.Y)
+				FOVCircle.Radius   = AimConfig.FOVRadius
+				FOVCircle.Visible  = true
+			end)
+		end
+	else
+		if FOVConn then FOVConn:Disconnect(); FOVConn = nil end
+		FOVCircle.Visible = false
+	end
+end
+
+AimlockTab:CreateToggle({
+	Name = "Use FOV", CurrentValue = false,
+	Callback = ToggleFOVLoop
+})
+
+AimlockTab:CreateSlider({
+	Name = "FOV Size", Range = {50, 500}, Increment = 10, CurrentValue = 150,
+	Callback = function(v) AimConfig.FOVRadius = v end
+})
+
+-- ----- Visual -----
+AimlockTab:CreateSection("Visual")
+
+AimTracerToggle = AimlockTab:CreateToggle({
+	Name = "Tracer Enemigos (Aimlock)", CurrentValue = false,
+	Callback = function(v)
+		if v and ESPTracerToggle then
+			ESPTracerToggle:Set(false)
+		end
+		UpdateAimTracersState(v)
+	end
+})
+
+AimlockTab:CreateDropdown({
+	Name = "Tracer Origin", Options = {"Mouse", "Bottom"}, CurrentOption = "Mouse",
+	Callback = function(opt) TracerOrigin = type(opt) == "table" and opt[1] or opt end
+})
+
+-- ----- Whitelist -----
+AimlockTab:CreateSection("Whitelist")
+
+AimlockTab:CreateDropdown({
+	Name = "Aimlock Whitelist Mode",
+	Options = {"Disabled", "Ignore Whitelist", "Only Whitelist"},
+	CurrentOption = "Disabled",
+	Callback = function(v)
+		AimConfig.WhitelistMode = type(v) == "table" and v[1] or v
+		if Sync_Aim_To_ESP then ESP_WhitelistMode = AimConfig.WhitelistMode; RefreshAllESP() end
+		if Sync_Aim_To_Trigger then Trigger_Whitelist = AimConfig.WhitelistMode end
+	end
+})
+
+local AimWhitelistDrop = AimlockTab:CreateDropdown({
+	Name = "Seleccionar Objetivo Whitelist", Options = {}, CurrentOption = {},
+	MultipleOptions = true,
+	Callback = function(v) GlobalWhitelistTable = v end
+})
+table.insert(AllPlayerDropdowns, AimWhitelistDrop)
+
+AimlockTab:CreateToggle({
+	Name = "Sincronizar con ESP", CurrentValue = false,
+	Callback = function(v)
+		Sync_Aim_To_ESP = v
+		if v then ESP_WhitelistMode = AimConfig.WhitelistMode; RefreshAllESP() end
+	end
+})
+
+AimlockTab:CreateToggle({
+	Name = "Sincronizar con Triggerbot", CurrentValue = false,
+	Callback = function(v)
+		Sync_Aim_To_Trigger = v
+		if v then Trigger_Whitelist = AimConfig.WhitelistMode end
+	end
+})
+
+-- ----- Team Check -----
+AimlockTab:CreateSection("Team Check")
+
+local AimTeamWhitelistDrop = AimlockTab:CreateDropdown({
+	Name = "Equipos a Ignorar", Options = {}, CurrentOption = {},
+	MultipleOptions = true,
+	Callback = function(v)
+		IgnoredTeamsTable = v
+		RefreshAllESP()
+		if AimTracersEnabled then UpdateAimTracersState(true) end
+	end
+})
+table.insert(AllTeamDropdowns, AimTeamWhitelistDrop)
+
+AimlockTab:CreateToggle({
+	Name = "Sincronizar con ESP", CurrentValue = false,
+	Callback = function(v)
+		Sync_Team_Aim_To_ESP = v
+	end
+})
+
+AimlockTab:CreateToggle({
+	Name = "Sincronizar con Triggerbot", CurrentValue = false,
+	Callback = function(v)
+		Sync_Team_Aim_To_Trig = v
+	end
+})
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                     TRIGGERBOT TAB                      ║
+-- ╚══════════════════════════════════════════════════════════╝
+local TriggerbotTab = Window:CreateTab("Triggerbot", nil)
+
+local TriggerbotLoop     = nil
+local isShooting         = false
+local TriggerDelay        = 0.05
+local TriggerTeamCheck   = false
+local TriggerWallCheck   = false
+
+local TriggerRayParams = RaycastParams.new()
+TriggerRayParams.FilterType = Enum.RaycastFilterType.Exclude
+
+-- ----- General -----
+TriggerbotTab:CreateSection("General")
+
+TriggerbotTab:CreateToggle({
+	Name = "Triggerbot", CurrentValue = false,
+	Callback = function(v)
+		if v then
+			if not TriggerbotLoop then
+				TriggerbotLoop = RunService.RenderStepped:Connect(function()
+					if isShooting then return end
+					local target = Mouse.Target
+					if target and target.Parent then
+						local model = target.Parent
+						if not model:FindFirstChildOfClass("Humanoid") and model.Parent then model = model.Parent end
+
+						local targetHum = model:FindFirstChildOfClass("Humanoid")
+						if targetHum and model.Name ~= LocalPlayer.Name then
+							local targetPlr = Players:GetPlayerFromCharacter(model)
+							if not targetPlr then return end
+							if not ShouldTargetPlayer(targetPlr, Trigger_Whitelist) then return end
+							if TriggerTeamCheck and IsSameTeam(targetPlr) then return end
+
+							if TriggerWallCheck then
+								TriggerRayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+								local origin = Camera.CFrame.Position
+								local dir = (Mouse.Hit.Position - origin).Unit * 1500
+								local ray = workspace:Raycast(origin, dir, TriggerRayParams)
+								if ray and not ray.Instance:IsDescendantOf(model) then
+									if ray.Instance.Transparency < 1 and ray.Instance.CanCollide then return end
+								end
+							end
+
+							isShooting = true
+							task.spawn(function()
+                                if HitSoundEnabled then PlaySoundByName(SelectedHitSound) end
+								if mouse1click then pcall(mouse1click) end
+								task.wait(TriggerDelay)
+								isShooting = false
+							end)
+						end
+					end
+				end)
+			end
+		else
+			if TriggerbotLoop then TriggerbotLoop:Disconnect(); TriggerbotLoop = nil end
+		end
+	end
+})
+
+TriggerbotTab:CreateSlider({
+	Name = "Trigger Delay", Range = {0.01, 0.5}, Increment = 0.01, CurrentValue = 0.05,
+	Callback = function(v) TriggerDelay = v end
+})
+
+-- ----- Checks -----
+TriggerbotTab:CreateSection("Checks")
+TriggerbotTab:CreateToggle({ Name = "Team Check (No disparar equipo)", CurrentValue = false, Callback = function(v) TriggerTeamCheck = v end })
+TriggerbotTab:CreateToggle({ Name = "Wall Check", CurrentValue = false, Callback = function(v) TriggerWallCheck = v end })
+
+-- ----- Whitelist -----
+TriggerbotTab:CreateSection("Whitelist")
+TriggerbotTab:CreateDropdown({
+	Name = "Triggerbot Whitelist Mode",
+	Options = {"Disabled", "Ignore Whitelist", "Only Whitelist"},
+	CurrentOption = "Disabled",
+	Callback = function(v)
+		Trigger_Whitelist = type(v) == "table" and v[1] or v
+		if Sync_Trig_To_ESP then ESP_WhitelistMode = Trigger_Whitelist; RefreshAllESP() end
+		if Sync_Trig_To_Aim then AimConfig.WhitelistMode = Trigger_Whitelist end
+	end
+})
+
+local TrigWhitelistDrop = TriggerbotTab:CreateDropdown({
+	Name = "Seleccionar Objetivo Whitelist", Options = {}, CurrentOption = {},
+	MultipleOptions = true,
+	Callback = function(v) GlobalWhitelistTable = v end
+})
+table.insert(AllPlayerDropdowns, TrigWhitelistDrop)
+
+TriggerbotTab:CreateToggle({
+	Name = "Sincronizar con ESP", CurrentValue = false,
+	Callback = function(v)
+		Sync_Trig_To_ESP = v
+		if v then ESP_WhitelistMode = Trigger_Whitelist; RefreshAllESP() end
+	end
+})
+
+TriggerbotTab:CreateToggle({
+	Name = "Sincronizar con Aimlock", CurrentValue = false,
+	Callback = function(v)
+		Sync_Trig_To_Aim = v
+		if v then AimConfig.WhitelistMode = Trigger_Whitelist end
+	end
+})
+
+-- ----- Team Check -----
+TriggerbotTab:CreateSection("Team Check")
+
+local TrigTeamWhitelistDrop = TriggerbotTab:CreateDropdown({
+	Name = "Equipos a Ignorar", Options = {}, CurrentOption = {},
+	MultipleOptions = true,
+	Callback = function(v)
+		IgnoredTeamsTable = v
+		RefreshAllESP()
+		if AimTracersEnabled then UpdateAimTracersState(true) end
+	end
+})
+table.insert(AllTeamDropdowns, TrigTeamWhitelistDrop)
+
+TriggerbotTab:CreateToggle({
+	Name = "Sincronizar con ESP", CurrentValue = false,
+	Callback = function(v)
+		Sync_Team_Trig_To_ESP = v
+	end
+})
+
+TriggerbotTab:CreateToggle({
+	Name = "Sincronizar con Aimlock", CurrentValue = false,
+	Callback = function(v)
+		Sync_Team_Trig_To_Aim = v
+	end
+})
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                       EXTRAS TAB                        ║
+-- ╚══════════════════════════════════════════════════════════╝
+local ExtrasTab = Window:CreateTab("Extras", nil)
+
+-- ----- Camera -----
+ExtrasTab:CreateSection("Camera")
+
+ExtrasTab:CreateToggle({
+    Name = "Unlock Max Camera Distance (Zoom Infinito)", CurrentValue = false,
+    Callback = function(v)
+        if v then
+            LocalPlayer.CameraMaxZoomDistance = 999999
+            LocalPlayer.CameraMinZoomDistance = 0.5
+        else
+            LocalPlayer.CameraMaxZoomDistance = 128
+            LocalPlayer.CameraMinZoomDistance = 0.5
+        end
+    end
+})
+
+local FOVToggleEnabled = false
+local TargetFOV = 70
+local OriginalFOV = 70
+local FOVLoop = nil
+
+local function ToggleFOVChanger(enable)
+	FOVToggleEnabled = enable
+	if enable then
+		OriginalFOV = Camera.FieldOfView
+		if not FOVLoop then
+			FOVLoop = RunService.RenderStepped:Connect(function() Camera.FieldOfView = TargetFOV end)
+		end
+	else
+		if FOVLoop then FOVLoop:Disconnect(); FOVLoop = nil end
+		Camera.FieldOfView = OriginalFOV
+	end
+end
+
+ExtrasTab:CreateToggle({ Name = "FOV Changer", CurrentValue = false, Callback = ToggleFOVChanger })
+ExtrasTab:CreateSlider({ Name = "FOV Slider", Range = {1, 120}, Increment = 1, CurrentValue = 70, Callback = function(v) TargetFOV = v end })
+
+local FreecamPart = nil
+local FC_Loop     = nil
+local OldAnchored = false
+
+local function ToggleFreecam(enable)
+	if enable then
+		local char = LocalPlayer.Character
+		local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+		local hum  = char and char:FindFirstChildOfClass("Humanoid")
+		if not hrp or not hum then return end
+
+		OldAnchored = hrp.Anchored
+		hrp.Anchored = true
+
+		FreecamPart = Instance.new("Part")
+		FreecamPart.Size = Vector3.new(1, 1, 1)
+		FreecamPart.Transparency = 1
+		FreecamPart.Anchored = true
+		FreecamPart.CanCollide = false
+		FreecamPart.CFrame = hrp.CFrame
+		FreecamPart.Parent = workspace
+
+		workspace.CurrentCamera.CameraSubject = FreecamPart
+
+		FC_Loop = RunService.RenderStepped:Connect(function()
+			local cam = workspace.CurrentCamera
+			local move = Vector3.new()
+			if UserInputService:IsKeyDown(Enum.KeyCode.W) then move = move + cam.CFrame.LookVector end
+			if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - cam.CFrame.LookVector end
+			if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - cam.CFrame.RightVector end
+			if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + cam.CFrame.RightVector end
+			if UserInputService:IsKeyDown(Enum.KeyCode.E) then move = move + Vector3.new(0,1,0) end
+			if UserInputService:IsKeyDown(Enum.KeyCode.Q) then move = move - Vector3.new(0,1,0) end
+			FreecamPart.CFrame = FreecamPart.CFrame + (move * 3)
+		end)
+	else
+		if FC_Loop then FC_Loop:Disconnect(); FC_Loop = nil end
+		if FreecamPart then FreecamPart:Destroy(); FreecamPart = nil end
+		local char = LocalPlayer.Character
+		if char then
+			local hrp = char:FindFirstChild("HumanoidRootPart")
+			local hum = char:FindFirstChildOfClass("Humanoid")
+			if hrp then hrp.Anchored = OldAnchored end
+			if hum then workspace.CurrentCamera.CameraSubject = hum end
+		end
+	end
+end
+
+ExtrasTab:CreateToggle({ Name = "Freecam", CurrentValue = false, Callback = ToggleFreecam })
+
+-- ----- Vision -----
+ExtrasTab:CreateSection("Vision")
+
+local OriginalLighting = {}
+local function ToggleFullbright(enable)
+	if enable then
+		OriginalLighting.Ambient = Lighting.Ambient
+		OriginalLighting.OutdoorAmbient = Lighting.OutdoorAmbient
+		OriginalLighting.Brightness = Lighting.Brightness
+		OriginalLighting.GlobalShadows = Lighting.GlobalShadows
+		Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+		Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+		Lighting.Brightness = 1
+		Lighting.GlobalShadows = false
+	else
+		if OriginalLighting.Ambient then
+			Lighting.Ambient = OriginalLighting.Ambient
+			Lighting.OutdoorAmbient = OriginalLighting.OutdoorAmbient
+			Lighting.Brightness = OriginalLighting.Brightness
+			Lighting.GlobalShadows = OriginalLighting.GlobalShadows
+		end
+	end
+end
+
+ExtrasTab:CreateToggle({ Name = "Fullbright", CurrentValue = false, Callback = ToggleFullbright })
+
+local OriginalTransparencies = {}
+local function ToggleXRay(enable)
+	if enable then
+		for _, part in pairs(workspace:GetDescendants()) do
+			if part:IsA("BasePart") and not part.Parent:FindFirstChild("Humanoid") then
+				if OriginalTransparencies[part] == nil then OriginalTransparencies[part] = part.Transparency end
+				if part.Transparency < 0.5 then part.Transparency = 0.5 end
+			end
+		end
+	else
+		for part, trans in pairs(OriginalTransparencies) do
+			if part and part.Parent then part.Transparency = trans end
+		end
+		OriginalTransparencies = {}
+	end
+end
+
+ExtrasTab:CreateToggle({ Name = "X-Ray", CurrentValue = false, Callback = ToggleXRay })
+
+-- ----- Tools -----
+ExtrasTab:CreateSection("Tools")
+
+local KeepClickTP = false
+local function GiveClickTP()
+	if not LocalPlayer.Backpack:FindFirstChild("Click TP") and LocalPlayer.Character then
+		local tool = Instance.new("Tool")
+		tool.RequiresHandle = false
+		tool.Name = "Click TP"
+		tool.ToolTip = "Haz click en cualquier lado para teletransportarte"
+		tool.Activated:Connect(function()
+            local params = RaycastParams.new()
+            params.FilterType = Enum.RaycastFilterType.Exclude
+            params.FilterDescendantsInstances = {LocalPlayer.Character}
+            local unitRay = Mouse.UnitRay
+            local raycastResult = workspace:Raycast(unitRay.Origin, unitRay.Direction * 1000, params)
+            if raycastResult then
+                local pos = raycastResult.Position
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    char:PivotTo(CFrame.new(pos + Vector3.new(0, 3, 0)))
+                end
+            end
+		end)
+		tool.Parent = LocalPlayer.Backpack
+	end
+end
+
+ExtrasTab:CreateToggle({
+	Name = "Click TP", CurrentValue = false,
+	Callback = function(v) KeepClickTP = v; if v then GiveClickTP(); Rayfield:Notify({Title="Herramienta", Content="Click TP Activado", Duration=1.5}) end end
+})
+
+local KeepBTools = false
+local function GiveBTools()
+	if not LocalPlayer.Backpack:FindFirstChild("BTools") and LocalPlayer.Character then
+		local btools = Instance.new("HopperBin")
+		btools.Name = "BTools"
+		btools.BinType = Enum.BinType.Hammer 
+		btools.Parent = LocalPlayer.Backpack
+	end
+end
+
+ExtrasTab:CreateToggle({
+	Name = "BTools", CurrentValue = false,
+	Callback = function(v) KeepBTools = v; if v then GiveBTools(); Rayfield:Notify({Title="Extras", Content="BTools Activado", Duration=1.5}) end end
+})
+
+-- ----- Performance -----
+ExtrasTab:CreateSection("Performance")
+
+ExtrasTab:CreateButton({
+    Name = "FPS Boost",
+    Callback = function()
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then v.Material = Enum.Material.SmoothPlastic
+            elseif v:IsA("Decal") or v:IsA("Texture") then v:Destroy()
+            elseif v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Fire") then v.Enabled = false end
+        end
+        Rayfield:Notify({Title="FPS Boost", Content="FPS Boost Aplicado", Duration=2})
+    end
+})
+
+ExtrasTab:CreateToggle({
+	Name = "Anti-Fling", CurrentValue = false,
+	Callback = function(v)
+		if v then
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/HarcangiRobloxProjects/AntiFling/refs/heads/main/antifling.lua"))()
+			Rayfield:Notify({Title="Escudo", Content="Anti-Fling Activado", Duration=2})
+		end
+	end
+})
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                        TROLL TAB                         ║
+-- ╚══════════════════════════════════════════════════════════╝
+local TrollTab = Window:CreateTab("Troll", nil)
+
+TrollTab:CreateSection("Scripts")
+TrollTab:CreateButton({ Name = "Fling", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt"))() end })
+TrollTab:CreateButton({ Name = "Invisible", Callback = function() loadstring(game:HttpGet('https://pastebin.com/raw/3Rnd9rHf'))() end })
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║               SOUNDS TAB (AL FINAL / HASTA ATRÁS)        ║
+-- ╚══════════════════════════════════════════════════════════╝
+local SoundsTab = Window:CreateTab("Sounds", nil)
+
+SoundsTab:CreateSection("Configuracion de Sonidos")
+
+SoundsTab:CreateToggle({
+    Name = "Lock Sound (Sonido al fijar)", CurrentValue = true,
+    Callback = function(v) LockSoundEnabled = v end
+})
+
+SoundsTab:CreateDropdown({
+    Name = "Sonido para Lock Target",
+    Options = SoundNames,
+    CurrentOption = "Neverlose Hit",
+    Callback = function(v)
+        SelectedLockSound = type(v) == "table" and v[1] or v
+    end
+})
+
+SoundsTab:CreateToggle({
+    Name = "Hit Sound (Sonido al golpear/disparar)", CurrentValue = false,
+    Callback = function(v) HitSoundEnabled = v end
+})
+
+SoundsTab:CreateDropdown({
+    Name = "Sonido para Hit / Disparo",
+    Options = SoundNames,
+    CurrentOption = "Skeet / Gamesense",
+    Callback = function(v)
+        SelectedHitSound = type(v) == "table" and v[1] or v
+    end
+})
+
+SoundsTab:CreateSection("Probar & Escuchar Sonidos")
+
+SoundsTab:CreateDropdown({
+    Name = "Lista de Sonidos 100% Verificados",
+    Options = SoundNames,
+    CurrentOption = "Neverlose Hit",
+    Callback = function(v)
+        PreviewSoundChoice = type(v) == "table" and v[1] or v
+    end
+})
+
+SoundsTab:CreateButton({
+    Name = "🔊 Reproducir Sonido Seleccionado",
+    Callback = function()
+        PlaySoundByName(PreviewSoundChoice)
+        Rayfield:Notify({Title="Audio Test", Content="Reproduciendo: " .. PreviewSoundChoice, Duration=1.5})
+    end
+})
+
+-- CONEXIONES Y ACTUALIZACIÓN AUTOMÁTICA DE JUGADORES Y EQUIPOS
+Players.PlayerAdded:Connect(function() task.wait(0.5); RefreshGlobalPlayerDropdowns() end)
+Players.PlayerRemoving:Connect(function() task.wait(0.5); RefreshGlobalPlayerDropdowns() end)
+
+Teams.ChildAdded:Connect(function() task.wait(0.5); RefreshGlobalTeamDropdowns() end)
+Teams.ChildRemoved:Connect(function() task.wait(0.5); RefreshGlobalTeamDropdowns() end)
+
+-- INICIALIZACIÓN FINAL DE LISTAS EN TODOS LOS DROPDOWNS
+task.spawn(function()
+    task.wait(1)
+    RefreshGlobalPlayerDropdowns()
+    RefreshGlobalTeamDropdowns()
+end)
+
+-- APAGADO TOTAL 100% LIMPIO (DESTRUIR HUB)
+local function DestroyHubCompletely()
+	StopFly()
+	StopWalkSpeedLoop()
+	StopJumpPowerLoop()
+	StopGravityLoop()
+	stopNoclip()
+	
+	DestroyWatermark()
+	
+	getgenv().HBE = false
+	ToggleHBELoops(false)
+	
+	StopAimlock()
+	ToggleFOVLoop(false)
+	pcall(function() if FOVCircle then FOVCircle:Remove() end end)
+	
+	UpdateTracersState(false)
+	UpdateAimTracersState(false)
+	
+	RainbowESPEnabled = false
+	if RainbowLoop then RainbowLoop:Disconnect(); RainbowLoop = nil end
+	
+	SetupHighlightESP(false)
+	SetupNameESP(false)
+	ToggleESPStuds(false)
+	
+	ToggleFOVChanger(false)
+	ToggleFreecam(false)
+	ToggleFullbright(false)
+	ToggleXRay(false)
+	
+	if AntiAFKConn then AntiAFKConn:Disconnect(); AntiAFKConn = nil end
+
+	Rayfield:Destroy()
+end
+
+MainTab:CreateButton({
+	Name = "🚨 Destroy Hub (Apagar Todo)",
+	Callback = DestroyHubCompletely
+})
+
+LocalPlayer.CharacterAdded:Connect(function()
+	task.wait(0.5)
+	if KeepClickTP then GiveClickTP() end
+	if KeepBTools then GiveBTools() end
+end)
+
+print("RATAHUB tu puta obsesion😝😝😝")
+Rayfield:Notify({Title = "RATAHUB V5", Content = "RATAHUB tu puta obsesion😝😝😝", Duration = 3})
