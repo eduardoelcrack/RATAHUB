@@ -393,6 +393,9 @@ CreateWatermark()
 
 local MainTab = Window:CreateTab("Main", nil)
 
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                       MOVEMENT                           ║
+-- ╚══════════════════════════════════════════════════════════╝
 MainTab:CreateSection("Movement")
 
 local FlyToggleEnabled = false
@@ -860,7 +863,9 @@ MainTab:CreateToggle({
 	end
 })
 
--- ----- Player -----
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                         PLAYER                           ║
+-- ╚══════════════════════════════════════════════════════════╝
 
 MainTab:CreateSection("Player")
 
@@ -881,99 +886,106 @@ MainTab:CreateButton({
 	end
 })
 
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                    HITBOX EXPANDER                      ║
+-- ╚══════════════════════════════════════════════════════════╝
+
 getgenv().HBE = false
 getgenv().HitboxSize = 5
 
 local HBE_WhitelistMode = "Disabled"
 local OriginalSizes = {}
-local HBEHeartbeatConn = nil
-local HBESteppedConn = nil
+local HBETask = nil
+
+local function RestoreHitbox(plr)
+	if not plr then return end
+
+	local data = OriginalSizes[plr]
+	if not data then return end
+
+	local char = plr.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+	if hrp then
+		hrp.Size = data.Size
+		hrp.Transparency = data.Transparency
+		hrp.CanCollide = data.CanCollide
+		hrp.Material = data.Material
+		hrp.Color = data.Color
+		hrp:SetAttribute("IsExpandedHitbox", nil)
+	end
+
+	OriginalSizes[plr] = nil
+end
+
+local function ResetAllHitboxes()
+	for plr in pairs(OriginalSizes) do
+		RestoreHitbox(plr)
+	end
+
+	table.clear(OriginalSizes)
+end
+
+local function ToggleHBELoops(enable)
+	if HBETask then
+		task.cancel(HBETask)
+		HBETask = nil
+	end
+
+	if not enable then
+		ResetAllHitboxes()
+		return
+	end
+
+	HBETask = task.spawn(function()
+		while getgenv().HBE do
+			for _, p in ipairs(Players:GetPlayers()) do
+				if p ~= LocalPlayer and IsAlive(p) and ShouldTargetPlayer(p, HBE_WhitelistMode) then
+					local char = p.Character
+					local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+					if hrp then
+						if not OriginalSizes[p] then
+							OriginalSizes[p] = {
+								Size = hrp.Size,
+								Transparency = hrp.Transparency,
+								CanCollide = hrp.CanCollide,
+								Material = hrp.Material,
+								Color = hrp.Color
+							}
+						end
+
+						local targetSize = Vector3.new(
+							getgenv().HitboxSize,
+							getgenv().HitboxSize,
+							getgenv().HitboxSize
+						)
+
+						if hrp.Size ~= targetSize then
+							hrp.Size = targetSize
+							hrp.Transparency = 0.5
+							hrp.Material = Enum.Material.Neon
+							hrp.Color = Color3.fromRGB(175, 25, 255)
+							hrp.CanCollide = false
+							hrp:SetAttribute("IsExpandedHitbox", true)
+						end
+					end
+				else
+					RestoreHitbox(p)
+				end
+			end
+
+			task.wait(0.1)
+		end
+
+		ResetAllHitboxes()
+		HBETask = nil
+	end)
+end
 
 Players.PlayerRemoving:Connect(function(plr)
 	OriginalSizes[plr] = nil
 end)
-
-local function RestoreHitbox(plr)
-	local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-
-	if hrp and OriginalSizes[plr] then
-		hrp.Size = OriginalSizes[plr]
-		hrp.Transparency = 1
-		hrp.CanCollide = true
-		hrp:SetAttribute("IsExpandedHitbox", nil)
-		OriginalSizes[plr] = nil
-	end
-end
-
-local function ToggleHBELoops(enable)
-	if enable then
-		if not HBEHeartbeatConn then
-			HBEHeartbeatConn = RunService.Heartbeat:Connect(function()
-				if not getgenv().HBE then return end
-
-				local targetSize = Vector3.new(
-					getgenv().HitboxSize,
-					getgenv().HitboxSize,
-					getgenv().HitboxSize
-				)
-
-				for _, p in ipairs(Players:GetPlayers()) do
-					if p ~= LocalPlayer and IsAlive(p) then
-						local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-
-						if hrp then
-							if ShouldTargetPlayer(p, HBE_WhitelistMode) then
-								OriginalSizes[p] = OriginalSizes[p] or hrp.Size
-
-								if hrp.Size ~= targetSize then
-									hrp.Size = targetSize
-									hrp.Transparency = 0.5
-									hrp.Material = Enum.Material.Neon
-									hrp.Color = Color3.fromRGB(175, 25, 255)
-									hrp:SetAttribute("IsExpandedHitbox", true)
-								end
-							else
-								RestoreHitbox(p)
-							end
-						end
-					end
-				end
-			end)
-		end
-
-		if not HBESteppedConn then
-			HBESteppedConn = RunService.Stepped:Connect(function()
-				if not getgenv().HBE then return end
-
-				for _, p in ipairs(Players:GetPlayers()) do
-					if p ~= LocalPlayer and p.Character then
-						local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-
-						if hrp and hrp:GetAttribute("IsExpandedHitbox") and hrp.CanCollide then
-							hrp.CanCollide = false
-						end
-					end
-				end
-			end)
-		end
-	else
-		if HBEHeartbeatConn then
-			HBEHeartbeatConn:Disconnect()
-			HBEHeartbeatConn = nil
-		end
-
-		if HBESteppedConn then
-			HBESteppedConn:Disconnect()
-			HBESteppedConn = nil
-		end
-
-		for _, p in ipairs(Players:GetPlayers()) do
-			RestoreHitbox(p)
-		end
-
-		table.clear(OriginalSizes)
-	end
-end
 
 MainTab:CreateToggle({
 	Name = "Hitbox Expander",
@@ -1094,7 +1106,9 @@ MainTab:CreateButton({
 	end
 })
 
--- ----- Utility -----
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                        UTILITY                           ║
+-- ╚══════════════════════════════════════════════════════════╝
 
 MainTab:CreateSection("Utility")
 
