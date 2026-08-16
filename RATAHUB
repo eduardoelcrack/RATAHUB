@@ -1,5 +1,5 @@
 -- ============================================================
---                RATAHUB V5 | by Bambi | 16/08/26 holysheeet
+--                RATAHUB V5 | by Bambi | 15/08/26 holysheeet
 -- ============================================================
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
@@ -150,11 +150,13 @@ local SoundNames = {
 	"CS:GO Headshot"
 }
 
-local SelectedLockSound  = "Neverlose Hit"
-local SelectedHitSound   = "Skeet / Gamesense"
-local PreviewSoundChoice = "Neverlose Hit"
-local LockSoundEnabled   = true
-local HitSoundEnabled    = false
+local SoundState = {
+	SelectedLockSound = "Neverlose Hit",
+	SelectedHitSound = "Skeet / Gamesense",
+	PreviewSoundChoice = "Neverlose Hit",
+	LockSoundEnabled = true,
+	HitSoundEnabled = false
+}
 
 local function PlaySoundByName(soundName)
 	local id = SoundList[soundName]
@@ -176,39 +178,40 @@ end
 -- ║          WATERMARK + TARGET INFO SIEMPRE ACTIVO         ║
 -- ╚══════════════════════════════════════════════════════════╝
 
-local WatermarkGui = nil
-local WatermarkConn = nil
-
-local TargetInfoFrame = nil
-local TargetNameLabel = nil
-local TargetPingLabel = nil
-local TargetDistLabel = nil
-local TargetTeamLabel = nil
-local HealthBarFill = nil
-local HealthLabel = nil
+local WatermarkState = {
+	WatermarkGui = nil,
+	WatermarkConn = nil,
+	TargetInfoFrame = nil,
+	TargetNameLabel = nil,
+	TargetPingLabel = nil,
+	TargetDistLabel = nil,
+	TargetTeamLabel = nil,
+	HealthBarFill = nil,
+	HealthLabel = nil
+}
 
 local function DestroyWatermark()
-	if WatermarkConn then
-		WatermarkConn:Disconnect()
-		WatermarkConn = nil
+	if WatermarkState.WatermarkConn then
+		WatermarkState.WatermarkConn:Disconnect()
+		WatermarkState.WatermarkConn = nil
 	end
 
-	if WatermarkGui then
-		WatermarkGui:Destroy()
-		WatermarkGui = nil
+	if WatermarkState.WatermarkGui then
+		WatermarkState.WatermarkGui:Destroy()
+		WatermarkState.WatermarkGui = nil
 	end
 
-	TargetInfoFrame = nil
+	WatermarkState.TargetInfoFrame = nil
 end
 
 local function CreateWatermark()
 	DestroyWatermark()
 
-	WatermarkGui = Instance.new("ScreenGui")
-	WatermarkGui.Name = "RataHub_Watermark"
-	WatermarkGui.Parent = CoreGui
+	WatermarkState.WatermarkGui = Instance.new("ScreenGui")
+	WatermarkState.WatermarkGui.Name = "RataHub_Watermark"
+	WatermarkState.WatermarkGui.Parent = CoreGui
 
-	local frame = Instance.new("Frame", WatermarkGui)
+	local frame = Instance.new("Frame", WatermarkState.WatermarkGui)
 	frame.Size = UDim2.new(0, 170, 0, 95)
 	frame.Position = UDim2.new(1, -180, 0, 20)
 	frame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
@@ -234,53 +237,53 @@ local function CreateWatermark()
 	label.RichText = true
 
 	-- Target Info
-	TargetInfoFrame = Instance.new("Frame", WatermarkGui)
-	TargetInfoFrame.Name = "TargetInfoFrame"
-	TargetInfoFrame.Size = UDim2.new(0, 170, 0, 115)
-	TargetInfoFrame.Position = UDim2.new(1, -180, 0, 120)
-	TargetInfoFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-	TargetInfoFrame.BackgroundTransparency = 0.25
-	TargetInfoFrame.BorderSizePixel = 0
-	TargetInfoFrame.Visible = false
+	WatermarkState.TargetInfoFrame = Instance.new("Frame", WatermarkState.WatermarkGui)
+	WatermarkState.TargetInfoFrame.Name = "WatermarkState.TargetInfoFrame"
+	WatermarkState.TargetInfoFrame.Size = UDim2.new(0, 170, 0, 115)
+	WatermarkState.TargetInfoFrame.Position = UDim2.new(1, -180, 0, 120)
+	WatermarkState.TargetInfoFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+	WatermarkState.TargetInfoFrame.BackgroundTransparency = 0.25
+	WatermarkState.TargetInfoFrame.BorderSizePixel = 0
+	WatermarkState.TargetInfoFrame.Visible = false
 
-	local tiCorner = Instance.new("UICorner", TargetInfoFrame)
+	local tiCorner = Instance.new("UICorner", WatermarkState.TargetInfoFrame)
 	tiCorner.CornerRadius = UDim.new(0, 8)
 
-	local tiStroke = Instance.new("UIStroke", TargetInfoFrame)
+	local tiStroke = Instance.new("UIStroke", WatermarkState.TargetInfoFrame)
 	tiStroke.Color = Color3.fromRGB(175, 25, 255)
 	tiStroke.Thickness = 1.5
 
-	TargetNameLabel = Instance.new("TextLabel", TargetInfoFrame)
-	TargetNameLabel.Size = UDim2.new(1, -10, 0, 18)
-	TargetNameLabel.Position = UDim2.new(0, 5, 0, 4)
-	TargetNameLabel.BackgroundTransparency = 1
-	TargetNameLabel.Text = "Target: None"
-	TargetNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	TargetNameLabel.Font = Enum.Font.SourceSansBold
-	TargetNameLabel.TextSize = 12
-	TargetNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	WatermarkState.TargetNameLabel = Instance.new("TextLabel", WatermarkState.TargetInfoFrame)
+	WatermarkState.TargetNameLabel.Size = UDim2.new(1, -10, 0, 18)
+	WatermarkState.TargetNameLabel.Position = UDim2.new(0, 5, 0, 4)
+	WatermarkState.TargetNameLabel.BackgroundTransparency = 1
+	WatermarkState.TargetNameLabel.Text = "Target: None"
+	WatermarkState.TargetNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	WatermarkState.TargetNameLabel.Font = Enum.Font.SourceSansBold
+	WatermarkState.TargetNameLabel.TextSize = 12
+	WatermarkState.TargetNameLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-	TargetPingLabel = Instance.new("TextLabel", TargetInfoFrame)
-	TargetPingLabel.Size = UDim2.new(1, -10, 0, 14)
-	TargetPingLabel.Position = UDim2.new(0, 5, 0, 22)
-	TargetPingLabel.BackgroundTransparency = 1
-	TargetPingLabel.Text = "Ping: ? ms"
-	TargetPingLabel.TextColor3 = Color3.fromRGB(100, 220, 255)
-	TargetPingLabel.Font = Enum.Font.SourceSans
-	TargetPingLabel.TextSize = 11
-	TargetPingLabel.TextXAlignment = Enum.TextXAlignment.Left
+	WatermarkState.TargetPingLabel = Instance.new("TextLabel", WatermarkState.TargetInfoFrame)
+	WatermarkState.TargetPingLabel.Size = UDim2.new(1, -10, 0, 14)
+	WatermarkState.TargetPingLabel.Position = UDim2.new(0, 5, 0, 22)
+	WatermarkState.TargetPingLabel.BackgroundTransparency = 1
+	WatermarkState.TargetPingLabel.Text = "Ping: ? ms"
+	WatermarkState.TargetPingLabel.TextColor3 = Color3.fromRGB(100, 220, 255)
+	WatermarkState.TargetPingLabel.Font = Enum.Font.SourceSans
+	WatermarkState.TargetPingLabel.TextSize = 11
+	WatermarkState.TargetPingLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-	TargetDistLabel = Instance.new("TextLabel", TargetInfoFrame)
-	TargetDistLabel.Size = UDim2.new(1, -10, 0, 14)
-	TargetDistLabel.Position = UDim2.new(0, 5, 0, 38)
-	TargetDistLabel.BackgroundTransparency = 1
-	TargetDistLabel.Text = "Dist: 0 studs"
-	TargetDistLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-	TargetDistLabel.Font = Enum.Font.SourceSans
-	TargetDistLabel.TextSize = 11
-	TargetDistLabel.TextXAlignment = Enum.TextXAlignment.Left
+	WatermarkState.TargetDistLabel = Instance.new("TextLabel", WatermarkState.TargetInfoFrame)
+	WatermarkState.TargetDistLabel.Size = UDim2.new(1, -10, 0, 14)
+	WatermarkState.TargetDistLabel.Position = UDim2.new(0, 5, 0, 38)
+	WatermarkState.TargetDistLabel.BackgroundTransparency = 1
+	WatermarkState.TargetDistLabel.Text = "Dist: 0 studs"
+	WatermarkState.TargetDistLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+	WatermarkState.TargetDistLabel.Font = Enum.Font.SourceSans
+	WatermarkState.TargetDistLabel.TextSize = 11
+	WatermarkState.TargetDistLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-	local healthBarBg = Instance.new("Frame", TargetInfoFrame)
+	local healthBarBg = Instance.new("Frame", WatermarkState.TargetInfoFrame)
 	healthBarBg.Size = UDim2.new(1, -10, 0, 13)
 	healthBarBg.Position = UDim2.new(0, 5, 0, 56)
 	healthBarBg.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
@@ -288,34 +291,34 @@ local function CreateWatermark()
 
 	Instance.new("UICorner", healthBarBg).CornerRadius = UDim.new(0, 3)
 
-	HealthBarFill = Instance.new("Frame", healthBarBg)
-	HealthBarFill.Size = UDim2.new(1, 0, 1, 0)
-	HealthBarFill.BackgroundColor3 = Color3.fromRGB(0, 255, 120)
-	HealthBarFill.BorderSizePixel = 0
+	WatermarkState.HealthBarFill = Instance.new("Frame", healthBarBg)
+	WatermarkState.HealthBarFill.Size = UDim2.new(1, 0, 1, 0)
+	WatermarkState.HealthBarFill.BackgroundColor3 = Color3.fromRGB(0, 255, 120)
+	WatermarkState.HealthBarFill.BorderSizePixel = 0
 
-	Instance.new("UICorner", HealthBarFill).CornerRadius = UDim.new(0, 3)
+	Instance.new("UICorner", WatermarkState.HealthBarFill).CornerRadius = UDim.new(0, 3)
 
-	HealthLabel = Instance.new("TextLabel", healthBarBg)
-	HealthLabel.Size = UDim2.new(1, 0, 1, 0)
-	HealthLabel.BackgroundTransparency = 1
-	HealthLabel.Text = "100 HP"
-	HealthLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	HealthLabel.Font = Enum.Font.SourceSansBold
-	HealthLabel.TextSize = 10
+	WatermarkState.HealthLabel = Instance.new("TextLabel", healthBarBg)
+	WatermarkState.HealthLabel.Size = UDim2.new(1, 0, 1, 0)
+	WatermarkState.HealthLabel.BackgroundTransparency = 1
+	WatermarkState.HealthLabel.Text = "100 HP"
+	WatermarkState.HealthLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	WatermarkState.HealthLabel.Font = Enum.Font.SourceSansBold
+	WatermarkState.HealthLabel.TextSize = 10
 
-	TargetTeamLabel = Instance.new("TextLabel", TargetInfoFrame)
-	TargetTeamLabel.Size = UDim2.new(1, -10, 0, 14)
-	TargetTeamLabel.Position = UDim2.new(0, 5, 0, 74)
-	TargetTeamLabel.BackgroundTransparency = 1
-	TargetTeamLabel.Text = "Equipo: Ninguno"
-	TargetTeamLabel.TextColor3 = Color3.fromRGB(180, 180, 255)
-	TargetTeamLabel.Font = Enum.Font.SourceSans
-	TargetTeamLabel.TextSize = 11
-	TargetTeamLabel.TextXAlignment = Enum.TextXAlignment.Left
+	WatermarkState.TargetTeamLabel = Instance.new("TextLabel", WatermarkState.TargetInfoFrame)
+	WatermarkState.TargetTeamLabel.Size = UDim2.new(1, -10, 0, 14)
+	WatermarkState.TargetTeamLabel.Position = UDim2.new(0, 5, 0, 74)
+	WatermarkState.TargetTeamLabel.BackgroundTransparency = 1
+	WatermarkState.TargetTeamLabel.Text = "Equipo: Ninguno"
+	WatermarkState.TargetTeamLabel.TextColor3 = Color3.fromRGB(180, 180, 255)
+	WatermarkState.TargetTeamLabel.Font = Enum.Font.SourceSans
+	WatermarkState.TargetTeamLabel.TextSize = 11
+	WatermarkState.TargetTeamLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 	local fps = 0
 
-	WatermarkConn = RunService.RenderStepped:Connect(function(step)
+	WatermarkState.WatermarkConn = RunService.RenderStepped:Connect(function(step)
 		fps = math.floor(1 / step)
 
 		local ping = 0
@@ -343,16 +346,16 @@ local function CreateWatermark()
 end
 
 local function UpdateTargetInfoDisplay(target)
-	if not TargetInfoFrame then return end
+	if not WatermarkState.TargetInfoFrame then return end
 
 	if not target or not IsAlive(target) then
-		TargetInfoFrame.Visible = false
+		WatermarkState.TargetInfoFrame.Visible = false
 		return
 	end
 
-	TargetInfoFrame.Visible = true
+	WatermarkState.TargetInfoFrame.Visible = true
 
-	TargetNameLabel.Text = "Target: " .. target.Name
+	WatermarkState.TargetNameLabel.Text = "Target: " .. target.Name
 
 	pcall(function()
 		local targetPing = 0
@@ -365,7 +368,7 @@ local function UpdateTargetInfoDisplay(target)
 			targetPing = math.floor(Stats.PerformanceStats.Ping:GetValue())
 		end
 
-		TargetPingLabel.Text = string.format("Ping: %d ms", targetPing)
+		WatermarkState.TargetPingLabel.Text = string.format("Ping: %d ms", targetPing)
 	end)
 
 	local myChar = LocalPlayer.Character
@@ -374,9 +377,9 @@ local function UpdateTargetInfoDisplay(target)
 
 	if myRoot and tRoot then
 		local studs = math.floor((myRoot.Position - tRoot.Position).Magnitude)
-		TargetDistLabel.Text = string.format("Dist: %d studs", studs)
+		WatermarkState.TargetDistLabel.Text = string.format("Dist: %d studs", studs)
 	else
-		TargetDistLabel.Text = "Dist: ? studs"
+		WatermarkState.TargetDistLabel.Text = "Dist: ? studs"
 	end
 
 	local hum = target.Character:FindFirstChildOfClass("Humanoid")
@@ -386,22 +389,22 @@ local function UpdateTargetInfoDisplay(target)
 		local maxHp = math.floor(hum.MaxHealth)
 		local pct = math.clamp(hp / maxHp, 0, 1)
 
-		HealthBarFill.Size = UDim2.new(pct, 0, 1, 0)
-		HealthLabel.Text = string.format(
+		WatermarkState.HealthBarFill.Size = UDim2.new(pct, 0, 1, 0)
+		WatermarkState.HealthLabel.Text = string.format(
 			"%d / %d HP (%d%%)",
 			hp,
 			maxHp,
 			math.floor(pct * 100)
 		)
 
-		HealthBarFill.BackgroundColor3 = Color3.fromRGB(
+		WatermarkState.HealthBarFill.BackgroundColor3 = Color3.fromRGB(
 			math.floor(255 * (1 - pct)),
 			math.floor(255 * pct),
 			100
 		)
 	end
 
-	TargetTeamLabel.Text = "Equipo: " .. (target.Team and target.Team.Name or "Ninguno")
+	WatermarkState.TargetTeamLabel.Text = "Equipo: " .. (target.Team and target.Team.Name or "Ninguno")
 end
 
 -- Watermark SIEMPRE activo
@@ -418,29 +421,32 @@ local MainTab = Window:CreateTab("Main", nil)
 -- ╚══════════════════════════════════════════════════════════╝
 MainTab:CreateSection("Movement")
 
-local FlyToggleEnabled = false
-local FlyActive = false
-local FlySpeed = 140
-local BV, BG = nil, nil
-local OldAnimate = nil
-local FlyLoop = nil
+local FlyState = {
+	FlyToggleEnabled = false,
+	FlyActive = false,
+	FlySpeed = 140,
+	BV = nil,
+	BG = nil,
+	OldAnimate = nil,
+	FlyLoop = nil
+}
 
 local function StopFly()
-	FlyActive = false
+	FlyState.FlyActive = false
 
-	if FlyLoop then
-		FlyLoop:Disconnect()
-		FlyLoop = nil
+	if FlyState.FlyLoop then
+		FlyState.FlyLoop:Disconnect()
+		FlyState.FlyLoop = nil
 	end
 
-	if BV then
-		BV:Destroy()
-		BV = nil
+	if FlyState.BV then
+		FlyState.BV:Destroy()
+		FlyState.BV = nil
 	end
 
-	if BG then
-		BG:Destroy()
-		BG = nil
+	if FlyState.BG then
+		FlyState.BG:Destroy()
+		FlyState.BG = nil
 	end
 
 	local char = LocalPlayer.Character
@@ -452,9 +458,9 @@ local function StopFly()
 			hum.PlatformStand = false
 		end
 
-		if OldAnimate then
-			OldAnimate.Parent = char
-			OldAnimate = nil
+		if FlyState.OldAnimate then
+			FlyState.OldAnimate.Parent = char
+			FlyState.OldAnimate = nil
 		end
 	end
 end
@@ -474,23 +480,23 @@ local function StartFly()
 	end
 
 	if char:FindFirstChild("Animate") then
-		OldAnimate = char.Animate:Clone()
+		FlyState.OldAnimate = char.Animate:Clone()
 		char.Animate:Destroy()
 	end
 
-	BV = Instance.new("BodyVelocity")
-	BV.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-	BV.Velocity = Vector3.zero
-	BV.Parent = root
+	FlyState.BV = Instance.new("BodyVelocity")
+	FlyState.BV.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+	FlyState.BV.Velocity = Vector3.zero
+	FlyState.BV.Parent = root
 
-	BG = Instance.new("BodyGyro")
-	BG.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-	BG.P = 20000
-	BG.D = 800
-	BG.Parent = root
+	FlyState.BG = Instance.new("BodyGyro")
+	FlyState.BG.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+	FlyState.BG.P = 20000
+	FlyState.BG.D = 800
+	FlyState.BG.Parent = root
 
-	FlyLoop = RunService.RenderStepped:Connect(function()
-		if not FlyActive then return end
+	FlyState.FlyLoop = RunService.RenderStepped:Connect(function()
+		if not FlyState.FlyActive then return end
 
 		local look = Camera.CFrame.LookVector
 		local right = look:Cross(Vector3.new(0, 1, 0))
@@ -520,8 +526,8 @@ local function StartFly()
 			move -= Vector3.new(0, 1, 0)
 		end
 
-		BV.Velocity = move * FlySpeed
-		BG.CFrame = Camera.CFrame
+		FlyState.BV.Velocity = move * FlyState.FlySpeed
+		FlyState.BG.CFrame = Camera.CFrame
 	end)
 end
 
@@ -529,8 +535,8 @@ MainTab:CreateToggle({
 	Name = "Fly",
 	CurrentValue = false,
 	Callback = function(v)
-		FlyToggleEnabled = v
-		FlyActive = false
+		FlyState.FlyToggleEnabled = v
+		FlyState.FlyActive = false
 		StopFly()
 	end
 })
@@ -540,11 +546,11 @@ MainTab:CreateKeybind({
 	CurrentKeybind = "V",
 	HoldToInteract = false,
 	Callback = function()
-		if not FlyToggleEnabled then return end
+		if not FlyState.FlyToggleEnabled then return end
 
-		FlyActive = not FlyActive
+		FlyState.FlyActive = not FlyState.FlyActive
 
-		if FlyActive then
+		if FlyState.FlyActive then
 			StartFly()
 			Rayfield:Notify({
 				Title = "Fly",
@@ -568,48 +574,50 @@ MainTab:CreateSlider({
 	Increment = 10,
 	CurrentValue = 140,
 	Callback = function(v)
-		FlySpeed = v
+		FlyState.FlySpeed = v
 	end
 })
 
-local WSToggleEnabled = false
-local WSActive = false
-local TargetWalkSpeed = 140
-local OriginalWalkSpeed = nil
-local WalkSpeedLoop = nil
+local WalkState = {
+	WSToggleEnabled = false,
+	WSActive = false,
+	TargetWalkSpeed = 140,
+	OriginalWalkSpeed = nil,
+	WalkSpeedLoop = nil
+}
 
 local function StopWalkSpeedLoop()
-	if WalkSpeedLoop then
-		WalkSpeedLoop:Disconnect()
-		WalkSpeedLoop = nil
+	if WalkState.WalkSpeedLoop then
+		WalkState.WalkSpeedLoop:Disconnect()
+		WalkState.WalkSpeedLoop = nil
 	end
 
 	local char = LocalPlayer.Character
 
-	if char and OriginalWalkSpeed then
+	if char and WalkState.OriginalWalkSpeed then
 		local hum = char:FindFirstChildOfClass("Humanoid")
 
 		if hum then
-			hum.WalkSpeed = OriginalWalkSpeed
+			hum.WalkSpeed = WalkState.OriginalWalkSpeed
 		end
 	end
 end
 
 local function StartWalkSpeedLoop()
-	if WalkSpeedLoop then return end
+	if WalkState.WalkSpeedLoop then return end
 
-	WalkSpeedLoop = RunService.RenderStepped:Connect(function()
+	WalkState.WalkSpeedLoop = RunService.RenderStepped:Connect(function()
 		local char = LocalPlayer.Character
 		if not char then return end
 
 		local hum = char:FindFirstChildOfClass("Humanoid")
 		if not hum then return end
 
-		if not OriginalWalkSpeed then
-			OriginalWalkSpeed = hum.WalkSpeed
+		if not WalkState.OriginalWalkSpeed then
+			WalkState.OriginalWalkSpeed = hum.WalkSpeed
 		end
 
-		local desiredSpeed = WSActive and TargetWalkSpeed or OriginalWalkSpeed
+		local desiredSpeed = WalkState.WSActive and WalkState.TargetWalkSpeed or WalkState.OriginalWalkSpeed
 
 		if hum.WalkSpeed ~= desiredSpeed then
 			hum.WalkSpeed = desiredSpeed
@@ -621,10 +629,10 @@ MainTab:CreateToggle({
 	Name = "WalkSpeed",
 	CurrentValue = false,
 	Callback = function(v)
-		WSToggleEnabled = v
+		WalkState.WSToggleEnabled = v
 
 		if not v then
-			WSActive = false
+			WalkState.WSActive = false
 			StopWalkSpeedLoop()
 		else
 			StartWalkSpeedLoop()
@@ -637,8 +645,8 @@ MainTab:CreateKeybind({
 	CurrentKeybind = "C",
 	HoldToInteract = false,
 	Callback = function()
-		if WSToggleEnabled then
-			WSActive = not WSActive
+		if WalkState.WSToggleEnabled then
+			WalkState.WSActive = not WalkState.WSActive
 		end
 	end
 })
@@ -649,52 +657,54 @@ MainTab:CreateSlider({
 	Increment = 1,
 	CurrentValue = 140,
 	Callback = function(v)
-		TargetWalkSpeed = v
+		WalkState.TargetWalkSpeed = v
 	end
 })
 
-local JumpPowerToggleEnabled = false
-local TargetJumpPower = 50
-local OriginalJumpPower = nil
-local JumpPowerLoop = nil
+local JumpState = {
+	JumpPowerToggleEnabled = false,
+	TargetJumpPower = 50,
+	OriginalJumpPower = nil,
+	JumpPowerLoop = nil
+}
 
 local function StopJumpPowerLoop()
-	if JumpPowerLoop then
-		JumpPowerLoop:Disconnect()
-		JumpPowerLoop = nil
+	if JumpState.JumpPowerLoop then
+		JumpState.JumpPowerLoop:Disconnect()
+		JumpState.JumpPowerLoop = nil
 	end
 
 	local char = LocalPlayer.Character
 
-	if char and OriginalJumpPower then
+	if char and JumpState.OriginalJumpPower then
 		local hum = char:FindFirstChildOfClass("Humanoid")
 
 		if hum then
 			if hum.UseJumpPower then
-				hum.JumpPower = OriginalJumpPower
+				hum.JumpPower = JumpState.OriginalJumpPower
 			else
-				hum.JumpHeight = OriginalJumpPower
+				hum.JumpHeight = JumpState.OriginalJumpPower
 			end
 		end
 	end
 end
 
 local function StartJumpPowerLoop()
-	if JumpPowerLoop then return end
+	if JumpState.JumpPowerLoop then return end
 
-	JumpPowerLoop = RunService.Heartbeat:Connect(function()
+	JumpState.JumpPowerLoop = RunService.Heartbeat:Connect(function()
 		local char = LocalPlayer.Character
 		if not char then return end
 
 		local hum = char:FindFirstChildOfClass("Humanoid")
 		if not hum then return end
 
-		if not OriginalJumpPower then
-			OriginalJumpPower = hum.UseJumpPower and hum.JumpPower or hum.JumpHeight
+		if not JumpState.OriginalJumpPower then
+			JumpState.OriginalJumpPower = hum.UseJumpPower and hum.JumpPower or hum.JumpHeight
 		end
 
 		local current = hum.UseJumpPower and hum.JumpPower or hum.JumpHeight
-		local target = JumpPowerToggleEnabled and TargetJumpPower or OriginalJumpPower
+		local target = JumpState.JumpPowerToggleEnabled and JumpState.TargetJumpPower or JumpState.OriginalJumpPower
 
 		if current ~= target then
 			if hum.UseJumpPower then
@@ -710,7 +720,7 @@ MainTab:CreateToggle({
 	Name = "JumpPower",
 	CurrentValue = false,
 	Callback = function(v)
-		JumpPowerToggleEnabled = v
+		JumpState.JumpPowerToggleEnabled = v
 
 		if v then
 			StartJumpPowerLoop()
@@ -726,29 +736,31 @@ MainTab:CreateSlider({
 	Increment = 5,
 	CurrentValue = 50,
 	Callback = function(v)
-		TargetJumpPower = v
+		JumpState.TargetJumpPower = v
 	end
 })
 
-local GravityEnabled = false
-local TargetGravity = 196.2
-local GravityLoop = nil
+local GravityState = {
+	GravityEnabled = false,
+	TargetGravity = 196.2,
+	GravityLoop = nil
+}
 
 local function StopGravityLoop()
-	if GravityLoop then
-		GravityLoop:Disconnect()
-		GravityLoop = nil
+	if GravityState.GravityLoop then
+		GravityState.GravityLoop:Disconnect()
+		GravityState.GravityLoop = nil
 	end
 
 	workspace.Gravity = 196.2
 end
 
 local function StartGravityLoop()
-	if GravityLoop then return end
+	if GravityState.GravityLoop then return end
 
-	GravityLoop = RunService.RenderStepped:Connect(function()
-		if GravityEnabled then
-			workspace.Gravity = TargetGravity
+	GravityState.GravityLoop = RunService.RenderStepped:Connect(function()
+		if GravityState.GravityEnabled then
+			workspace.Gravity = GravityState.TargetGravity
 		else
 			workspace.Gravity = 196.2
 		end
@@ -759,7 +771,7 @@ MainTab:CreateToggle({
 	Name = "Gravity",
 	CurrentValue = false,
 	Callback = function(v)
-		GravityEnabled = v
+		GravityState.GravityEnabled = v
 
 		if v then
 			StartGravityLoop()
@@ -775,7 +787,7 @@ MainTab:CreateSlider({
 	Increment = 1,
 	CurrentValue = 196.2,
 	Callback = function(v)
-		TargetGravity = v
+		GravityState.TargetGravity = v
 	end
 })
 
@@ -2307,8 +2319,8 @@ local function StartAimlock()
 
 	CreateAimESP(LockedTarget)
 
-	if LockSoundEnabled then
-		PlaySoundByName(SelectedLockSound)
+	if SoundState.LockSoundEnabled then
+		PlaySoundByName(SoundState.SelectedLockSound)
 	end
 
 	HeartbeatConn = RunService.Heartbeat:Connect(function()
@@ -2777,8 +2789,8 @@ TriggerbotTab:CreateToggle({
 							isShooting = true
 
 							task.spawn(function()
-								if HitSoundEnabled then
-									PlaySoundByName(SelectedHitSound)
+								if SoundState.HitSoundEnabled then
+									PlaySoundByName(SoundState.SelectedHitSound)
 								end
 
 								if mouse1click then
@@ -3322,7 +3334,7 @@ SoundsTab:CreateToggle({
 	Name = "Lock Sound (Sonido al fijar)",
 	CurrentValue = true,
 	Callback = function(v)
-		LockSoundEnabled = v
+		SoundState.LockSoundEnabled = v
 	end
 })
 
@@ -3331,7 +3343,7 @@ SoundsTab:CreateDropdown({
 	Options = SoundNames,
 	CurrentOption = "Neverlose Hit",
 	Callback = function(v)
-		SelectedLockSound = type(v) == "table" and v[1] or v
+		SoundState.SelectedLockSound = type(v) == "table" and v[1] or v
 	end
 })
 
@@ -3339,7 +3351,7 @@ SoundsTab:CreateToggle({
 	Name = "Hit Sound (Sonido al golpear/disparar)",
 	CurrentValue = false,
 	Callback = function(v)
-		HitSoundEnabled = v
+		SoundState.HitSoundEnabled = v
 	end
 })
 
@@ -3348,7 +3360,7 @@ SoundsTab:CreateDropdown({
 	Options = SoundNames,
 	CurrentOption = "Skeet / Gamesense",
 	Callback = function(v)
-		SelectedHitSound = type(v) == "table" and v[1] or v
+		SoundState.SelectedHitSound = type(v) == "table" and v[1] or v
 	end
 })
 
@@ -3359,18 +3371,18 @@ SoundsTab:CreateDropdown({
 	Options = SoundNames,
 	CurrentOption = "Neverlose Hit",
 	Callback = function(v)
-		PreviewSoundChoice = type(v) == "table" and v[1] or v
+		SoundState.PreviewSoundChoice = type(v) == "table" and v[1] or v
 	end
 })
 
 SoundsTab:CreateButton({
 	Name = "🔊 Reproducir Sonido Seleccionado",
 	Callback = function()
-		PlaySoundByName(PreviewSoundChoice)
+		PlaySoundByName(SoundState.PreviewSoundChoice)
 
 		Rayfield:Notify({
 			Title = "Audio Test",
-			Content = "Reproduciendo: " .. PreviewSoundChoice,
+			Content = "Reproduciendo: " .. SoundState.PreviewSoundChoice,
 			Duration = 1.5
 		})
 	end
