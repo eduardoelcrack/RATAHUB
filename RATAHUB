@@ -35,6 +35,26 @@ local LocalPlayer      = Players.LocalPlayer
 local Camera           = workspace.CurrentCamera
 local Mouse            = LocalPlayer:GetMouse()
 
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║                  CONEXIONES DEL HUB                     ║
+-- ╚══════════════════════════════════════════════════════════╝
+
+local HubConnections = {}
+
+local function AddHubConnection(connection)
+	table.insert(HubConnections, connection)
+	return connection
+end
+
+local function DisconnectHubConnections()
+	for _, connection in ipairs(HubConnections) do
+		pcall(function()
+			connection:Disconnect()
+		end)
+	end
+	table.clear(HubConnections)
+end
+
 local function IsAlive(plr)
 	return plr and plr.Character
 		and plr.Character:FindFirstChildOfClass("Humanoid")
@@ -3360,7 +3380,7 @@ SoundsTab:CreateButton({
 -- ║          CONEXIONES DE JUGADORES / EQUIPOS              ║
 -- ╚══════════════════════════════════════════════════════════╝
 
-Players.PlayerAdded:Connect(function(plr)
+AddHubConnection(Players.PlayerAdded:Connect(function(plr)
 	task.wait(0.5)
 
 	RefreshGlobalPlayerDropdowns()
@@ -3372,24 +3392,24 @@ Players.PlayerAdded:Connect(function(plr)
 	if AimTracersEnabled then
 		CreateAimTracer(plr)
 	end
-end)
+end))
 
-Players.PlayerRemoving:Connect(function(plr)
+AddHubConnection(Players.PlayerRemoving:Connect(function(plr)
 	RefreshGlobalPlayerDropdowns()
 
 	RemoveTracer(plr)
 	RemoveAimTracer(plr)
-end)
+end))
 
-Teams.ChildAdded:Connect(function()
+AddHubConnection(Teams.ChildAdded:Connect(function()
 	task.wait(0.5)
 	RefreshGlobalTeamDropdowns()
-end)
+end))
 
-Teams.ChildRemoved:Connect(function()
+AddHubConnection(Teams.ChildRemoved:Connect(function()
 	task.wait(0.5)
 	RefreshGlobalTeamDropdowns()
-end)
+end))
 
 -- ╔══════════════════════════════════════════════════════════╗
 -- ║              INICIALIZACIÓN FINAL                      ║
@@ -3453,6 +3473,8 @@ function DestroyHubCompletely()
 		AntiAFKConn = nil
 	end
 
+    DisconnectHubConnections()
+
 	pcall(function()
 		local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
 
@@ -3495,7 +3517,7 @@ MainTab:CreateButton({
 	Callback = DestroyHubCompletely
 })
 
-LocalPlayer.CharacterAdded:Connect(function()
+AddHubConnection(LocalPlayer.CharacterAdded:Connect(function()
 	task.wait(0.5)
 
 	if KeepClickTP then
@@ -3505,7 +3527,7 @@ LocalPlayer.CharacterAdded:Connect(function()
 	if KeepBTools then
 		GiveBTools()
 	end
-end)
+end))
 
 print("RATAHUB tu puta obsesion😝😝😝")
 
