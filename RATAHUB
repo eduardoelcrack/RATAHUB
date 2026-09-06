@@ -1203,6 +1203,11 @@ function Tab:CreateToggle(cfg)
 	function handle:Set(v)
 		state = v and true or false
 		apply(true)
+		if cfg.Callback then task.spawn(cfg.Callback, state) end
+	end
+	function handle:SetSilent(v)
+		state = v and true or false
+		apply(false)
 	end
 	function handle:Get() return state end
 	return handle
@@ -1630,13 +1635,13 @@ function Tab:CreateDropdown(cfg)
 
 	function handle:SetSilent(v)
 		if isMulti then
-			selectedMulti = {}
+			table.clear(selectedMulti)
 			if type(v) == "table" then
 				for k, val in pairs(v) do
 					if type(k) == "string" and val == true then selectedMulti[k] = true
 					elseif type(val) == "string" then selectedMulti[val] = true end
 				end
-			elseif type(v) == "string" and v ~= "" and v ~= "Nadie" then
+			elseif type(v) == "string" and v ~= "" and v ~= "Nadie" and v ~= "Ninguno" then
 				selectedMulti[v] = true
 			end
 			selectedLabel.Text = getDisplayText()
@@ -2332,8 +2337,22 @@ function Features.PlaySound(soundName)
 	end
 end
 
-------------------------------------------------------------- SYNC MANAGER (Single Layer, Anti-Loop)
-local SyncManager = { isSyncing = false }
+------------------------------------------------------------- SYNC MANAGER (Single Layer, Anti-Loop, Backup & Restore)
+local SyncManager = {
+	isSyncing = false,
+	snapshots = {}
+}
+
+local function cloneVal(val)
+	if type(val) == "table" then
+		local copy = {}
+		for k, v in pairs(val) do
+			copy[k] = v
+		end
+		return copy
+	end
+	return val
+end
 
 function SyncManager.SyncProperty(sourceModule, propName, value)
 	if SyncManager.isSyncing then return end
@@ -2352,20 +2371,21 @@ function SyncManager.SyncProperty(sourceModule, propName, value)
 	end
 
 	for _, targetMod in ipairs(targets) do
-		if propName == "WhitelistMode" then
-			Config[targetMod].WhitelistMode = value
-			if Controls[targetMod] and Controls[targetMod].WhitelistMode then
-				Controls[targetMod].WhitelistMode:SetSilent(value)
+		local tCfg = Config[targetMod]
+		if tCfg and tCfg[propName] ~= nil then
+			tCfg[propName] = cloneVal(value)
+			if Controls[targetMod] and Controls[targetMod][propName] and Controls[targetMod][propName].SetSilent then
+				Controls[targetMod][propName]:SetSilent(value)
 			end
-		elseif propName == "WhitelistTarget" then
-			Config[targetMod].WhitelistTarget = value
-			if Controls[targetMod] and Controls[targetMod].WhitelistTarget then
-				Controls[targetMod].WhitelistTarget:SetSilent(value)
-			end
-		elseif propName == "IgnoreTeams" then
-			Config[targetMod].IgnoreTeams = value
-			if Controls[targetMod] and Controls[targetMod].IgnoreTeams then
-				Controls[targetMod].IgnoreTeams:SetSilent(value)
+		end
+
+		if targetMod == "ESP" then
+			Features.UpdateESP()
+		elseif targetMod == "Aimlock" then
+			if Runtime.Aimlock.locked and Runtime.Aimlock.currentTarget then
+				if not Features.IsWhitelisted(Runtime.Aimlock.currentTarget, Config.Aimlock.WhitelistMode, Config.Aimlock.WhitelistTarget) then
+					Features.UnlockAimlock()
+				end
 			end
 		end
 	end
@@ -2374,23 +2394,66 @@ function SyncManager.SyncProperty(sourceModule, propName, value)
 end
 
 function SyncManager.OnSyncToggled(sourceModule, targetModule, enabled)
-	if enabled and not SyncManager.isSyncing then
-		SyncManager.isSyncing = true
-		local sCfg = Config[sourceModule]
-		local tCfg = Config[targetModule]
-		if sCfg and tCfg then
-			tCfg.WhitelistMode = sCfg.WhitelistMode
-			tCfg.WhitelistTarget = sCfg.WhitelistTarget
-			tCfg.IgnoreTeams = sCfg.IgnoreTeams
+	if SyncManager.isSyncing then return end
+	SyncManager.isSyncing = true
 
-			if Controls[targetModule] then
-				if Controls[targetModule].WhitelistMode then Controls[targetModule].WhitelistMode:SetSilent(sCfg.WhitelistMode) end
-				if Controls[targetModule].WhitelistTarget then Controls[targetModule].WhitelistTarget:SetSilent(sCfg.WhitelistTarget) end
-				if Controls[targetModule].IgnoreTeams then Controls[targetModule].IgnoreTeams:SetSilent(sCfg.IgnoreTeams) end
+	local key = sourceModule .. "->" .. targetModule
+	local sCfg = Config[sourceModule]
+	local tCfg = Config[targetModule]
+
+	local propsToSync = { "WhitelistMode", "WhitelistTarget", "IgnoreTeams", "TeamCheck", "FriendCheck" }
+
+	if enabled then
+		-- 1. Take a snapshot of targetModule BEFORE overriding it
+		local snapshot = {}
+		if tCfg then
+			for _, p in ipairs(propsToSync) do
+				if tCfg[p] ~= nil then
+					snapshot[p] = cloneVal(tCfg[p])
+				end
 			end
 		end
-		SyncManager.isSyncing = false
+		SyncManager.snapshots[key] = snapshot
+
+		-- 2. Apply sourceModule settings to targetModule
+		if sCfg and tCfg then
+			for _, p in ipairs(propsToSync) do
+				if sCfg[p] ~= nil and tCfg[p] ~= nil then
+					tCfg[p] = cloneVal(sCfg[p])
+					if Controls[targetModule] and Controls[targetModule][p] and Controls[targetModule][p].SetSilent then
+						Controls[targetModule][p]:SetSilent(sCfg[p])
+					end
+				end
+			end
+		end
+	else
+		-- Restore previous state from snapshot if available
+		local snapshot = SyncManager.snapshots[key]
+		if snapshot and tCfg then
+			for _, p in ipairs(propsToSync) do
+				if snapshot[p] ~= nil then
+					tCfg[p] = cloneVal(snapshot[p])
+					if Controls[targetModule] and Controls[targetModule][p] and Controls[targetModule][p].SetSilent then
+						Controls[targetModule][p]:SetSilent(snapshot[p])
+					end
+				end
+			end
+			SyncManager.snapshots[key] = nil
+		end
 	end
+
+	-- Refresh targetModule visuals / state
+	if targetModule == "ESP" then
+		Features.UpdateESP()
+	elseif targetModule == "Aimlock" then
+		if Runtime.Aimlock.locked and Runtime.Aimlock.currentTarget then
+			if not Features.IsWhitelisted(Runtime.Aimlock.currentTarget, Config.Aimlock.WhitelistMode, Config.Aimlock.WhitelistTarget) then
+				Features.UnlockAimlock()
+			end
+		end
+	end
+
+	SyncManager.isSyncing = false
 end
 
 Features.SyncManager = SyncManager
@@ -2944,21 +3007,35 @@ function Features.IsAlive(plr)
 end
 
 -- =============================================================================
--- ULTRA-FAST ZERO-LAG ASYNC FRIENDS CACHE & AUTO-REFRESH
+-- ULTRA-FAST ZERO-LAG ASYNC FRIENDS CACHE & DYNAMIC IN-GAME STATUS
 -- =============================================================================
 local FriendsCache = {}
+
+local function CheckPlayerIsFriend(p)
+	if not p or p == player then return false end
+	local s1, status = pcall(function() return player:GetFriendStatus(p) end)
+	if s1 and (status == Enum.FriendStatus.Friend or status == Enum.FriendStatus.FriendRequestSent) then
+		return true
+	end
+	local s2, isF = pcall(function() return player:IsFriendsWith(p.UserId) end)
+	if s2 and isF then
+		return true
+	end
+	local s3, isF2 = pcall(function() return p:IsFriendsWith(player.UserId) end)
+	if s3 and isF2 then
+		return true
+	end
+	return false
+end
 
 function Features.RefreshAllFriends()
 	for _, p in ipairs(Players:GetPlayers()) do
 		if p ~= player then
 			task.spawn(function()
-				local success, isFriend = pcall(function()
-					return player:IsFriendsWith(p.UserId)
-				end)
-				if success then
-					FriendsCache[p] = isFriend
-					FriendsCache[p.UserId] = isFriend
-				end
+				local isF = CheckPlayerIsFriend(p)
+				FriendsCache[p] = isF
+				FriendsCache[p.UserId] = isF
+				FriendsCache[p.Name] = isF
 			end)
 		end
 	end
@@ -2967,13 +3044,10 @@ end
 local function CacheFriendStatus(p)
 	if not p or p == player then return end
 	task.spawn(function()
-		local success, isFriend = pcall(function()
-			return player:IsFriendsWith(p.UserId)
-		end)
-		if success then
-			FriendsCache[p] = isFriend
-			FriendsCache[p.UserId] = isFriend
-		end
+		local isF = CheckPlayerIsFriend(p)
+		FriendsCache[p] = isF
+		FriendsCache[p.UserId] = isF
+		FriendsCache[p.Name] = isF
 	end)
 end
 
@@ -2988,24 +3062,26 @@ end)
 Players.PlayerRemoving:Connect(function(p)
 	FriendsCache[p] = nil
 	FriendsCache[p.UserId] = nil
+	FriendsCache[p.Name] = nil
 end)
 
 pcall(function()
 	player.FriendStatusChanged:Connect(function(otherPlayer, friendStatus)
-		local isFriend = (friendStatus == Enum.FriendStatus.Friend)
-		FriendsCache[otherPlayer] = isFriend
-		FriendsCache[otherPlayer.UserId] = isFriend
+		local isF = (friendStatus == Enum.FriendStatus.Friend or friendStatus == Enum.FriendStatus.FriendRequestSent)
+		FriendsCache[otherPlayer] = isF
+		FriendsCache[otherPlayer.UserId] = isF
+		FriendsCache[otherPlayer.Name] = isF
 	end)
 end)
 
--- Background dynamic friend updater (every 4 seconds) so adding someone in-game updates automatically
-task.spawn(function()
-	while true do
-		task.wait(4)
-		if Config.ESP.FriendCheck or Config.Aimlock.FriendCheck or Config.Triggerbot.FriendCheck then
-			Features.RefreshAllFriends()
-		end
-	end
+-- Event-driven friend status tracking (Zero lag, zero background polling)
+pcall(function()
+	player.FriendStatusChanged:Connect(function(otherPlayer, friendStatus)
+		local isF = (friendStatus == Enum.FriendStatus.Friend or friendStatus == Enum.FriendStatus.FriendRequestSent)
+		FriendsCache[otherPlayer] = isF
+		FriendsCache[otherPlayer.UserId] = isF
+		FriendsCache[otherPlayer.Name] = isF
+	end)
 end)
 
 function Features.IsFriend(targetPlayer)
@@ -3015,6 +3091,9 @@ function Features.IsFriend(targetPlayer)
 	end
 	if FriendsCache[targetPlayer.UserId] ~= nil then
 		return FriendsCache[targetPlayer.UserId]
+	end
+	if FriendsCache[targetPlayer.Name] ~= nil then
+		return FriendsCache[targetPlayer.Name]
 	end
 	CacheFriendStatus(targetPlayer)
 	return false
@@ -3080,21 +3159,26 @@ function Features.IsSameTeam(p)
 end
 
 function Features.IsPlayerValidESP(targetPlayer)
-	if targetPlayer == player then return false end
+	if not targetPlayer or targetPlayer == player then return false end
 	local espCfg = Config.ESP
 
-	-- Whitelist Filtering
+	local isFriend = Features.IsFriend(targetPlayer)
+	-- Friends with FriendCheck ON are ALWAYS valid (bypasses team & whitelist filters)
+	if espCfg.FriendCheck and isFriend then
+		return true
+	end
+
+	-- Whitelist Filtering: "Only Whitelist" bypasses Team Filters for the selected player
+	if espCfg.WhitelistMode == "Only Whitelist" then
+		return Features.IsWhitelisted(targetPlayer, "Only Whitelist", espCfg.WhitelistTarget)
+	end
+
 	if not Features.IsWhitelisted(targetPlayer, espCfg.WhitelistMode, espCfg.WhitelistTarget) then
 		return false
 	end
 
-	-- Friend Check
-	if espCfg.FriendCheck and Features.IsFriend(targetPlayer) then
-		return false
-	end
-
 	-- Team Filtering
-	if espCfg.IgnoreTeams ~= "Ninguno" and targetPlayer.Team and targetPlayer.Team.Name == espCfg.IgnoreTeams then
+	if Features.IsTeamIgnored(targetPlayer, espCfg.IgnoreTeams) then
 		return false
 	end
 
@@ -3103,18 +3187,30 @@ end
 
 function Features.GetESPColor(targetPlayer)
 	local espCfg = Config.ESP
-	if espCfg.TeamColorHighlight and targetPlayer.TeamColor then
+	if espCfg.FriendCheck and Features.IsFriend(targetPlayer) then
+		return Color3.fromRGB(0, 255, 120) -- Green for friends
+	end
+	if espCfg.RainbowESP or espCfg.Rainbow then
+		return Color3.fromHSV((tick() % 4) / 4, 1, 1)
+	end
+	if espCfg.TeamColorHighlight and targetPlayer.Team and targetPlayer.TeamColor then
 		return targetPlayer.TeamColor.Color
 	end
 	return COLOR_MAP[espCfg.HighlightColor] or COLOR_MAP["Morado"]
 end
 
-function Features.GetTracerColor(targetPlayer, baseColor)
+function Features.GetTracerColor(targetPlayer)
 	local espCfg = Config.ESP
-	if espCfg.TeamColorTracers and targetPlayer.TeamColor then
+	if espCfg.FriendCheck and Features.IsFriend(targetPlayer) then
+		return Color3.fromRGB(0, 255, 120) -- Green for friends
+	end
+	if espCfg.RainbowESP or espCfg.Rainbow then
+		return Color3.fromHSV((tick() % 4) / 4, 1, 1)
+	end
+	if espCfg.TeamColorTracers and targetPlayer.Team and targetPlayer.TeamColor then
 		return targetPlayer.TeamColor.Color
 	end
-	return baseColor
+	return Color3.fromRGB(255, 0, 0) -- RED is standard for tracers
 end
 
 ------------------------------------------------------------- ESP MODULE
@@ -3161,17 +3257,20 @@ function Features.UpdateESP()
 					end
 
 					local color = Features.GetESPColor(p)
-					local tracerColor = Features.GetTracerColor(p, color)
+					local tracerColor = Features.GetTracerColor(p)
 
 					-- 1. Highlight
 					if espCfg.Highlight and valid and hum and hum.Health > 0 then
 						if not entry.Highlight or entry.Highlight.Parent ~= char then
 							if entry.Highlight then entry.Highlight:Destroy() end
-							entry.Highlight = Instance.new("Highlight")
-							entry.Highlight.Adornee = char
-							entry.Highlight.FillTransparency = 0.5
-							entry.Highlight.OutlineTransparency = 0
-							entry.Highlight.Parent = char
+							local h = Instance.new("Highlight")
+							h.Name = "ESPHighlight"
+							h.Adornee = char
+							h.FillTransparency = 0.5
+							h.OutlineTransparency = 0
+							h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+							h.Parent = char
+							entry.Highlight = h
 						end
 						entry.Highlight.FillColor = color
 						entry.Highlight.OutlineColor = color
@@ -3221,12 +3320,13 @@ function Features.UpdateESP()
 						entry.Billboard.Enabled = false
 					end
 
-					-- 3. Tracers (Drawing API if supported)
+					-- 3. Tracers
 					if espCfg.Tracers and valid and hum and hum.Health > 0 and root and Drawing then
 						if not entry.Tracer then
-							entry.Tracer = Drawing.new("Line")
-							entry.Tracer.Thickness = 1.5
-							entry.Tracer.Transparency = 1
+							local line = Drawing.new("Line")
+							line.Thickness = 1.5
+							line.Transparency = 1
+							entry.Tracer = line
 						end
 
 						local rootPos, onScreen = cam:WorldToViewportPoint(root.Position)
@@ -3319,16 +3419,20 @@ function Features.FindBestAimlockTarget()
 			and Features.IsAlive(plr)
 			and Features.IsWhitelisted(plr, aimCfg.WhitelistMode, aimCfg.WhitelistTarget)
 		then
-			if aimCfg.TeamCheck and Features.IsSameTeam(plr) then
+			-- Friend Check: never lock friends
+			if aimCfg.FriendCheck and Features.IsFriend(plr) then
 				continue
 			end
 
-			if aimCfg.FriendCheck and not aimCfg.LockFriends and Features.IsFriend(plr) then
-				continue
-			end
+			-- If NOT in "Only Whitelist", apply Team Check and Ignore Teams
+			if aimCfg.WhitelistMode ~= "Only Whitelist" then
+				if aimCfg.TeamCheck and Features.IsSameTeam(plr) then
+					continue
+				end
 
-			if Features.IsTeamIgnored(plr, aimCfg.IgnoreTeams) then
-				continue
+				if Features.IsTeamIgnored(plr, aimCfg.IgnoreTeams) then
+					continue
+				end
 			end
 
 			local char = plr.Character
@@ -3520,38 +3624,20 @@ function Features.UpdateAimlock()
 				CreateAimlockHighlight(targetPlayer)
 			end
 
-			-- Enemy Tracer
-			if Config.Aimlock.EnemyTracers and Drawing then
-				if not Runtime.Aimlock.tracer then
-					Runtime.Aimlock.tracer = Drawing.new("Line")
-					Runtime.Aimlock.tracer.Thickness = 1.5
-					Runtime.Aimlock.tracer.Color = Color3.fromRGB(255, 0, 0)
-					Runtime.Aimlock.tracer.Transparency = 1
-				end
-
-				local originPos = UserInputService:GetMouseLocation()
-				if Config.Aimlock.TracerOrigin == "Center" then
-					originPos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
-				elseif Config.Aimlock.TracerOrigin == "Bottom" then
-					originPos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y)
-				end
-
-				Runtime.Aimlock.tracer.From = originPos
-				Runtime.Aimlock.tracer.To = Vector2.new(screenPos.X, screenPos.Y)
-				Runtime.Aimlock.tracer.Visible = true
-			elseif Runtime.Aimlock.tracer then
+			if Runtime.Aimlock.tracer then
 				Runtime.Aimlock.tracer.Visible = false
 			end
 		end)
 	end
 end
 
-------------------------------------------------------------- TRIGGERBOT MODULE
+--------------------------------------------------------------- TRIGGERBOT MODULE (LAG-FREE OPTIMIZED)
+local TriggerRayParams = RaycastParams.new()
+TriggerRayParams.FilterType = Enum.RaycastFilterType.Exclude
+
 function Features.SetTriggerbotMaster(enabled)
 	Config.Triggerbot.Enabled = enabled
-	if not enabled then
-		Features.SetTriggerbotActive(false)
-	end
+	Features.SetTriggerbotActive(enabled)
 end
 
 function Features.SetTriggerbotActive(active)
@@ -3561,70 +3647,95 @@ function Features.SetTriggerbotActive(active)
 
 	if active then
 		if Runtime.Triggerbot.loop then return end
+		local isShooting = false
+
 		Runtime.Triggerbot.loop = RunService.RenderStepped:Connect(function()
 			if not Config.Triggerbot.Enabled or not Runtime.Triggerbot.active then
 				Features.SetTriggerbotActive(false)
 				return
 			end
-			if Runtime.Triggerbot.isShooting then return end
+			if isShooting then return end
 
-			local cam = workspace.CurrentCamera
-			if not cam then return end
+			local mouse = player:GetMouse()
+			local target = mouse and mouse.Target
+			if not target or not target.Parent then return end
 
-			local mousePos = UserInputService:GetMouseLocation()
-			local mouseRay = cam:ViewportPointToRay(mousePos.X, mousePos.Y)
-
-			local raycastParams = RaycastParams.new()
-			raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-			local ignoreList = { player.Character }
-			if Runtime.ESP and Runtime.ESP.container then
-				table.insert(ignoreList, Runtime.ESP.container)
+			local model = target.Parent
+			if not model:FindFirstChildOfClass("Humanoid") and model.Parent then
+				model = model.Parent
 			end
-			raycastParams.FilterDescendantsInstances = ignoreList
 
-			local result = workspace:Raycast(mouseRay.Origin, mouseRay.Direction * 1000, raycastParams)
-			if result and result.Instance then
-				local hitPart = result.Instance
-				local targetChar = hitPart:FindFirstAncestorOfClass("Model")
-				if targetChar then
-					local targetPlayer = Players:GetPlayerFromCharacter(targetChar)
-					if targetPlayer and targetPlayer ~= player then
-						local hum = targetChar:FindFirstChildOfClass("Humanoid")
-						if hum and hum.Health > 0 then
-							local isValid = true
-							if Config.Triggerbot.TeamCheck and Features.IsSameTeam(targetPlayer) then
-								isValid = false
-							end
-							if Config.Triggerbot.IgnoreTeams ~= "Ninguno" and targetPlayer.Team and targetPlayer.Team.Name == Config.Triggerbot.IgnoreTeams then
-								isValid = false
-							end
-							if not Features.IsWhitelisted(targetPlayer, Config.Triggerbot.WhitelistMode, Config.Triggerbot.WhitelistTarget) then
-								isValid = false
-							end
+			local hum = model:FindFirstChildOfClass("Humanoid")
+			if not hum or hum.Health <= 0 or model.Name == player.Name then return end
 
-							if isValid then
-								Runtime.Triggerbot.isShooting = true
-								task.spawn(function()
-									if Config.Sounds.HitSound and Config.Sounds.HitShootSound then
-										Features.PlaySound(Config.Sounds.HitShootSound)
-									end
-									if mouse1click then
-										pcall(mouse1click)
-									elseif VirtualUser then
-										pcall(function()
-											VirtualUser:CaptureController()
-											VirtualUser:ClickButton1(Vector2.new(mousePos.X, mousePos.Y))
-										end)
-									end
-									local delaySec = (Config.Triggerbot.Delay or 50) / 1000
-									task.wait(delaySec)
-									Runtime.Triggerbot.isShooting = false
-								end)
+			local targetPlr = Players:GetPlayerFromCharacter(model)
+			if not targetPlr or targetPlr == player then return end
+
+			-- Whitelist Check
+			if not Features.IsWhitelisted(targetPlr, Config.Triggerbot.WhitelistMode, Config.Triggerbot.WhitelistTarget) then
+				return
+			end
+
+			-- Friend Check: never shoot friends
+			if Config.Triggerbot.FriendCheck and Features.IsFriend(targetPlr) then
+				return
+			end
+
+			-- Team Check & Ignore Teams (bypassed if in "Only Whitelist")
+			if Config.Triggerbot.WhitelistMode ~= "Only Whitelist" then
+				if Config.Triggerbot.TeamCheck and Features.IsSameTeam(targetPlr) then
+					return
+				end
+
+				if Features.IsTeamIgnored(targetPlr, Config.Triggerbot.IgnoreTeams) then
+					return
+				end
+			end
+
+			-- Wall Check
+			if Config.Triggerbot.WallCheck then
+				local char = player.Character
+				if char then
+					TriggerRayParams.FilterDescendantsInstances = { char }
+					local cam = workspace.CurrentCamera
+					if cam then
+						local origin = cam.CFrame.Position
+						local dir = (mouse.Hit.Position - origin).Unit * 1500
+						local ray = workspace:Raycast(origin, dir, TriggerRayParams)
+						if ray and not ray.Instance:IsDescendantOf(model) then
+							if ray.Instance.Transparency < 1 and ray.Instance.CanCollide then
+								return
 							end
 						end
 					end
 				end
 			end
+
+			isShooting = true
+			task.spawn(function()
+				if Config.Sounds.HitSound and Config.Sounds.HitShootSound then
+					Features.PlaySound(Config.Sounds.HitShootSound)
+				end
+
+				if mouse1click then
+					pcall(mouse1click)
+				elseif mouse1press and mouse1release then
+					pcall(mouse1press)
+					task.wait(0.01)
+					pcall(mouse1release)
+				elseif VirtualUser then
+					pcall(function()
+						VirtualUser:Button1Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+						task.wait(0.01)
+						VirtualUser:Button1Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+					end)
+				end
+
+				local delayMs = Config.Triggerbot.Delay or 0
+				local delaySec = math.max(delayMs / 1000, 0.05)
+				task.wait(delaySec)
+				isShooting = false
+			end)
 		end)
 	else
 		if Runtime.Triggerbot.loop then
@@ -3636,7 +3747,12 @@ function Features.SetTriggerbotActive(active)
 end
 
 function Features.ToggleTriggerbotActive()
-	if not Config.Triggerbot.Enabled then return end
+	if not Config.Triggerbot.Enabled then
+		Config.Triggerbot.Enabled = true
+		if Controls.Triggerbot and Controls.Triggerbot.Enabled then
+			Controls.Triggerbot.Enabled:SetSilent(true)
+		end
+	end
 	Features.SetTriggerbotActive(not Runtime.Triggerbot.active)
 	if Runtime.Triggerbot.active then
 		RATAHUB:Notify({ Title = "Triggerbot", Content = "Activado", Duration = 1.2 })
@@ -3733,7 +3849,9 @@ function Features.SetFreecam(enabled)
 		table.clear(Runtime.Camera.keys)
 
 		cam.CameraType = Runtime.Camera.savedType or Enum.CameraType.Custom
-		cam.CameraSubject = Runtime.Camera.savedSubject or (player.Character and player.Character:FindFirstChildOfClass("Humanoid"))
+		if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+			cam.CameraSubject = player.Character:FindFirstChildOfClass("Humanoid")
+		end
 		if root and Runtime.Camera.wasAnchored ~= nil then
 			root.Anchored = Runtime.Camera.wasAnchored
 		end
@@ -3744,10 +3862,12 @@ function Features.SetXRay(enabled)
 	if enabled then
 		for _, part in ipairs(workspace:GetDescendants()) do
 			if part:IsA("BasePart") and not part:IsDescendantOf(player.Character) and not part.Parent:FindFirstChildOfClass("Humanoid") then
-				if not Runtime.XRay.parts[part] then
+				if Runtime.XRay.parts[part] == nil then
 					Runtime.XRay.parts[part] = part.Transparency
 				end
-				part.Transparency = 0.65
+				if part.Transparency < 0.5 then
+					part.Transparency = 0.5
+				end
 			end
 		end
 	else
@@ -3804,15 +3924,53 @@ local function RemoveClickTPTool()
 	end
 end
 
+-- =============================================================================
+-- BTOOLS MAP & DELETED INSTANCES RESTORER (CLONE-BASED 100% RELIABLE)
+-- =============================================================================
+local DeletedPartsCache = {}
+
 local function GiveBToolsTool()
 	local backpack = player:FindFirstChildOfClass("Backpack")
 	local char = player.Character
 	if not backpack or not char then return end
 	if not backpack:FindFirstChild("BTools") and not char:FindFirstChild("BTools") then
-		local btools = Instance.new("HopperBin")
-		btools.Name = "BTools"
-		btools.BinType = Enum.BinType.Hammer
-		btools.Parent = backpack
+		local tool = Instance.new("Tool")
+		tool.RequiresHandle = false
+		tool.Name = "BTools"
+		tool.ToolTip = "Click en cualquier pared u objeto para borrarlo (Client-side)"
+
+		tool.Activated:Connect(function()
+			local mouse = player:GetMouse()
+			local target = mouse and mouse.Target
+			if target and target:IsA("BasePart") and not target:IsDescendantOf(player.Character) then
+				local isPlayer = false
+				for _, p in ipairs(Players:GetPlayers()) do
+					if p.Character and target:IsDescendantOf(p.Character) then
+						isPlayer = true
+						break
+					end
+				end
+
+				if not isPlayer and target.Parent then
+					pcall(function() target.Archivable = true end)
+					local success, clone = pcall(function() return target:Clone() end)
+					if success and clone then
+						pcall(function() clone.Archivable = true end)
+						table.insert(DeletedPartsCache, {
+							Clone = clone,
+							OriginalParent = target.Parent,
+							CFrame = target.CFrame
+						})
+						if #DeletedPartsCache > 2000 then
+							table.remove(DeletedPartsCache, 1)
+						end
+					end
+					pcall(function() target:Destroy() end)
+				end
+			end
+		end)
+
+		tool.Parent = backpack
 	end
 end
 
@@ -3820,7 +3978,10 @@ local function RemoveBToolsTool()
 	local backpack = player:FindFirstChildOfClass("Backpack")
 	if backpack then
 		for _, item in ipairs(backpack:GetChildren()) do
-			if item:IsA("HopperBin") and (item.Name == "BTools" or item.BinType == Enum.BinType.Hammer or item.BinType == Enum.BinType.Clone or item.BinType == Enum.BinType.Grab) then
+			if item:IsA("Tool") and item.Name == "BTools" then
+				pcall(function() item:Destroy() end)
+			end
+			if item:IsA("HopperBin") and (item.Name == "BTools" or item.BinType == Enum.BinType.Hammer) then
 				pcall(function() item:Destroy() end)
 			end
 		end
@@ -3828,7 +3989,10 @@ local function RemoveBToolsTool()
 	local char = player.Character
 	if char then
 		for _, item in ipairs(char:GetChildren()) do
-			if item:IsA("HopperBin") and (item.Name == "BTools" or item.BinType == Enum.BinType.Hammer or item.BinType == Enum.BinType.Clone or item.BinType == Enum.BinType.Grab) then
+			if item:IsA("Tool") and item.Name == "BTools" then
+				pcall(function() item:Destroy() end)
+			end
+			if item:IsA("HopperBin") and (item.Name == "BTools" or item.BinType == Enum.BinType.Hammer) then
 				pcall(function() item:Destroy() end)
 			end
 		end
@@ -3858,6 +4022,30 @@ function Features.SetClickTP(enabled)
 	end
 end
 
+function Features.RestoreDeletedMapParts()
+	local count = 0
+	for i = #DeletedPartsCache, 1, -1 do
+		local data = DeletedPartsCache[i]
+		if data and data.Clone then
+			local s = pcall(function()
+				data.Clone.CFrame = data.CFrame
+				local targetParent = data.OriginalParent
+				if not targetParent or not targetParent.Parent then
+					targetParent = workspace
+				end
+				data.Clone.Parent = targetParent
+			end)
+			if s then count = count + 1 end
+		end
+	end
+	table.clear(DeletedPartsCache)
+	if count > 0 then
+		RATAHUB:Notify({ Title = "BTools", Content = string.format("Se restauraron %d objetos/paredes del mapa", count), Duration = 2 })
+	else
+		RATAHUB:Notify({ Title = "BTools", Content = "No hay objetos para restaurar", Duration = 1.5 })
+	end
+end
+
 function Features.SetBTools(enabled)
 	Config.Extras.BTools = enabled
 	if enabled then
@@ -3870,7 +4058,7 @@ function Features.SetBTools(enabled)
 				end
 			end)
 		end
-		RATAHUB:Notify({ Title = "Herramienta", Content = "BTools (Hammer) Activado", Duration = 1.5 })
+		RATAHUB:Notify({ Title = "Herramienta", Content = "BTools Activado (Equipa BTools para borrar paredes)", Duration = 1.5 })
 	else
 		if Runtime.BTools.conn then
 			Runtime.BTools.conn:Disconnect()
@@ -4375,6 +4563,7 @@ do
 		Callback = function(Value)
 			E.FriendCheck = Value
 			if Value then Features.RefreshAllFriends() end
+			Features.SyncManager.SyncProperty("ESP", "FriendCheck", Value)
 			Features.UpdateESP()
 		end,
 	})
@@ -4433,6 +4622,7 @@ do
 		CurrentValue = A.TeamCheck,
 		Callback = function(Value)
 			A.TeamCheck = Value
+			Features.SyncManager.SyncProperty("Aimlock", "TeamCheck", Value)
 		end,
 	})
 
@@ -4451,13 +4641,7 @@ do
 		Callback = function(Value)
 			A.FriendCheck = Value
 			if Value then Features.RefreshAllFriends() end
-		end,
-	})
-	Controls.Aimlock.LockFriends = aim:CreateToggle({
-		Name = "¿Lockear amigos?",
-		CurrentValue = A.LockFriends,
-		Callback = function(Value)
-			A.LockFriends = Value
+			Features.SyncManager.SyncProperty("Aimlock", "FriendCheck", Value)
 		end,
 	})
 	Controls.Aimlock.UseMaxDistance = aim:CreateToggle({
@@ -4495,22 +4679,7 @@ do
 		end,
 	})
 
-	aim:CreateSection("Visual")
-	Controls.Aimlock.EnemyTracers = aim:CreateToggle({
-		Name = "Enemy Tracers",
-		CurrentValue = A.EnemyTracers,
-		Callback = function(Value)
-			A.EnemyTracers = Value
-		end,
-	})
-	Controls.Aimlock.TracerOrigin = aim:CreateDropdown({
-		Name = "Tracer Origin",
-		Options = { "Mouse", "Center", "Bottom" },
-		CurrentOption = A.TracerOrigin,
-		Callback = function(Value)
-			A.TracerOrigin = Value
-		end,
-	})
+
 
 	aim:CreateSection("Whitelist")
 	Controls.Aimlock.WhitelistMode = aim:CreateDropdown({
@@ -4610,6 +4779,7 @@ do
 		CurrentValue = T.TeamCheck,
 		Callback = function(Value)
 			T.TeamCheck = Value
+			Features.SyncManager.SyncProperty("Triggerbot", "TeamCheck", Value)
 		end,
 	})
 	Controls.Triggerbot.WallCheck = trig:CreateToggle({
@@ -4625,13 +4795,7 @@ do
 		Callback = function(Value)
 			T.FriendCheck = Value
 			if Value then Features.RefreshAllFriends() end
-		end,
-	})
-	Controls.Triggerbot.TriggerFriends = trig:CreateToggle({
-		Name = "¿Triggerbotear amigos?",
-		CurrentValue = T.TriggerFriends,
-		Callback = function(Value)
-			T.TriggerFriends = Value
+			Features.SyncManager.SyncProperty("Triggerbot", "FriendCheck", Value)
 		end,
 	})
 
@@ -4682,28 +4846,7 @@ do
 			Features.SyncManager.SyncProperty("Triggerbot", "IgnoreTeams", Value)
 		end,
 	})
-	Controls.Triggerbot.SyncTeamESP = trig:CreateToggle({
-		Name = "Sincronizar con ESP (Equipos)",
-		CurrentValue = T.SyncTeamESP,
-		Callback = function(Value)
-			T.SyncTeamESP = Value
-			if Value then
-				Config.ESP.IgnoreTeams = T.IgnoreTeams
-				if Controls.ESP.IgnoreTeams then Controls.ESP.IgnoreTeams:SetSilent(T.IgnoreTeams) end
-			end
-		end,
-	})
-	Controls.Triggerbot.SyncTeamAimlock = trig:CreateToggle({
-		Name = "Sincronizar con Aimlock (Equipos)",
-		CurrentValue = T.SyncTeamAimlock,
-		Callback = function(Value)
-			T.SyncTeamAimlock = Value
-			if Value then
-				Config.Aimlock.IgnoreTeams = T.IgnoreTeams
-				if Controls.Aimlock.IgnoreTeams then Controls.Aimlock.IgnoreTeams:SetSilent(T.IgnoreTeams) end
-			end
-		end,
-	})
+
 end
 
 --------------------------------------------------------------
@@ -4780,6 +4923,12 @@ do
 		CurrentValue = E.Tools.BTools,
 		Callback = function(Value)
 			Features.SetBTools(Value)
+		end,
+	})
+	Controls.Extras.RestoreMap = extras:CreateButton({
+		Name = "Restaurar Mapa / Objetos Borrados",
+		Callback = function()
+			Features.RestoreDeletedMapParts()
 		end,
 	})
 
