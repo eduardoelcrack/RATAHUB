@@ -2919,10 +2919,10 @@ end
 			Movement = {
 				Fly = false,
 				FlyActive = false,
-				FlyKeybind = "V",
+				FlyKeybind = "None",
 				FlySpeed = 140,
 				WalkSpeedEnabled = false,
-				WalkSpeedKeybind = "C",
+				WalkSpeedKeybind = "None",
 				WalkSpeed = 16,
 				JumpPowerEnabled = false,
 				JumpPower = 50,
