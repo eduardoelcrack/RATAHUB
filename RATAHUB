@@ -3048,7 +3048,85 @@ create("UIListLayout", {
 	}
 
 	local Features = {}
-    -------------------------------------------------------------
+
+-------------------------------------------------------------
+-- RATAHUB V5 CENTRALIZED KEYBINDS
+-------------------------------------------------------------
+
+local Keybinds = {
+    JumpPower = {
+        Key = Enum.KeyCode.J,
+        Enabled = true,
+    },
+
+    InfiniteJump = {
+        Key = Enum.KeyCode.B,
+        Enabled = true,
+    },
+
+    Noclip = {
+        Key = Enum.KeyCode.N,
+        Enabled = true,
+    },
+
+    AntiFling = {
+        Key = Enum.KeyCode.F,
+        Enabled = true,
+    },
+
+    ESPHighlight = {
+        Key = Enum.KeyCode.H,
+        Enabled = true,
+    },
+
+    ESPNames = {
+        Key = Enum.KeyCode.O,
+        Enabled = true,
+    },
+
+    ESPStats = {
+        Key = Enum.KeyCode.P,
+        Enabled = true,
+    },
+
+    Tracers = {
+        Key = Enum.KeyCode.T,
+        Enabled = true,
+    },
+
+    Freecam = {
+        Key = Enum.KeyCode.V,
+        Enabled = true,
+    },
+}
+
+local KeybindCapture = {
+    Active = false,
+    Feature = nil,
+}
+
+local KeybindRegistry = {}
+
+local RESERVED_KEYBINDS = {
+    [Enum.KeyCode.K] = true,
+}
+
+local function RebuildKeybindRegistry()
+    table.clear(KeybindRegistry)
+
+    for featureName, data in pairs(Keybinds) do
+        if data.Key
+            and data.Key ~= Enum.KeyCode.Unknown
+            and not RESERVED_KEYBINDS[data.Key]
+        then
+            KeybindRegistry[data.Key] = featureName
+        end
+    end
+end
+
+RebuildKeybindRegistry()
+
+-------------------------------------------------------------
 -- RATAHUB V5 HUD / TARGET INFO
 -------------------------------------------------------------
 
@@ -5187,55 +5265,106 @@ end
 	end
 
 	------------------------------------------------------------- Event-driven Hotkeys Listener (Restored from RATAHUBB)
+
 function Features.StartHotkeys()
     if Runtime.Hotkeys.conn then return end
 
     Runtime.Hotkeys.conn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if UserInputService:GetFocusedTextBox() then return end
 
-        if input.UserInputType == Enum.UserInputType.Keyboard
-            and input.KeyCode == Enum.KeyCode.K
-        then
+        if input.UserInputType ~= Enum.UserInputType.Keyboard then
+            return
+        end
+
+        -- K = mostrar / ocultar RATAHUB
+        if input.KeyCode == Enum.KeyCode.K then
             screenGui.Enabled = not screenGui.Enabled
             return
         end
 
-        local keyName = nil
-			if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode ~= Enum.KeyCode.Unknown then
-				keyName = input.KeyCode.Name
-			elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
-				keyName = "MouseButton1"
-			elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
-				keyName = "MouseButton2"
-			elseif input.UserInputType == Enum.UserInputType.MouseButton3 then
-				keyName = "MouseButton3"
-			end
+        -- No procesar mientras estamos asignando una nueva tecla
+        if KeybindCapture.Active then
+            return
+        end
 
-			if not keyName then return end
+        local featureName = KeybindRegistry[input.KeyCode]
+        if not featureName then
+            return
+        end
 
-			local function matchesKey(cfgKey)
-				if not cfgKey or cfgKey == "None" or cfgKey == "" then return false end
-				if typeof(cfgKey) == "EnumItem" then
-					return cfgKey.Name == keyName
-				end
-				return tostring(cfgKey) == keyName
-			end
+        local bind = Keybinds[featureName]
+        if not bind or not bind.Enabled then
+            return
+        end
 
-			if matchesKey(Config.Main.Movement.FlyKeybind) then
-				Features.ToggleFlyActive()
-			elseif matchesKey(Config.Main.Movement.WalkSpeedKeybind) then
-				Features.ToggleWalkSpeed()
-			elseif matchesKey(Config.Main.Movement.InfiniteJumpKeybind) then
-				Features.ToggleInfiniteJumpActive()
-			elseif matchesKey(Config.Main.Movement.NoclipKeybind) then
-				Features.ToggleNoclipActive()
-			elseif matchesKey(Config.Aimlock.Keybind) then
-				Features.ToggleAimlockLock()
-			elseif matchesKey(Config.Triggerbot.Keybind) then
-				Features.ToggleTriggerbotActive()
-			end
-		end)
-	end
+        -- MAIN: JumpPower
+        if featureName == "JumpPower" then
+            if not Config.Main.Movement.JumpPowerEnabled then
+                return
+            end
+
+            if Runtime.JumpPower and Runtime.JumpPower.active then
+                Features.StopJumpPower()
+            else
+                Features.StartJumpPower()
+            end
+
+        -- MAIN: Infinite Jump
+        elseif featureName == "InfiniteJump" then
+            if not Config.Main.Movement.InfiniteJump then
+                return
+            end
+
+            Features.ToggleInfiniteJumpActive()
+
+        -- MAIN: No Clip
+        elseif featureName == "Noclip" then
+            if not Config.Main.Movement.Noclip then
+                return
+            end
+
+            Features.ToggleNoclipActive()
+
+        -- MAIN: Anti-Fling
+        elseif featureName == "AntiFling" then
+            if not Config.Extras.Performance.AntiFling then
+                return
+            end
+
+            Config.Extras.Performance.AntiFling =
+                not Config.Extras.Performance.AntiFling
+
+            Features.SetAntiFling(Config.Extras.Performance.AntiFling)
+
+        -- ESP: Highlight
+        elseif featureName == "ESPHighlight" then
+            Config.ESP.Highlight = not Config.ESP.Highlight
+            Features.UpdateESP()
+
+        -- ESP: Names
+        elseif featureName == "ESPNames" then
+            Config.ESP.Names = not Config.ESP.Names
+            Features.UpdateESP()
+
+        -- ESP: Details
+        elseif featureName == "ESPStats" then
+            Config.ESP.Details = not Config.ESP.Details
+            Features.UpdateESP()
+
+        -- ESP: Tracers
+        elseif featureName == "Tracers" then
+            Config.ESP.Tracers = not Config.ESP.Tracers
+            Features.UpdateESP()
+
+        -- EXTRA: Freecam
+        elseif featureName == "Freecam" then
+            Config.Extras.Camera.Freecam =
+                not Config.Extras.Camera.Freecam
+
+            Features.SetFreecam(Config.Extras.Camera.Freecam)
+        end
+    end)
+end
 
 	RATAHUB.Features = Features
 
@@ -5289,13 +5418,9 @@ function Features.StartHotkeys()
 				Features.SetFlyMaster(Value)
 			end,
 		})
-		Controls.Main.FlyKeybind = main:CreateKeybind({
-			Name = "Fly Keybind",
-			CurrentKeybind = M.Movement.FlyKeybind,
-			Callback = function(Key)
-				M.Movement.FlyKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
-			end,
-		})
+
+         
+
 		Controls.Main.FlySpeed = main:CreateSlider({
 			Name = "Fly Speed",
 			Range = { 50, 600 },
@@ -5313,13 +5438,8 @@ function Features.StartHotkeys()
 				Features.SetWalkSpeedMaster(Value)
 			end,
 		})
-		Controls.Main.WalkSpeedKeybind = main:CreateKeybind({
-			Name = "WalkSpeed Keybind",
-			CurrentKeybind = M.Movement.WalkSpeedKeybind,
-			Callback = function(Key)
-				M.Movement.WalkSpeedKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
-			end,
-		})
+
+
 		Controls.Main.WalkSpeedValue = main:CreateSlider({
 			Name = "WalkSpeed",
 			Range = { 16, 300 },
@@ -5373,13 +5493,7 @@ function Features.StartHotkeys()
 				Features.SetInfiniteJumpMaster(Value)
 			end,
 		})
-		Controls.Main.InfiniteJumpKeybind = main:CreateKeybind({
-			Name = "Infinite Jump Keybind",
-			CurrentKeybind = M.Movement.InfiniteJumpKeybind,
-			Callback = function(Key)
-				M.Movement.InfiniteJumpKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
-			end,
-		})
+
 
 		Controls.Main.Noclip = main:CreateToggle({
 			Name = "No Clip",
@@ -5388,13 +5502,7 @@ function Features.StartHotkeys()
 				Features.SetNoclipMaster(Value)
 			end,
 		})
-		Controls.Main.NoclipKeybind = main:CreateKeybind({
-			Name = "No Clip Keybind",
-			CurrentKeybind = M.Movement.NoclipKeybind,
-			Callback = function(Key)
-				M.Movement.NoclipKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
-			end,
-		})
+
 
 		main:CreateSection("Player")
 		Controls.Main.Reset = main:CreateButton({
@@ -5672,13 +5780,7 @@ function Features.StartHotkeys()
 				Features.UpdateAimlock()
 			end,
 		})
-		Controls.Aimlock.Keybind = aim:CreateKeybind({
-			Name = "Aimlock Keybind",
-			CurrentKeybind = A.Keybind,
-			Callback = function(Key)
-				A.Keybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
-			end,
-		})
+
 		Controls.Aimlock.Smoothness = aim:CreateSlider({
 			Name = "Smoothness",
 			Range = { 0, 100 },
@@ -5842,13 +5944,7 @@ function Features.StartHotkeys()
 				Features.SetTriggerbotMaster(Value)
 			end,
 		})
-		Controls.Triggerbot.Keybind = trig:CreateKeybind({
-			Name = "Triggerbot Keybind",
-			CurrentKeybind = T.Keybind,
-			Callback = function(Key)
-				T.Keybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
-			end,
-		})
+
 		Controls.Triggerbot.Delay = trig:CreateSlider({
 			Name = "Trigger Delay",
 			Range = { 0, 500 },
@@ -6077,6 +6173,90 @@ function Features.StartHotkeys()
 		})
 	end
 
+--------------------------------------------------------------
+-- 7. KEYBINDS TAB
+--------------------------------------------------------------
+do
+    local keybindsTab = win:CreateTab({
+        Name = "Keybinds",
+        Icon = "⌨",
+        SubTitle = "Centralized keybind configuration"
+    })
+
+    local function AddKeybind(section, featureName, displayName)
+        local data = Keybinds[featureName]
+
+        keybindsTab:CreateKeybind({
+            Name = displayName,
+            CurrentKeybind = data.Key.Name,
+
+            Callback = function(newKey)
+                -- K queda reservada para RATAHUB
+                if newKey == Enum.KeyCode.K then
+                    RATAHUB:Notify({
+                        Title = "Keybinds",
+                        Content = "La tecla K está reservada para RATAHUB",
+                        Duration = 1.5
+                    })
+                    return
+                end
+
+                -- Evitar que dos funciones tengan la misma tecla
+                for otherFeature, otherData in pairs(Keybinds) do
+                    if otherFeature ~= featureName
+                        and otherData.Key == newKey
+                    then
+                        otherData.Key = Enum.KeyCode.Unknown
+                    end
+                end
+
+                data.Key = newKey
+                RebuildKeybindRegistry()
+            end,
+        })
+
+        keybindsTab:CreateToggle({
+            Name = displayName .. " — Keybind Enabled",
+            CurrentValue = data.Enabled,
+
+            Callback = function(Value)
+                data.Enabled = Value
+            end,
+        })
+    end
+
+    ----------------------------------------------------------
+    -- MAIN
+    ----------------------------------------------------------
+    keybindsTab:CreateSection("MAIN")
+
+    AddKeybind("Main", "JumpPower", "JumpPower")
+    AddKeybind("Main", "InfiniteJump", "Infinite Jump")
+    AddKeybind("Main", "Noclip", "No Clip")
+    AddKeybind("Main", "AntiFling", "Anti-Fling")
+
+    ----------------------------------------------------------
+    -- ESP
+    ----------------------------------------------------------
+    keybindsTab:CreateSection("ESP")
+
+    AddKeybind("ESP", "ESPHighlight", "ESP Highlight")
+    AddKeybind("ESP", "ESPNames", "ESP Nombres")
+    AddKeybind("ESP", "ESPStats", "ESP Studs + Vida")
+    AddKeybind("ESP", "Tracers", "Tracers")
+
+    ----------------------------------------------------------
+    -- EXTRA
+    ----------------------------------------------------------
+    keybindsTab:CreateSection("EXTRA")
+
+    AddKeybind("Extra", "Freecam", "Freecam")
+end
+
+--------------------------------------------------------------
+-- 8. SOUNDS TAB
+--------------------------------------------------------------
+
 	--------------------------------------------------------------
 	-- 7. SOUNDS TAB
 	--------------------------------------------------------------
@@ -6144,6 +6324,8 @@ function Features.StartHotkeys()
 			end,
 		})
 	end
+
+
 
 	--=====================================================================
 	-- PLAYER & TEAM DYNAMIC CONNECTIONS
