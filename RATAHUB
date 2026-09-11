@@ -2380,91 +2380,118 @@ create("UIListLayout", {
 		function handle:Get() return isMulti and selectedMulti or current end
 		return handle
 	end
-	function Tab:CreateKeybind(cfg)
-		cfg = cfg or {}
-		local card = self:_ensureCard()
-		local currentKey = cfg.CurrentKeybind or "None"
+function Tab:CreateKeybind(cfg)
+    cfg = cfg or {}
 
-		local row = create("Frame", {
-			LayoutOrder = self:_cardOrder(card),
-			Size = UDim2.new(1, 0, 0, 32),
-			BackgroundTransparency = 1,
-			Parent = card,
-		})
-		create("TextLabel", {
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.new(0, 0, 0.5, 0),
-			Size = UDim2.new(1, -110, 1, 0),
-			BackgroundTransparency = 1,
-			Text = cfg.Name or "Keybind",
-			TextColor3 = THEME.Foreground,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			Font = FONT, TextSize = 14,
-			Parent = row,
-		})
-		local btn = create("TextButton", {
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, 0, 0.5, 0),
-			Size = UDim2.fromOffset(100, 28),
-			BackgroundColor3 = THEME.Secondary,
-			Text = tostring(currentKey),
-			TextColor3 = THEME.Foreground,
-			Font = FONT_MONO, TextSize = 12,
-			AutoButtonColor = false,
-			Parent = row,
-		})
-		corner(8, btn)
-		stroke(btn, 0.9)
-		attachInteract(btn, { hover = 1.03, press = 0.96 })
+    local card = self:_ensureCard()
+    local currentKey = cfg.CurrentKeybind or "None"
 
-		local handle = {}
-		local listening = false
-		local captureConn
+    local row = create("Frame", {
+        LayoutOrder = self:_cardOrder(card),
+        Size = UDim2.new(1, 0, 0, 34),
+        BackgroundTransparency = 1,
+        Parent = card,
+    })
 
-		local function stopListening()
-			listening = false
-			if captureConn then captureConn:Disconnect() captureConn = nil end
-		end
+    create("TextLabel", {
+        Size = UDim2.new(1, -120, 1, 0),
+        BackgroundTransparency = 1,
+        Text = cfg.Name or "Keybind",
+        TextColor3 = THEME.Foreground,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        Font = FONT,
+        TextSize = 14,
+        Parent = row,
+    })
 
-		btn.MouseButton1Click:Connect(function()
-			if listening then return end
-			listening = true
-			btn.Text = "Press a key..."
-			tween(btn, HOVER, { BackgroundColor3 = THEME.Primary })
-			btn.TextColor3 = THEME.PrimaryText
+    local btn = create("TextButton", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, 0, 0.5, 0),
+        Size = UDim2.fromOffset(105, 30),
+        BackgroundColor3 = THEME.Secondary,
+        BorderSizePixel = 0,
+        Text = tostring(currentKey),
+        TextColor3 = THEME.Foreground,
+        Font = FONT_MONO,
+        TextSize = 12,
+        AutoButtonColor = false,
+        Parent = row,
+    })
 
-			captureConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-				if gameProcessed then return end
+    corner(8, btn)
 
-				if input.KeyCode == Enum.KeyCode.Escape then
-					stopListening()
-					btn.Text = tostring(currentKey)
-					tween(btn, HOVER, { BackgroundColor3 = THEME.Secondary })
-					btn.TextColor3 = THEME.Foreground
-					return
-				end
+    local listening = false
+    local captureConn
 
-				if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode ~= Enum.KeyCode.Unknown then
-					currentKey = input.KeyCode.Name
-					stopListening()
-					btn.Text = currentKey
-					tween(btn, HOVER, { BackgroundColor3 = THEME.Secondary })
-					btn.TextColor3 = THEME.Foreground
-					if cfg.Callback then task.spawn(cfg.Callback, input.KeyCode) end
-				end
-			end)
-		end)
+    local function updateButton()
+        btn.Text = tostring(currentKey)
+        btn.BackgroundColor3 = THEME.Secondary
+        btn.TextColor3 = THEME.Foreground
+    end
 
-		function handle:Set(keyName)
-			if typeof(keyName) == "EnumItem" then
-				keyName = keyName.Name
-			end
-			currentKey = keyName
-			btn.Text = tostring(keyName)
-		end
-		function handle:Get() return currentKey end
-		return handle
-	end
+    local function stopListening()
+        listening = false
+
+        if captureConn then
+            captureConn:Disconnect()
+            captureConn = nil
+        end
+
+        updateButton()
+    end
+
+    btn.MouseButton1Click:Connect(function()
+        if listening then
+            return
+        end
+
+        listening = true
+        btn.Text = "Press a key..."
+        btn.BackgroundColor3 = THEME.Primary
+        btn.TextColor3 = THEME.PrimaryText
+
+        captureConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if gameProcessed then
+                return
+            end
+
+            if input.KeyCode == Enum.KeyCode.Escape then
+                stopListening()
+                return
+            end
+
+            if input.UserInputType == Enum.UserInputType.Keyboard
+                and input.KeyCode ~= Enum.KeyCode.Unknown then
+
+                currentKey = input.KeyCode.Name
+
+                stopListening()
+
+                if cfg.Callback then
+                    task.spawn(cfg.Callback, input.KeyCode)
+                end
+            end
+        end)
+    end)
+
+    local handle = {}
+
+    function handle:Set(keyName)
+        if typeof(keyName) == "EnumItem" then
+            keyName = keyName.Name
+        end
+
+        currentKey = tostring(keyName or "None")
+        updateButton()
+    end
+
+    function handle:Get()
+        return currentKey
+    end
+
+    return handle
+end
 
 	function Tab:CreateButton(cfg)
 		cfg = cfg or {}
