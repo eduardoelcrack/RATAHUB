@@ -712,7 +712,8 @@ end
 
 	Loader:SetProgress(0.25)
 	Loader:SetStatus("Loading...")
-
+    Loader:SetProgress(0.35)
+Loader:SetStatus("Loading configuration...")
 	--[[
 		RATAHUB V5 — Premium Roblox Utility GUI Framework
 		Pass: Dropdown Visibility & Dynamic Anchor Fix, Full ESP (Purple/Red/Friend Green),
@@ -5347,6 +5348,9 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.
 		"CS:GO Headshot",
 	}
 
+     Loader:SetProgress(0.50)
+     Loader:SetStatus("Preparing interface...")
+
 	--------------------------------------------------------------
 	-- 1. MAIN TAB (Restored from RATAHUBB)
 	--------------------------------------------------------------
@@ -6065,7 +6069,10 @@ Controls.ESP.Tracers = esp:CreateToggle({
 
 	end
 
-	--------------------------------------------------------------
+Loader:SetProgress(0.70)
+Loader:SetStatus("Loading extra features...")
+	
+    --------------------------------------------------------------
 	-- 5. EXTRAS TAB
 	--------------------------------------------------------------
 	do
@@ -6218,6 +6225,9 @@ Controls.Extras.Freecam = extras:CreateToggle({
 			end,
 		})
 	end
+
+    Loader:SetProgress(0.85)
+    Loader:SetStatus("Loading sounds...")
 
 	--------------------------------------------------------------
 	-- 7. SOUNDS TAB
