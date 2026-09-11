@@ -944,7 +944,7 @@ local overlayGui = create("ScreenGui", {
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
 		ZIndex = 50,
-		Parent = screenGui,
+		Parent = overlayGui,
 	})
 	create("UIListLayout", {
 		Padding = UDim.new(0, 10),
