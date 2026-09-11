@@ -6107,12 +6107,12 @@ Loader:SetStatus("Loading extra features...")
 		})
 Controls.Extras.Freecam = extras:CreateToggle({
     Name = "Freecam",
-    CurrentValue = C.FreecamEnabled,
+    CurrentValue = E.Camera.FreecamEnabled,
     Callback = function(Value)
-        C.FreecamEnabled = Value
+        E.Camera.FreecamEnabled = Value
 
-        if not Value and C.Freecam then
-            C.Freecam = false
+        if not Value and E.Camera.Freecam then
+            E.Camera.Freecam = false
             Features.SetFreecam(false)
         end
     end,
