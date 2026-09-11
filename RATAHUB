@@ -2920,13 +2920,21 @@ create("UIListLayout", {
 			},
 		},
 		ESP = {
-			Highlight = false,
-			Names = false,
-			Details = false,
-			OffsetX = 0,
-			OffsetY = 0,
-			TextSize = 14,
-			Tracers = false,
+            Highlight = false,
+            HighlightKeybind = "H",
+
+            Names = false,
+            NamesKeybind = "O",
+
+            Details = false,
+            DetailsKeybind = "P",
+         
+            OffsetX = 0,
+             OffsetY = 0,
+            TextSize = 14,
+
+            Tracers = false,
+            TracersKeybind = "X",
 			TracerOrigin = "Bottom",
 			TeamColorTracers = false,
 			WhitelistMode = "Disabled",
@@ -2983,6 +2991,7 @@ create("UIListLayout", {
 				FOVChanger = false,
 				FOV = 70,
 				Freecam = false,
+                FreecamKeybind = "L",
 				FreecamSpeed = 10,
 			},
 			Vision = {
@@ -5233,6 +5242,25 @@ function Features.StartHotkeys()
 				Features.ToggleAimlockLock()
 			elseif matchesKey(Config.Triggerbot.Keybind) then
 				Features.ToggleTriggerbotActive()
+             elseif matchesKey(Config.ESP.HighlightKeybind) then
+    Config.ESP.Highlight = not Config.ESP.Highlight
+    Features.UpdateESP()
+
+elseif matchesKey(Config.ESP.NamesKeybind) then
+    Config.ESP.Names = not Config.ESP.Names
+    Features.UpdateESP()
+
+elseif matchesKey(Config.ESP.DetailsKeybind) then
+    Config.ESP.Details = not Config.ESP.Details
+    Features.UpdateESP()
+
+elseif matchesKey(Config.ESP.TracersKeybind) then
+    Config.ESP.Tracers = not Config.ESP.Tracers
+    Features.UpdateESP()
+
+elseif matchesKey(Config.Extras.Camera.FreecamKeybind) then
+    Config.Extras.Camera.Freecam = not Config.Extras.Camera.Freecam
+    Features.SetFreecam(Config.Extras.Camera.Freecam)
 			end
 		end)
 	end
@@ -5493,6 +5521,15 @@ function Features.StartHotkeys()
 				Features.UpdateESP()
 			end,
 		})
+
+        Controls.ESP.HighlightKeybind = esp:CreateKeybind({
+    Name = "ESP Highlight Keybind",
+    CurrentKeybind = E.HighlightKeybind,
+    Callback = function(Key)
+        E.HighlightKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+    end,
+})
+
 		Controls.ESP.Names = esp:CreateToggle({
 			Name = "ESP Nombres",
 			CurrentValue = E.Names,
@@ -5509,6 +5546,15 @@ function Features.StartHotkeys()
 				Features.UpdateESP()
 			end,
 		})
+
+        Controls.ESP.DetailsKeybind = esp:CreateKeybind({
+    Name = "ESP Stats Keybind",
+    CurrentKeybind = E.DetailsKeybind,
+    Callback = function(Key)
+        E.DetailsKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+    end,
+})
+
 		Controls.ESP.OffsetX = esp:CreateSlider({
 			Name = "Posicion Offset X (Lados)",
 			Range = { -10, 10 },
@@ -5549,6 +5595,15 @@ function Features.StartHotkeys()
 				Features.UpdateESP()
 			end,
 		})
+
+        Controls.ESP.TracersKeybind = esp:CreateKeybind({
+    Name = "Tracers Keybind",
+    CurrentKeybind = E.TracersKeybind,
+    Callback = function(Key)
+        E.TracersKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+    end,
+})
+
 		Controls.ESP.TracerOrigin = esp:CreateDropdown({
 			Name = "Origen de Tracers",
 			Options = { "Bottom", "Center", "Mouse" },
@@ -5977,6 +6032,15 @@ function Features.StartHotkeys()
 				Features.SetFreecam(Value)
 			end,
 		})
+
+        Controls.Extras.FreecamKeybind = extras:CreateKeybind({
+    Name = "Freecam Keybind",
+    CurrentKeybind = E.Camera.FreecamKeybind,
+    Callback = function(Key)
+        E.Camera.FreecamKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+    end,
+})
+
 		Controls.Extras.FreecamSpeed = extras:CreateSlider({
 			Name = "Freecam Camera Speed",
 			Range = { 1, 100 },
