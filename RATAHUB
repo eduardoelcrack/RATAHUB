@@ -3053,52 +3053,101 @@ create("UIListLayout", {
 -- RATAHUB V5 CENTRALIZED KEYBINDS
 -------------------------------------------------------------
 
-local Keybinds = {
-    JumpPower = {
-        Key = Enum.KeyCode.J,
-        Enabled = true,
-    },
+--------------------------------------------------------------
+-- 8. KEYBINDS TAB
+--------------------------------------------------------------
+do
+    local keybindsTab = win:CreateTab({
+        Name = "Keybinds",
+        Icon = "⌨",
+        SubTitle = "Centralized keybind configuration"
+    })
 
-    InfiniteJump = {
-        Key = Enum.KeyCode.B,
-        Enabled = true,
-    },
+    local function AddKeybind(featureName, displayName)
+        local data = Keybinds[featureName]
 
-    Noclip = {
-        Key = Enum.KeyCode.N,
-        Enabled = true,
-    },
+        keybindsTab:CreateKeybind({
+            Name = displayName,
+            CurrentKeybind = data.Key.Name,
 
-    AntiFling = {
-        Key = Enum.KeyCode.F,
-        Enabled = true,
-    },
+            Callback = function(newKey)
+                -- K queda reservada para RATAHUB
+                if newKey == Enum.KeyCode.K then
+                    RATAHUB:Notify({
+                        Title = "Keybinds",
+                        Content = "La tecla K está reservada para RATAHUB",
+                        Duration = 1.5
+                    })
+                    return
+                end
 
-    ESPHighlight = {
-        Key = Enum.KeyCode.H,
-        Enabled = true,
-    },
+                -- Evitar teclas duplicadas
+                for otherFeature, otherData in pairs(Keybinds) do
+                    if otherFeature ~= featureName
+                        and otherData.Key == newKey
+                    then
+                        otherData.Key = Enum.KeyCode.Unknown
+                    end
+                end
 
-    ESPNames = {
-        Key = Enum.KeyCode.O,
-        Enabled = true,
-    },
+                data.Key = newKey
+                RebuildKeybindRegistry()
+            end,
+        })
 
-    ESPStats = {
-        Key = Enum.KeyCode.P,
-        Enabled = true,
-    },
+        keybindsTab:CreateToggle({
+            Name = displayName .. " — Keybind Enabled",
+            CurrentValue = data.Enabled,
 
-    Tracers = {
-        Key = Enum.KeyCode.T,
-        Enabled = true,
-    },
+            Callback = function(Value)
+                data.Enabled = Value
+            end,
+        })
+    end
 
-    Freecam = {
-        Key = Enum.KeyCode.V,
-        Enabled = true,
-    },
-}
+    ----------------------------------------------------------
+    -- MAIN
+    ----------------------------------------------------------
+    keybindsTab:CreateSection("MAIN")
+
+    AddKeybind("Fly", "Fly")
+    AddKeybind("WalkSpeed", "WalkSpeed")
+    AddKeybind("JumpPower", "JumpPower")
+    AddKeybind("InfiniteJump", "Infinite Jump")
+    AddKeybind("Noclip", "No Clip")
+    AddKeybind("AntiFling", "Anti-Fling")
+
+    ----------------------------------------------------------
+    -- ESP
+    ----------------------------------------------------------
+    keybindsTab:CreateSection("ESP")
+
+    AddKeybind("ESPHighlight", "ESP Highlight")
+    AddKeybind("ESPNames", "ESP Nombres")
+    AddKeybind("ESPStats", "ESP Studs + Vida")
+    AddKeybind("Tracers", "Tracers")
+
+    ----------------------------------------------------------
+    -- AIMLOCK
+    ----------------------------------------------------------
+    keybindsTab:CreateSection("AIMLOCK")
+
+    AddKeybind("Aimlock", "Aimlock")
+
+    ----------------------------------------------------------
+    -- TRIGGERBOT
+    ----------------------------------------------------------
+    keybindsTab:CreateSection("TRIGGERBOT")
+
+    AddKeybind("Triggerbot", "Triggerbot")
+
+    ----------------------------------------------------------
+    -- EXTRA
+    ----------------------------------------------------------
+    keybindsTab:CreateSection("EXTRA")
+
+    AddKeybind("Freecam", "Freecam")
+end
 
 local KeybindCapture = {
     Active = false,
