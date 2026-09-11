@@ -954,63 +954,7 @@ create("UIListLayout", {
     Parent = notifRoot,
 })
 
-	-- ============================================================
-	-- CENTRAL KEYBINDS
-	-- ============================================================
-
-	local Keybinds = {
-		Fly = { Key = Enum.KeyCode.V, Enabled = true },
-		WalkSpeed = { Key = Enum.KeyCode.C, Enabled = true },
-		JumpPower = { Key = Enum.KeyCode.J, Enabled = true },
-		InfiniteJump = { Key = Enum.KeyCode.B, Enabled = true },
-		Noclip = { Key = Enum.KeyCode.N, Enabled = true },
-		AntiFling = { Key = Enum.KeyCode.F, Enabled = true },
-
-		ESPHighlight = { Key = Enum.KeyCode.H, Enabled = true },
-		ESPNames = { Key = Enum.KeyCode.O, Enabled = true },
-		ESPStats = { Key = Enum.KeyCode.P, Enabled = true },
-		Tracers = { Key = Enum.KeyCode.T, Enabled = true },
-
-		Aimlock = { Key = Enum.KeyCode.RightShift, Enabled = true },
-		Triggerbot = { Key = Enum.KeyCode.Unknown, Enabled = true },
-
-		Freecam = { Key = Enum.KeyCode.V, Enabled = true },
-	}
-
-	local KeybindRegistry = {}
-
-	local KeybindCapture = {
-		Active = false,
-		Feature = nil,
-	}
-
-	local function RebuildKeybindRegistry()
-		table.clear(KeybindRegistry)
-
-		for featureName, bind in pairs(Keybinds) do
-			if bind.Key and bind.Key ~= Enum.KeyCode.Unknown then
-				KeybindRegistry[bind.Key] = featureName
-			end
-		end
-	end
-
-	RebuildKeybindRegistry()
-
--- ============================================================
--- CENTRAL KEYBIND DISPATCHER
--- ============================================================
-
-local function HandleKeybind(featureName)
-    ...
-end
-
-local KeybindInputConnection
-
-local function StartCentralKeybinds()
-    ...
-end
-
-StartCentralKeybinds()
+	
 
 	--=====================================================================
 	-- RATAHUB FRAMEWORK TABLE
@@ -3040,8 +2984,9 @@ StartCentralKeybinds()
 				UnlockMaxDistance = false,
 				FOVChanger = false,
 				FOV = 70,
-				Freecam = false,
-				FreecamSpeed = 10,
+                Freecam = false,
+                FreecamActive = false,
+                FreecamSpeed = 10,
 			},
 			Vision = {
 				XRay = false,
@@ -3050,9 +2995,11 @@ StartCentralKeybinds()
 				ClickTP = false,
 				BTools = false,
 			},
-			Performance = {
-				FPSBoost = false,
-				AntiFling = false,
+Performance = {
+    FPSBoost = false,
+    AntiFling = false,
+    AntiFlingActive = false,
+},
 			},
 		},
 		Troll = {
@@ -3107,131 +3054,7 @@ StartCentralKeybinds()
 
 	local Features = {}
 
--------------------------------------------------------------
--- RATAHUB V5 CENTRALIZED KEYBINDS
--------------------------------------------------------------
 
---------------------------------------------------------------
--- 8. KEYBINDS TAB
---------------------------------------------------------------
-do
-    local keybindsTab = win:CreateTab({
-        Name = "Keybinds",
-        Icon = "⌨",
-        SubTitle = "Centralized keybind configuration"
-    })
-
-    local function AddKeybind(featureName, displayName)
-        local data = Keybinds[featureName]
-
-        keybindsTab:CreateKeybind({
-            Name = displayName,
-            CurrentKeybind = data.Key.Name,
-
-            Callback = function(newKey)
-                -- K queda reservada para RATAHUB
-                if newKey == Enum.KeyCode.K then
-                    RATAHUB:Notify({
-                        Title = "Keybinds",
-                        Content = "La tecla K está reservada para RATAHUB",
-                        Duration = 1.5
-                    })
-                    return
-                end
-
-                -- Evitar teclas duplicadas
-                for otherFeature, otherData in pairs(Keybinds) do
-                    if otherFeature ~= featureName
-                        and otherData.Key == newKey
-                    then
-                        otherData.Key = Enum.KeyCode.Unknown
-                    end
-                end
-
-                data.Key = newKey
-                RebuildKeybindRegistry()
-            end,
-        })
-
-keybindsTab:CreateToggle({
-    Name = displayName .. " — Keybind Enabled",
-    CurrentValue = data.Enabled,
-
-    Callback = function(Value)
-        data.Enabled = Value
-    end,
-})
-end
-
-    ----------------------------------------------------------
-    -- MAIN
-    ----------------------------------------------------------
-    keybindsTab:CreateSection("MAIN")
-
-    AddKeybind("Fly", "Fly")
-    AddKeybind("WalkSpeed", "WalkSpeed")
-    AddKeybind("JumpPower", "JumpPower")
-    AddKeybind("InfiniteJump", "Infinite Jump")
-    AddKeybind("Noclip", "No Clip")
-    AddKeybind("AntiFling", "Anti-Fling")
-
-    ----------------------------------------------------------
-    -- ESP
-    ----------------------------------------------------------
-    keybindsTab:CreateSection("ESP")
-
-    AddKeybind("ESPHighlight", "ESP Highlight")
-    AddKeybind("ESPNames", "ESP Nombres")
-    AddKeybind("ESPStats", "ESP Studs + Vida")
-    AddKeybind("Tracers", "Tracers")
-
-    ----------------------------------------------------------
-    -- AIMLOCK
-    ----------------------------------------------------------
-    keybindsTab:CreateSection("AIMLOCK")
-
-    AddKeybind("Aimlock", "Aimlock")
-
-    ----------------------------------------------------------
-    -- TRIGGERBOT
-    ----------------------------------------------------------
-    keybindsTab:CreateSection("TRIGGERBOT")
-
-    AddKeybind("Triggerbot", "Triggerbot")
-
-    ----------------------------------------------------------
-    -- EXTRA
-    ----------------------------------------------------------
-    keybindsTab:CreateSection("EXTRA")
-
-    AddKeybind("Freecam", "Freecam")
-end
-
-local KeybindCapture = {
-    Active = false,
-    Feature = nil,
-}
-
-local KeybindRegistry = {}
-
-local RESERVED_KEYBINDS = {
-    [Enum.KeyCode.K] = true,
-}
-
-local function RebuildKeybindRegistry()
-    table.clear(KeybindRegistry)
-
-    for featureName, data in pairs(Keybinds) do
-        if data.Key
-            and data.Key ~= Enum.KeyCode.Unknown
-            and not RESERVED_KEYBINDS[data.Key]
-        then
-            KeybindRegistry[data.Key] = featureName
-        end
-    end
-end
-
-RebuildKeybindRegistry()
 
 -------------------------------------------------------------
 -- RATAHUB V5 HUD / TARGET INFO
@@ -4786,15 +4609,12 @@ end
 		end
 	end
 
-	function Features.ToggleAimlockLock()
-		-- If master toggle is OFF, auto-enable module on keybind press
-		if not Config.Aimlock.Enabled then
-			Config.Aimlock.Enabled = true
-			if Controls.Aimlock and Controls.Aimlock.Toggle then
-				Controls.Aimlock.Toggle:SetSilent(true)
-			end
-			Features.UpdateAimlock()
-		end
+function Features.ToggleAimlockLock()
+    if not Config.Aimlock.Enabled then
+        return
+    end
+
+    if Runtime.Aimlock.locked then
 
 		if Runtime.Aimlock.locked then
 			Features.UnlockAimlock()
@@ -5076,13 +4896,27 @@ end
 		end
 	end
 
-	function Features.ToggleTriggerbotActive()
-		if not Config.Triggerbot.Enabled then
-			Config.Triggerbot.Enabled = true
-			if Controls.Triggerbot and Controls.Triggerbot.Enabled then
-				Controls.Triggerbot.Enabled:SetSilent(true)
-			end
-		end
+function Features.ToggleTriggerbotActive()
+    if not Config.Triggerbot.Enabled then
+        return
+    end
+
+    Features.SetTriggerbotActive(not Runtime.Triggerbot.active)
+
+    if Runtime.Triggerbot.active then
+        RATAHUB:Notify({
+            Title = "Triggerbot",
+            Content = "Activado",
+            Duration = 1.2
+        })
+    else
+        RATAHUB:Notify({
+            Title = "Triggerbot",
+            Content = "Desactivado",
+            Duration = 1.2
+        })
+    end
+end
 		Features.SetTriggerbotActive(not Runtime.Triggerbot.active)
 		if Runtime.Triggerbot.active then
 			RATAHUB:Notify({ Title = "Triggerbot", Content = "Activado", Duration = 1.2 })
@@ -5412,36 +5246,250 @@ end
 		end
 	end
 
-	function Features.SetAntiFling(enabled)
-		if enabled then
-			if not Runtime.AntiFling.conn then
-				Runtime.AntiFling.conn = RunService.Stepped:Connect(function()
-					for _, p in ipairs(Players:GetPlayers()) do
-						if p ~= player and p.Character then
-							for _, part in ipairs(p.Character:GetDescendants()) do
-								if part:IsA("BasePart") and part.CanCollide then
-									part.CanCollide = false
-								end
-							end
-						end
-					end
-				end)
-			end
-			RATAHUB:Notify({ Title = "Anti-Fling", Content = "Activado", Duration = 1.2 })
-		else
-			if Runtime.AntiFling.conn then
-				Runtime.AntiFling.conn:Disconnect()
-				Runtime.AntiFling.conn = nil
-			end
-			RATAHUB:Notify({ Title = "Anti-Fling", Content = "Desactivado", Duration = 1.2 })
-		end
-	end
+function Features.SetAntiFling(enabled)
+    Config.Extras.Performance.AntiFling = enabled
+    Config.Extras.Performance.AntiFlingActive = false
+
+    if Runtime.AntiFling.conn then
+        Runtime.AntiFling.conn:Disconnect()
+        Runtime.AntiFling.conn = nil
+    end
+
+    if not enabled then
+        RATAHUB:Notify({
+            Title = "Anti-Fling",
+            Content = "Deshabilitado",
+            Duration = 1.2
+        })
+        return
+    end
+
+    RATAHUB:Notify({
+        Title = "Anti-Fling",
+        Content = "Permitido (F para activar)",
+        Duration = 1.2
+    })
+end
+
+function Features.ToggleAntiFlingActive()
+    if not Config.Extras.Performance.AntiFling then
+        return
+    end
+
+    Config.Extras.Performance.AntiFlingActive =
+        not Config.Extras.Performance.AntiFlingActive
+
+    if Config.Extras.Performance.AntiFlingActive then
+        if not Runtime.AntiFling.conn then
+            Runtime.AntiFling.conn = RunService.Stepped:Connect(function()
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= player and p.Character then
+                        for _, part in ipairs(p.Character:GetDescendants()) do
+                            if part:IsA("BasePart") and part.CanCollide then
+                                part.CanCollide = false
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+
+        RATAHUB:Notify({
+            Title = "Anti-Fling",
+            Content = "Activo",
+            Duration = 1.2
+        })
+    else
+        if Runtime.AntiFling.conn then
+            Runtime.AntiFling.conn:Disconnect()
+            Runtime.AntiFling.conn = nil
+        end
+
+        RATAHUB:Notify({
+            Title = "Anti-Fling",
+            Content = "En pausa",
+            Duration = 1.2
+        })
+    end
+end
 
 	------------------------------------------------------------- Event-driven Hotkeys Listener (Restored from RATAHUBB)
 
 
 
 	RATAHUB.Features = Features
+
+    -------------------------------------------------------------
+-- RATAHUB V5 CENTRAL KEYBIND SYSTEM
+-------------------------------------------------------------
+
+local Keybinds = {
+    Fly = {
+        Key = Enum.KeyCode.V,
+        Enabled = true,
+    },
+
+    WalkSpeed = {
+        Key = Enum.KeyCode.C,
+        Enabled = true,
+    },
+
+    JumpPower = {
+        Key = Enum.KeyCode.J,
+        Enabled = true,
+    },
+
+    InfiniteJump = {
+        Key = Enum.KeyCode.B,
+        Enabled = true,
+    },
+
+    Noclip = {
+        Key = Enum.KeyCode.N,
+        Enabled = true,
+    },
+
+    AntiFling = {
+        Key = Enum.KeyCode.F,
+        Enabled = true,
+    },
+
+    ESPHighlight = {
+        Key = Enum.KeyCode.H,
+        Enabled = true,
+    },
+
+    ESPNames = {
+        Key = Enum.KeyCode.O,
+        Enabled = true,
+    },
+
+    ESPStats = {
+        Key = Enum.KeyCode.P,
+        Enabled = true,
+    },
+
+    Tracers = {
+        Key = Enum.KeyCode.T,
+        Enabled = true,
+    },
+
+    Aimlock = {
+        Key = Enum.KeyCode.RightShift,
+        Enabled = true,
+    },
+
+    Triggerbot = {
+        Key = Enum.KeyCode.Unknown,
+        Enabled = true,
+    },
+
+    Freecam = {
+        Key = Enum.KeyCode.V,
+        Enabled = true,
+    },
+}
+
+local KeybindCapture = {
+    Active = false,
+    Feature = nil,
+}
+
+local RESERVED_KEYBINDS = {
+    [Enum.KeyCode.K] = true,
+}
+
+-------------------------------------------------------------
+-- KEYBIND DISPATCHER
+-------------------------------------------------------------
+
+local function HandleKeybind(featureName)
+    local bind = Keybinds[featureName]
+
+    if not bind or not bind.Enabled then
+        return
+    end
+
+    if featureName == "Fly" then
+        Features.ToggleFlyActive()
+
+    elseif featureName == "WalkSpeed" then
+        Features.ToggleWalkSpeed()
+
+    elseif featureName == "JumpPower" then
+        Features.ToggleJumpPowerActive()
+
+    elseif featureName == "InfiniteJump" then
+        Features.ToggleInfiniteJumpActive()
+
+    elseif featureName == "Noclip" then
+        Features.ToggleNoclipActive()
+
+    elseif featureName == "AntiFling" then
+        Features.ToggleAntiFlingActive()
+
+    elseif featureName == "ESPHighlight" then
+        Features.ToggleESPHighlight()
+
+    elseif featureName == "ESPNames" then
+        Features.ToggleESPNames()
+
+    elseif featureName == "ESPStats" then
+        Features.ToggleESPStats()
+
+    elseif featureName == "Tracers" then
+        Features.ToggleESPTracers()
+
+    elseif featureName == "Aimlock" then
+        Features.ToggleAimlockLock()
+
+    elseif featureName == "Triggerbot" then
+        Features.ToggleTriggerbotActive()
+
+    elseif featureName == "Freecam" then
+        Features.ToggleFreecamActive()
+    end
+end
+
+-------------------------------------------------------------
+-- SINGLE INPUT LISTENER
+-------------------------------------------------------------
+
+local KeybindInputConnection
+
+local function StartCentralKeybinds()
+    if KeybindInputConnection then
+        KeybindInputConnection:Disconnect()
+        KeybindInputConnection = nil
+    end
+
+    KeybindInputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then
+            return
+        end
+
+        if input.UserInputType ~= Enum.UserInputType.Keyboard then
+            return
+        end
+
+        local key = input.KeyCode
+
+        -- K is reserved exclusively for RATAHUB
+        if RESERVED_KEYBINDS[key] then
+            return
+        end
+
+        -- Allow multiple features to share the same key.
+        -- Example: Fly + Freecam both use V.
+        for featureName, data in pairs(Keybinds) do
+            if data.Enabled and data.Key == key then
+                HandleKeybind(featureName)
+            end
+        end
+    end)
+end
+
+StartCentralKeybinds()
 
 	--=====================================================================
 	-- DYNAMIC PLAYER & TEAM LIST HELPERS
@@ -6257,15 +6305,18 @@ do
         SubTitle = "Centralized keybind configuration"
     })
 
-    local function AddKeybind(section, featureName, displayName)
+    local function AddKeybind(featureName, displayName)
         local data = Keybinds[featureName]
 
         keybindsTab:CreateKeybind({
             Name = displayName,
-            CurrentKeybind = data.Key.Name,
+
+            CurrentKeybind =
+                data.Key == Enum.KeyCode.Unknown
+                and "None"
+                or data.Key.Name,
 
             Callback = function(newKey)
-                -- K queda reservada para RATAHUB
                 if newKey == Enum.KeyCode.K then
                     RATAHUB:Notify({
                         Title = "Keybinds",
@@ -6275,20 +6326,9 @@ do
                     return
                 end
 
-                -- Evitar que dos funciones tengan la misma tecla
-                for otherFeature, otherData in pairs(Keybinds) do
-                    if otherFeature ~= featureName
-                        and otherData.Key == newKey
-                    then
-                        otherData.Key = Enum.KeyCode.Unknown
-                    end
-                end
-
                 data.Key = newKey
-                RebuildKeybindRegistry()
             end,
         })
-         
 
         keybindsTab:CreateToggle({
             Name = displayName .. " — Keybind Enabled",
@@ -6303,29 +6343,50 @@ do
     ----------------------------------------------------------
     -- MAIN
     ----------------------------------------------------------
+
     keybindsTab:CreateSection("MAIN")
 
-    AddKeybind("Main", "JumpPower", "JumpPower")
-    AddKeybind("Main", "InfiniteJump", "Infinite Jump")
-    AddKeybind("Main", "Noclip", "No Clip")
-    AddKeybind("Main", "AntiFling", "Anti-Fling")
+    AddKeybind("Fly", "Fly")
+    AddKeybind("WalkSpeed", "WalkSpeed")
+    AddKeybind("JumpPower", "JumpPower")
+    AddKeybind("InfiniteJump", "Infinite Jump")
+    AddKeybind("Noclip", "No Clip")
+    AddKeybind("AntiFling", "Anti-Fling")
 
     ----------------------------------------------------------
     -- ESP
     ----------------------------------------------------------
+
     keybindsTab:CreateSection("ESP")
 
-    AddKeybind("ESP", "ESPHighlight", "ESP Highlight")
-    AddKeybind("ESP", "ESPNames", "ESP Nombres")
-    AddKeybind("ESP", "ESPStats", "ESP Studs + Vida")
-    AddKeybind("ESP", "Tracers", "Tracers")
+    AddKeybind("ESPHighlight", "ESP Highlight")
+    AddKeybind("ESPNames", "ESP Nombres")
+    AddKeybind("ESPStats", "ESP Studs + Vida")
+    AddKeybind("Tracers", "Tracers")
+
+    ----------------------------------------------------------
+    -- AIMLOCK
+    ----------------------------------------------------------
+
+    keybindsTab:CreateSection("AIMLOCK")
+
+    AddKeybind("Aimlock", "Aimlock")
+
+    ----------------------------------------------------------
+    -- TRIGGERBOT
+    ----------------------------------------------------------
+
+    keybindsTab:CreateSection("TRIGGERBOT")
+
+    AddKeybind("Triggerbot", "Triggerbot")
 
     ----------------------------------------------------------
     -- EXTRA
     ----------------------------------------------------------
+
     keybindsTab:CreateSection("EXTRA")
 
-    AddKeybind("Extra", "Freecam", "Freecam")
+    AddKeybind("Freecam", "Freecam")
 end
 
 --------------------------------------------------------------
