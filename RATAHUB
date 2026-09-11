@@ -4480,7 +4480,71 @@ end
 		end
 	end
 
-	------------------------------------------------------------- AIMLOCK MODULE (RAYFIELD LOGIC)
+-------------------------------------------------------------
+-- ESP ACTIVE KEYBINDS
+-------------------------------------------------------------
+
+function Features.SetESPHighlight(enabled)
+    Config.ESP.Highlight = enabled
+    Features.UpdateESP()
+end
+
+function Features.ToggleESPHighlight()
+    Features.SetESPHighlight(not Config.ESP.Highlight)
+
+    RATAHUB:Notify({
+        Title = "ESP Highlight",
+        Content = Config.ESP.Highlight and "Activo" or "En pausa",
+        Duration = 1.2
+    })
+end
+
+function Features.SetESPNames(enabled)
+    Config.ESP.Names = enabled
+    Features.UpdateESP()
+end
+
+function Features.ToggleESPNames()
+    Features.SetESPNames(not Config.ESP.Names)
+
+    RATAHUB:Notify({
+        Title = "ESP Nombres",
+        Content = Config.ESP.Names and "Activo" or "En pausa",
+        Duration = 1.2
+    })
+end
+
+function Features.SetESPStats(enabled)
+    Config.ESP.Details = enabled
+    Features.UpdateESP()
+end
+
+function Features.ToggleESPStats()
+    Features.SetESPStats(not Config.ESP.Details)
+
+    RATAHUB:Notify({
+        Title = "ESP Studs + Vida",
+        Content = Config.ESP.Details and "Activo" or "En pausa",
+        Duration = 1.2
+    })
+end
+
+function Features.SetESPTracers(enabled)
+    Config.ESP.Tracers = enabled
+    Features.UpdateESP()
+end
+
+function Features.ToggleESPTracers()
+    Features.SetESPTracers(not Config.ESP.Tracers)
+
+    RATAHUB:Notify({
+        Title = "ESP Tracers",
+        Content = Config.ESP.Tracers and "Activo" or "En pausa",
+        Duration = 1.2
+    })
+end
+
+------------------------------------------------------------- AIMLOCK MODULE (RAYFIELD LOGIC)
 	function Features.GetAimPart(char)
 		if not char then return nil end
 		local aimPart = Config.Aimlock.AimPart or "Head"
@@ -5021,6 +5085,44 @@ end
 			end
 		end
 	end
+
+function Features.SetFreecamMaster(enabled)
+    Config.Extras.Camera.Freecam = enabled
+    Config.Extras.Camera.FreecamActive = false
+
+    if not enabled then
+        Features.SetFreecam(false)
+    end
+
+    RATAHUB:Notify({
+        Title = "Freecam",
+        Content = enabled
+            and "Permitido (V para activar)"
+            or "Deshabilitado",
+        Duration = 1.2
+    })
+end
+
+function Features.ToggleFreecamActive()
+    if not Config.Extras.Camera.Freecam then
+        return
+    end
+
+    Config.Extras.Camera.FreecamActive =
+        not Config.Extras.Camera.FreecamActive
+
+    Features.SetFreecam(
+        Config.Extras.Camera.FreecamActive
+    )
+
+    RATAHUB:Notify({
+        Title = "Freecam",
+        Content = Config.Extras.Camera.FreecamActive
+            and "Activo"
+            or "En pausa",
+        Duration = 1.2
+    })
+end
 
 	function Features.SetXRay(enabled)
 		if enabled then
