@@ -6618,8 +6618,6 @@ Players.PlayerRemoving:Connect(function(leftPlayer)
 	refreshAllPlayerDropdowns()
 end)
 
--- Initialize event hotkeys listener
-Features.StartHotkeys()
 
 -- Finalizar loader
 Loader:SetProgress(1)
