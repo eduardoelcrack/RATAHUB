@@ -1,4 +1,4 @@
- --RATAHUB V5 OMG NO MAMES ENSERIO WE? NETA ME LO JURAS22
+ --RATAHUB V5 OMG NO MAMES ENSERIO WE? NETA ME LO JURAS67
 	local TweenService = game:GetService("TweenService")
 	local Players = game:GetService("Players")
 
@@ -953,6 +953,64 @@ create("UIListLayout", {
     SortOrder = Enum.SortOrder.LayoutOrder,
     Parent = notifRoot,
 })
+
+	-- ============================================================
+	-- CENTRAL KEYBINDS
+	-- ============================================================
+
+	local Keybinds = {
+		Fly = { Key = Enum.KeyCode.V, Enabled = true },
+		WalkSpeed = { Key = Enum.KeyCode.C, Enabled = true },
+		JumpPower = { Key = Enum.KeyCode.J, Enabled = true },
+		InfiniteJump = { Key = Enum.KeyCode.B, Enabled = true },
+		Noclip = { Key = Enum.KeyCode.N, Enabled = true },
+		AntiFling = { Key = Enum.KeyCode.F, Enabled = true },
+
+		ESPHighlight = { Key = Enum.KeyCode.H, Enabled = true },
+		ESPNames = { Key = Enum.KeyCode.O, Enabled = true },
+		ESPStats = { Key = Enum.KeyCode.P, Enabled = true },
+		Tracers = { Key = Enum.KeyCode.T, Enabled = true },
+
+		Aimlock = { Key = Enum.KeyCode.RightShift, Enabled = true },
+		Triggerbot = { Key = Enum.KeyCode.Unknown, Enabled = true },
+
+		Freecam = { Key = Enum.KeyCode.V, Enabled = true },
+	}
+
+	local KeybindRegistry = {}
+
+	local KeybindCapture = {
+		Active = false,
+		Feature = nil,
+	}
+
+	local function RebuildKeybindRegistry()
+		table.clear(KeybindRegistry)
+
+		for featureName, bind in pairs(Keybinds) do
+			if bind.Key and bind.Key ~= Enum.KeyCode.Unknown then
+				KeybindRegistry[bind.Key] = featureName
+			end
+		end
+	end
+
+	RebuildKeybindRegistry()
+
+-- ============================================================
+-- CENTRAL KEYBIND DISPATCHER
+-- ============================================================
+
+local function HandleKeybind(featureName)
+    ...
+end
+
+local KeybindInputConnection
+
+local function StartCentralKeybinds()
+    ...
+end
+
+StartCentralKeybinds()
 
 	--=====================================================================
 	-- RATAHUB FRAMEWORK TABLE
@@ -3095,15 +3153,15 @@ do
             end,
         })
 
-        keybindsTab:CreateToggle({
-            Name = displayName .. " — Keybind Enabled",
-            CurrentValue = data.Enabled,
+keybindsTab:CreateToggle({
+    Name = displayName .. " — Keybind Enabled",
+    CurrentValue = data.Enabled,
 
-            Callback = function(Value)
-                data.Enabled = Value
-            end,
-        })
-    end
+    Callback = function(Value)
+        data.Enabled = Value
+    end,
+})
+end
 
     ----------------------------------------------------------
     -- MAIN
@@ -3799,44 +3857,110 @@ end)
 	end
 
 	------------------------------------------------------------- Movement: JumpPower
-	function Features.StartJumpPower()
-		if Runtime.JumpPower.loop then return end
-		Runtime.JumpPower.loop = RunService.Heartbeat:Connect(function()
-			local hum = getHumanoid()
-			if not hum then return end
-			if not Runtime.JumpPower.original then
-				Runtime.JumpPower.original = hum.UseJumpPower and hum.JumpPower or hum.JumpHeight
-			end
-			if Config.Main.Movement.JumpPowerEnabled then
-				if hum.UseJumpPower then
-					hum.JumpPower = Config.Main.Movement.JumpPower
-				else
-					hum.JumpHeight = Config.Main.Movement.JumpPower
-				end
-			else
-				if hum.UseJumpPower then
-					hum.JumpPower = Runtime.JumpPower.original or 50
-				else
-					hum.JumpHeight = Runtime.JumpPower.original or 7.2
-				end
-			end
-		end)
-	end
+function Features.StartJumpPower()
+    if Runtime.JumpPower.loop then return end
 
-	function Features.StopJumpPower()
-		if Runtime.JumpPower.loop then
-			Runtime.JumpPower.loop:Disconnect()
-			Runtime.JumpPower.loop = nil
-		end
-		local hum = getHumanoid()
-		if hum and Runtime.JumpPower.original then
-			if hum.UseJumpPower then
-				hum.JumpPower = Runtime.JumpPower.original
-			else
-				hum.JumpHeight = Runtime.JumpPower.original
-			end
-		end
-	end
+    Runtime.JumpPower.loop = RunService.Heartbeat:Connect(function()
+        local hum = getHumanoid()
+        if not hum then return end
+
+        if not Runtime.JumpPower.original then
+            Runtime.JumpPower.original =
+                hum.UseJumpPower and hum.JumpPower or hum.JumpHeight
+        end
+
+        if Config.Main.Movement.JumpPowerEnabled
+            and Runtime.JumpPower.active
+        then
+            if hum.UseJumpPower then
+                hum.JumpPower = Config.Main.Movement.JumpPower
+            else
+                hum.JumpHeight = Config.Main.Movement.JumpPower
+            end
+        else
+            if hum.UseJumpPower then
+                hum.JumpPower = Runtime.JumpPower.original or 50
+            else
+                hum.JumpHeight = Runtime.JumpPower.original or 7.2
+            end
+        end
+    end)
+end
+
+function Features.StopJumpPower()
+    if Runtime.JumpPower.loop then
+        Runtime.JumpPower.loop:Disconnect()
+        Runtime.JumpPower.loop = nil
+    end
+
+    Runtime.JumpPower.active = false
+
+    local hum = getHumanoid()
+    if hum and Runtime.JumpPower.original then
+        if hum.UseJumpPower then
+            hum.JumpPower = Runtime.JumpPower.original
+        else
+            hum.JumpHeight = Runtime.JumpPower.original
+        end
+    end
+end
+
+function Features.SetJumpPowerMaster(enabled)
+    Config.Main.Movement.JumpPowerEnabled = enabled
+    Runtime.JumpPower.active = false
+
+    if enabled then
+        Features.StartJumpPower()
+
+        RATAHUB:Notify({
+            Title = "JumpPower",
+            Content = "Permitido (J para activar)",
+            Duration = 1.2
+        })
+    else
+        Features.StopJumpPower()
+
+        RATAHUB:Notify({
+            Title = "JumpPower",
+            Content = "Deshabilitado",
+            Duration = 1.2
+        })
+    end
+end
+
+function Features.ToggleJumpPowerActive()
+    if not Config.Main.Movement.JumpPowerEnabled then
+        return
+    end
+
+    Runtime.JumpPower.active = not Runtime.JumpPower.active
+
+    if Runtime.JumpPower.active then
+        Features.StartJumpPower()
+
+        RATAHUB:Notify({
+            Title = "JumpPower",
+            Content = "Activo (" .. tostring(Config.Main.Movement.JumpPower) .. ")",
+            Duration = 1.2
+        })
+    else
+        local hum = getHumanoid()
+
+        if hum and Runtime.JumpPower.original then
+            if hum.UseJumpPower then
+                hum.JumpPower = Runtime.JumpPower.original
+            else
+                hum.JumpHeight = Runtime.JumpPower.original
+            end
+        end
+
+        RATAHUB:Notify({
+            Title = "JumpPower",
+            Content = "En pausa",
+            Duration = 1.2
+        })
+    end
+end
 
 	------------------------------------------------------------- Movement: Gravity
 	function Features.StartGravity()
@@ -5315,105 +5439,7 @@ end
 
 	------------------------------------------------------------- Event-driven Hotkeys Listener (Restored from RATAHUBB)
 
-function Features.StartHotkeys()
-    if Runtime.Hotkeys.conn then return end
 
-    Runtime.Hotkeys.conn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if UserInputService:GetFocusedTextBox() then return end
-
-        if input.UserInputType ~= Enum.UserInputType.Keyboard then
-            return
-        end
-
-        -- K = mostrar / ocultar RATAHUB
-        if input.KeyCode == Enum.KeyCode.K then
-            screenGui.Enabled = not screenGui.Enabled
-            return
-        end
-
-        -- No procesar mientras estamos asignando una nueva tecla
-        if KeybindCapture.Active then
-            return
-        end
-
-        local featureName = KeybindRegistry[input.KeyCode]
-        if not featureName then
-            return
-        end
-
-        local bind = Keybinds[featureName]
-        if not bind or not bind.Enabled then
-            return
-        end
-
-        -- MAIN: JumpPower
-        if featureName == "JumpPower" then
-            if not Config.Main.Movement.JumpPowerEnabled then
-                return
-            end
-
-            if Runtime.JumpPower and Runtime.JumpPower.active then
-                Features.StopJumpPower()
-            else
-                Features.StartJumpPower()
-            end
-
-        -- MAIN: Infinite Jump
-        elseif featureName == "InfiniteJump" then
-            if not Config.Main.Movement.InfiniteJump then
-                return
-            end
-
-            Features.ToggleInfiniteJumpActive()
-
-        -- MAIN: No Clip
-        elseif featureName == "Noclip" then
-            if not Config.Main.Movement.Noclip then
-                return
-            end
-
-            Features.ToggleNoclipActive()
-
-        -- MAIN: Anti-Fling
-        elseif featureName == "AntiFling" then
-            if not Config.Extras.Performance.AntiFling then
-                return
-            end
-
-            Config.Extras.Performance.AntiFling =
-                not Config.Extras.Performance.AntiFling
-
-            Features.SetAntiFling(Config.Extras.Performance.AntiFling)
-
-        -- ESP: Highlight
-        elseif featureName == "ESPHighlight" then
-            Config.ESP.Highlight = not Config.ESP.Highlight
-            Features.UpdateESP()
-
-        -- ESP: Names
-        elseif featureName == "ESPNames" then
-            Config.ESP.Names = not Config.ESP.Names
-            Features.UpdateESP()
-
-        -- ESP: Details
-        elseif featureName == "ESPStats" then
-            Config.ESP.Details = not Config.ESP.Details
-            Features.UpdateESP()
-
-        -- ESP: Tracers
-        elseif featureName == "Tracers" then
-            Config.ESP.Tracers = not Config.ESP.Tracers
-            Features.UpdateESP()
-
-        -- EXTRA: Freecam
-        elseif featureName == "Freecam" then
-            Config.Extras.Camera.Freecam =
-                not Config.Extras.Camera.Freecam
-
-            Features.SetFreecam(Config.Extras.Camera.Freecam)
-        end
-    end)
-end
 
 	RATAHUB.Features = Features
 
@@ -5499,14 +5525,13 @@ end
 			end,
 		})
 
-		Controls.Main.JumpPower = main:CreateToggle({
-			Name = "JumpPower",
-			CurrentValue = M.Movement.JumpPowerEnabled,
-			Callback = function(Value)
-				M.Movement.JumpPowerEnabled = Value
-				if Value then Features.StartJumpPower() else Features.StopJumpPower() end
-			end,
-		})
+Controls.Main.JumpPower = main:CreateToggle({
+    Name = "JumpPower",
+    CurrentValue = M.Movement.JumpPowerEnabled,
+    Callback = function(Value)
+        Features.SetJumpPowerMaster(Value)
+    end,
+})
 		Controls.Main.JumpPowerValue = main:CreateSlider({
 			Name = "JumpPower",
 			Range = { 50, 300 },
@@ -6263,6 +6288,7 @@ do
                 RebuildKeybindRegistry()
             end,
         })
+         
 
         keybindsTab:CreateToggle({
             Name = displayName .. " — Keybind Enabled",
