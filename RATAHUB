@@ -6306,9 +6306,6 @@ end
 -- 8. SOUNDS TAB
 --------------------------------------------------------------
 
-	--------------------------------------------------------------
-	-- 7. SOUNDS TAB
-	--------------------------------------------------------------
 	do
 		local sounds = win:CreateTab({ Name = "Sounds", Icon = "♪", SubTitle = "Lock and hit sound configuration" })
 		local S = Config.Sounds
