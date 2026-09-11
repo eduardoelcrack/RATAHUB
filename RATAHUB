@@ -2946,22 +2946,26 @@ end
 				AntiAFK = false,
 			},
 		},
-		ESP = {
-            Highlight = false,
-            HighlightKeybind = "H",
+ESP = {
+    Highlight = false,
+    HighlightEnabled = false,
+    HighlightKeybind = "H",
 
-            Names = false,
-            NamesKeybind = "O",
+    Names = false,
+    NamesEnabled = false,
+    NamesKeybind = "O",
 
-            Details = false,
-            DetailsKeybind = "P",
+    Details = false,
+    DetailsEnabled = false,
+    DetailsKeybind = "P",
          
             OffsetX = 0,
              OffsetY = 0,
             TextSize = 14,
 
-            Tracers = false,
-            TracersKeybind = "X",
+Tracers = false,
+TracersEnabled = false,
+TracersKeybind = "X",
 			TracerOrigin = "Bottom",
 			TeamColorTracers = false,
 			WhitelistMode = "Disabled",
@@ -3017,9 +3021,10 @@ end
 				UnlockMaxDistance = false,
 				FOVChanger = false,
 				FOV = 70,
-				Freecam = false,
-                FreecamKeybind = "L",
-				FreecamSpeed = 10,
+Freecam = false,
+FreecamEnabled = false,
+FreecamKeybind = "L",
+FreecamSpeed = 10,
 			},
 			Vision = {
 				XRay = false,
@@ -4297,7 +4302,11 @@ end)
 	------------------------------------------------------------- ESP MODULE
 	function Features.UpdateESP()
 		local espCfg = Config.ESP
-		local anyEnabled = espCfg.Highlight or espCfg.Names or espCfg.Details or espCfg.Tracers
+		local anyEnabled =
+    (espCfg.HighlightEnabled and espCfg.Highlight)
+    or (espCfg.NamesEnabled and espCfg.Names)
+    or (espCfg.DetailsEnabled and espCfg.Details)
+    or (espCfg.TracersEnabled and espCfg.Tracers)
 
 		if not anyEnabled then
 			if Runtime.ESP.loop then
@@ -4341,7 +4350,8 @@ end)
 						local tracerColor = Features.GetTracerColor(p)
 
 						-- 1. Highlight
-						if espCfg.Highlight and valid and hum and hum.Health > 0 then
+						-- 1. Highlight
+if espCfg.HighlightEnabled and espCfg.Highlight and valid and hum and hum.Health > 0 then
 							if not entry.Highlight or entry.Highlight.Parent ~= char then
 								if entry.Highlight then entry.Highlight:Destroy() end
 								local h = Instance.new("Highlight")
@@ -4361,7 +4371,13 @@ end)
 						end
 
 						-- 2. Billboard (Names & Details)
-						local showText = (espCfg.Names or espCfg.Details) and valid and hum and hum.Health > 0 and root
+						local showText =
+    ((espCfg.NamesEnabled and espCfg.Names)
+    or (espCfg.DetailsEnabled and espCfg.Details))
+    and valid
+    and hum
+    and hum.Health > 0
+    and root
 						if showText then
 							if not entry.Billboard then
 								local b = Instance.new("BillboardGui")
@@ -4402,7 +4418,8 @@ end)
 						end
 
 						-- 3. Tracers
-						if espCfg.Tracers and valid and hum and hum.Health > 0 and root and Drawing then
+						-- 3. Tracers
+if espCfg.TracersEnabled and espCfg.Tracers and valid and hum and hum.Health > 0 and root and Drawing then
 							if not entry.Tracer then
 								local line = Drawing.new("Line")
 								line.Thickness = 1.5
@@ -5269,25 +5286,27 @@ function Features.StartHotkeys()
 				Features.ToggleAimlockLock()
 			elseif matchesKey(Config.Triggerbot.Keybind) then
 				Features.ToggleTriggerbotActive()
-             elseif matchesKey(Config.ESP.HighlightKeybind) then
+
+elseif matchesKey(Config.ESP.HighlightKeybind) and Config.ESP.HighlightEnabled then
     Config.ESP.Highlight = not Config.ESP.Highlight
     Features.UpdateESP()
 
-elseif matchesKey(Config.ESP.NamesKeybind) then
+elseif matchesKey(Config.ESP.NamesKeybind) and Config.ESP.NamesEnabled then
     Config.ESP.Names = not Config.ESP.Names
     Features.UpdateESP()
 
-elseif matchesKey(Config.ESP.DetailsKeybind) then
+elseif matchesKey(Config.ESP.DetailsKeybind) and Config.ESP.DetailsEnabled then
     Config.ESP.Details = not Config.ESP.Details
     Features.UpdateESP()
 
-elseif matchesKey(Config.ESP.TracersKeybind) then
+elseif matchesKey(Config.ESP.TracersKeybind) and Config.ESP.TracersEnabled then
     Config.ESP.Tracers = not Config.ESP.Tracers
     Features.UpdateESP()
 
-elseif matchesKey(Config.Extras.Camera.FreecamKeybind) then
+elseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.FreecamEnabled then
     Config.Extras.Camera.Freecam = not Config.Extras.Camera.Freecam
     Features.SetFreecam(Config.Extras.Camera.Freecam)
+
 			end
 		end)
 	end
@@ -5541,13 +5560,18 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) then
 
 		esp:CreateSection("General")
 		Controls.ESP.Highlight = esp:CreateToggle({
-			Name = "ESP Highlight",
-			CurrentValue = E.Highlight,
-			Callback = function(Value)
-				E.Highlight = Value
-				Features.UpdateESP()
-			end,
-		})
+    Name = "ESP Highlight",
+    CurrentValue = E.HighlightEnabled,
+    Callback = function(Value)
+        E.HighlightEnabled = Value
+
+        if not Value then
+            E.Highlight = false
+        end
+
+        Features.UpdateESP()
+    end,
+})
 
         Controls.ESP.HighlightKeybind = esp:CreateKeybind({
     Name = "ESP Highlight Keybind",
@@ -5557,22 +5581,40 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) then
     end,
 })
 
-		Controls.ESP.Names = esp:CreateToggle({
-			Name = "ESP Nombres",
-			CurrentValue = E.Names,
-			Callback = function(Value)
-				E.Names = Value
-				Features.UpdateESP()
-			end,
-		})
-		Controls.ESP.Details = esp:CreateToggle({
-			Name = "ESP Nombre + Studs + Vida",
-			CurrentValue = E.Details,
-			Callback = function(Value)
-				E.Details = Value
-				Features.UpdateESP()
-			end,
-		})
+Controls.ESP.Names = esp:CreateToggle({
+    Name = "ESP Nombres",
+    CurrentValue = E.NamesEnabled,
+    Callback = function(Value)
+        E.NamesEnabled = Value
+
+        if not Value then
+            E.Names = false
+        end
+
+        Features.UpdateESP()
+    end,
+})
+
+Controls.ESP.NamesKeybind = esp:CreateKeybind({
+    Name = "ESP Nombres Keybind",
+    CurrentKeybind = E.NamesKeybind,
+    Callback = function(Key)
+        E.NamesKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+    end,
+})
+Controls.ESP.Details = esp:CreateToggle({
+    Name = "ESP Nombre + Studs + Vida",
+    CurrentValue = E.DetailsEnabled,
+    Callback = function(Value)
+        E.DetailsEnabled = Value
+
+        if not Value then
+            E.Details = false
+        end
+
+        Features.UpdateESP()
+    end,
+})
 
         Controls.ESP.DetailsKeybind = esp:CreateKeybind({
     Name = "ESP Stats Keybind",
@@ -5614,14 +5656,19 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) then
 		})
 
 		esp:CreateSection("Tracers")
-		Controls.ESP.Tracers = esp:CreateToggle({
-			Name = "Tracers",
-			CurrentValue = E.Tracers,
-			Callback = function(Value)
-				E.Tracers = Value
-				Features.UpdateESP()
-			end,
-		})
+Controls.ESP.Tracers = esp:CreateToggle({
+    Name = "Tracers",
+    CurrentValue = E.TracersEnabled,
+    Callback = function(Value)
+        E.TracersEnabled = Value
+
+        if not Value then
+            E.Tracers = false
+        end
+
+        Features.UpdateESP()
+    end,
+})
 
         Controls.ESP.TracersKeybind = esp:CreateKeybind({
     Name = "Tracers Keybind",
