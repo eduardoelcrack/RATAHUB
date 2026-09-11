@@ -1,0 +1,120 @@
+name: RATAHUB patch
+
+on:
+  push:
+    paths:
+      - '.github/workflows/ratahupatch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch RATAHUB
+        shell: python
+        run: |
+          from pathlib import Path
+
+          p = Path('RATAHUB')
+          s = p.read_text(encoding='utf-8')
+
+          # --- Config: separate master permission from active state ---
+          old = '''\tESP = {\n\t\tHighlight = false,\n\t\tHighlightKeybind = "H",\n\n\t\tNames = false,\n\t\tNamesKeybind = "O",\n\n\t\tDetails = false,\n\t\tDetailsKeybind = "P",'''
+          new = '''\tESP = {\n\t\tHighlight = false,\n\t\tHighlightEnabled = false,\n\t\tHighlightKeybind = "H",\n\n\t\tNames = false,\n\t\tNamesEnabled = false,\n\t\tNamesKeybind = "O",\n\n\t\tDetails = false,\n\t\tDetailsEnabled = false,\n\t\tDetailsKeybind = "P",'''
+          if old not in s:
+              raise SystemExit('ESP config anchor not found')
+          s = s.replace(old, new, 1)
+
+          old = '''\t\tTracers = false,\n\t\tTracersKeybind = "X",'''
+          new = '''\t\tTracers = false,\n\t\tTracersEnabled = false,\n\t\tTracersKeybind = "X",'''
+          if old not in s:
+              raise SystemExit('Tracers config anchor not found')
+          s = s.replace(old, new, 1)
+
+          old = '''\t\tFreecam = false,\n\t\tFreecamKeybind = "L",\n\t\tFreecamSpeed = 10,'''
+          new = '''\t\tFreecam = false,\n\t\tFreecamEnabled = false,\n\t\tFreecamKeybind = "L",\n\t\tFreecamSpeed = 10,'''
+          if old not in s:
+              raise SystemExit('Freecam config anchor not found')
+          s = s.replace(old, new, 1)
+
+          # --- Runtime camera state for mouse look ---
+          old = '''\t\t\tfreecamLoop = nil, freecamBegan = nil, freecamEnded = nil,\n\t\t\tsavedType = nil, savedSubject = nil, wasAnchored = false, keys = {},'''
+          new = '''\t\t\tfreecamLoop = nil, freecamBegan = nil, freecamEnded = nil,\n\t\t\tsavedType = nil, savedSubject = nil, wasAnchored = false, keys = {},\n\t\t\tsavedMouseBehavior = nil, savedMouseIconEnabled = nil,\n\t\t\tfreecamPitch = 0, freecamYaw = 0,'''
+          if old not in s:
+              raise SystemExit('Runtime camera anchor not found')
+          s = s.replace(old, new, 1)
+
+          # --- ESP rendering uses master && active ---
+          s = s.replace('''\t\tlocal anyEnabled = espCfg.Highlight or espCfg.Names or espCfg.Details or espCfg.Tracers''', '''\t\tlocal anyEnabled = (espCfg.HighlightEnabled and espCfg.Highlight)\n\t\t\tor (espCfg.NamesEnabled and espCfg.Names)\n\t\t\tor (espCfg.DetailsEnabled and espCfg.Details)\n\t\t\tor (espCfg.TracersEnabled and espCfg.Tracers)''', 1)
+          s = s.replace('''\t\t\tif espCfg.Highlight and valid then''', '''\t\t\tif espCfg.HighlightEnabled and espCfg.Highlight and valid then''', 1)
+          s = s.replace('''\t\t\tlocal showText = (espCfg.Names or espCfg.Details) and valid''', '''\t\t\tlocal showText = ((espCfg.NamesEnabled and espCfg.Names) or (espCfg.DetailsEnabled and espCfg.Details)) and valid''', 1)
+          s = s.replace('''\t\t\tif espCfg.Tracers and valid then''', '''\t\t\tif espCfg.TracersEnabled and espCfg.Tracers and valid then''', 1)
+
+          # --- Freecam: replace the whole implementation with master/active-safe mouse look ---
+          start = s.find('\tfunction Features.SetFreecam(enabled)')
+          end = s.find('\n\tfunction Features.SetXRay(enabled)', start)
+          if start == -1 or end == -1:
+              raise SystemExit('SetFreecam block not found')
+
+          freecam = '''\tfunction Features.SetFreecam(enabled)\n\t\tlocal cam = workspace.CurrentCamera\n\t\tlocal root = getRoot()\n\t\tif not cam then return end\n\n\t\tif enabled then\n\t\t\tRuntime.Camera.savedType = cam.CameraType\n\t\t\tRuntime.Camera.savedSubject = cam.CameraSubject\n\t\t\tRuntime.Camera.savedMouseBehavior = UserInputService.MouseBehavior\n\t\t\tRuntime.Camera.savedMouseIconEnabled = UserInputService.MouseIconEnabled\n\t\t\tcam.CameraType = Enum.CameraType.Scriptable\n\n\t\t\tif root then\n\t\t\t\tRuntime.Camera.wasAnchored = root.Anchored\n\t\t\t\troot.Anchored = true\n\t\t\tend\n\n\t\t\tlocal pitch, yaw = cam.CFrame:ToOrientation()\n\t\t\tRuntime.Camera.freecamPitch = pitch\n\t\t\tRuntime.Camera.freecamYaw = yaw\n\t\t\tUserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter\n\t\t\tUserInputService.MouseIconEnabled = false\n\n\t\t\tRuntime.Camera.freecamBegan = UserInputService.InputBegan:Connect(function(input, gp)\n\t\t\t\tif gp then return end\n\t\t\t\tif input.UserInputType == Enum.UserInputType.Keyboard then\n\t\t\t\t\tRuntime.Camera.keys[input.KeyCode] = true\n\t\t\t\tend\n\t\t\tend)\n\t\t\tRuntime.Camera.freecamEnded = UserInputService.InputEnded:Connect(function(input)\n\t\t\t\tif input.UserInputType == Enum.UserInputType.Keyboard then\n\t\t\t\t\tRuntime.Camera.keys[input.KeyCode] = nil\n\t\t\t\tend\n\t\t\tend)\n\n\t\t\tRuntime.Camera.freecamLoop = RunService.RenderStepped:Connect(function()\n\t\t\t\tif not Config.Extras.Camera.FreecamEnabled or not Config.Extras.Camera.Freecam then\n\t\t\t\t\tFeatures.SetFreecam(false)\n\t\t\t\t\treturn\n\t\t\t\tend\n\n\t\t\t\tlocal speed = Config.Extras.Camera.FreecamSpeed or 10\n\t\t\t\tlocal mouseDelta = UserInputService:GetMouseDelta()\n\t\t\t\tlocal sensitivity = 0.003\n\t\t\t\tRuntime.Camera.freecamYaw = Runtime.Camera.freecamYaw - (mouseDelta.X * sensitivity)\n\t\t\t\tRuntime.Camera.freecamPitch = math.clamp(\n\t\t\t\t\tRuntime.Camera.freecamPitch - (mouseDelta.Y * sensitivity),\n\t\t\t\t\t-math.rad(89),\n\t\t\t\t\tmath.rad(89)\n\t\t\t\t)\n\n\t\t\t\tlocal position = cam.CFrame.Position\n\t\t\t\tcam.CFrame = CFrame.new(position) * CFrame.fromOrientation(Runtime.Camera.freecamPitch, Runtime.Camera.freecamYaw, 0)\n\n\t\t\t\tlocal dir = Vector3.zero\n\t\t\t\tlocal keys = Runtime.Camera.keys\n\n\t\t\t\tif keys[Enum.KeyCode.W] then dir = dir + cam.CFrame.LookVector end\n\t\t\t\tif keys[Enum.KeyCode.S] then dir = dir - cam.CFrame.LookVector end\n\t\t\t\tif keys[Enum.KeyCode.A] then dir = dir - cam.CFrame.RightVector end\n\t\t\t\tif keys[Enum.KeyCode.D] then dir = dir + cam.CFrame.RightVector end\n\t\t\t\tif keys[Enum.KeyCode.E] then dir = dir + Vector3.new(0, 1, 0) end\n\t\t\t\tif keys[Enum.KeyCode.Q] then dir = dir - Vector3.new(0, 1, 0) end\n\n\t\t\t\tif dir.Magnitude > 0 then\n\t\t\t\t\tcam.CFrame = cam.CFrame + (dir.Unit * (speed * 0.1))\n\t\t\t\tend\n\t\t\tend)\n\t\telse\n\t\t\tif Runtime.Camera.freecamLoop then\n\t\t\t\tRuntime.Camera.freecamLoop:Disconnect()\n\t\t\t\tRuntime.Camera.freecamLoop = nil\n\t\t\tend\n\t\t\tif Runtime.Camera.freecamBegan then\n\t\t\t\tRuntime.Camera.freecamBegan:Disconnect()\n\t\t\t\tRuntime.Camera.freecamBegan = nil\n\t\t\tend\n\t\t\tif Runtime.Camera.freecamEnded then\n\t\t\t\tRuntime.Camera.freecamEnded:Disconnect()\n\t\t\t\tRuntime.Camera.freecamEnded = nil\n\t\t\tend\n\t\t\ttable.clear(Runtime.Camera.keys)\n\n\t\t\tUserInputService.MouseBehavior = Runtime.Camera.savedMouseBehavior or Enum.MouseBehavior.Default\n\t\t\tif Runtime.Camera.savedMouseIconEnabled ~= nil then\n\t\t\t\tUserInputService.MouseIconEnabled = Runtime.Camera.savedMouseIconEnabled\n\t\t\telse\n\t\t\t\tUserInputService.MouseIconEnabled = true\n\t\t\tend\n\n\t\t\tcam.CameraType = Runtime.Camera.savedType or Enum.CameraType.Custom\n\t\t\tif player.Character and player.Character:FindFirstChildOfClass("Humanoid") then\n\t\t\t\tcam.CameraSubject = player.Character:FindFirstChildOfClass("Humanoid")\n\t\t\tend\n\t\t\tif root and Runtime.Camera.wasAnchored ~= nil then\n\t\t\t\troot.Anchored = Runtime.Camera.wasAnchored\n\t\t\tend\n\t\tend\n\tend\n'''
+          s = s[:start] + freecam + s[end:]
+
+          # --- Hotkeys: new ESP/Freecam keybinds require master toggle ---
+          old = '''             elseif matchesKey(Config.ESP.HighlightKeybind) then\n    Config.ESP.Highlight = not Config.ESP.Highlight\n    Features.UpdateESP()\n\nelseif matchesKey(Config.ESP.NamesKeybind) then\n    Config.ESP.Names = not Config.ESP.Names\n    Features.UpdateESP()\n\nelseif matchesKey(Config.ESP.DetailsKeybind) then\n    Config.ESP.Details = not Config.ESP.Details\n    Features.UpdateESP()\n\nelseif matchesKey(Config.ESP.TracersKeybind) then\n    Config.ESP.Tracers = not Config.ESP.Tracers\n    Features.UpdateESP()\n\nelseif matchesKey(Config.Extras.Camera.FreecamKeybind) then\n    Config.Extras.Camera.Freecam = not Config.Extras.Camera.Freecam\n    Features.SetFreecam(Config.Extras.Camera.Freecam)'''
+          new = '''             elseif matchesKey(Config.ESP.HighlightKeybind) and Config.ESP.HighlightEnabled then\n    Config.ESP.Highlight = not Config.ESP.Highlight\n    Features.UpdateESP()\n\nelseif matchesKey(Config.ESP.NamesKeybind) and Config.ESP.NamesEnabled then\n    Config.ESP.Names = not Config.ESP.Names\n    Features.UpdateESP()\n\nelseif matchesKey(Config.ESP.DetailsKeybind) and Config.ESP.DetailsEnabled then\n    Config.ESP.Details = not Config.ESP.Details\n    Features.UpdateESP()\n\nelseif matchesKey(Config.ESP.TracersKeybind) and Config.ESP.TracersEnabled then\n    Config.ESP.Tracers = not Config.ESP.Tracers\n    Features.UpdateESP()\n\nelseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.FreecamEnabled then\n    Config.Extras.Camera.Freecam = not Config.Extras.Camera.Freecam\n    Features.SetFreecam(Config.Extras.Camera.Freecam)'''
+          if old not in s:
+              raise SystemExit('Hotkey ESP block not found')
+          s = s.replace(old, new, 1)
+
+          # --- UI: ESP master toggles + active keybinds ---
+          old = '''\t\tControls.ESP.Highlight = esp:CreateToggle({\n\t\t\tName = "ESP Highlight",\n\t\t\tCurrentValue = E.Highlight,\n\t\t\tCallback = function(Value)\n\t\t\t\tE.Highlight = Value\n\t\t\t\tFeatures.UpdateESP()\n\t\t\tend,\n\t\t})'''
+          new = '''\t\tControls.ESP.Highlight = esp:CreateToggle({\n\t\t\tName = "ESP Highlight",\n\t\t\tCurrentValue = E.HighlightEnabled,\n\t\t\tCallback = function(Value)\n\t\t\t\tE.HighlightEnabled = Value\n\t\t\t\tif not Value then E.Highlight = false end\n\t\t\t\tFeatures.UpdateESP()\n\t\t\tend,\n\t\t})'''
+          if old not in s:
+              raise SystemExit('ESP Highlight UI not found')
+          s = s.replace(old, new, 1)
+
+          old = '''\t\tControls.ESP.Names = esp:CreateToggle({\n\t\t\tName = "ESP Nombres",\n\t\t\tCurrentValue = E.Names,\n\t\t\tCallback = function(Value)\n\t\t\t\tE.Names = Value\n\t\t\t\tFeatures.UpdateESP()\n\t\t\tend,\n\t\t})'''
+          new = '''\t\tControls.ESP.Names = esp:CreateToggle({\n\t\t\tName = "ESP Nombres",\n\t\t\tCurrentValue = E.NamesEnabled,\n\t\t\tCallback = function(Value)\n\t\t\t\tE.NamesEnabled = Value\n\t\t\t\tif not Value then E.Names = false end\n\t\t\t\tFeatures.UpdateESP()\n\t\t\tend,\n\t\t})\n\n\t\tControls.ESP.NamesKeybind = esp:CreateKeybind({\n\t\t\tName = "ESP Nombres Keybind",\n\t\t\tCurrentKeybind = E.NamesKeybind,\n\t\t\tCallback = function(Key)\n\t\t\t\tE.NamesKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)\n\t\t\tend,\n\t\t})'''
+          if old not in s:
+              raise SystemExit('ESP Names UI not found')
+          s = s.replace(old, new, 1)
+
+          old = '''\t\tControls.ESP.Details = esp:CreateToggle({\n\t\t\tName = "ESP Nombre + Studs + Vida",\n\t\t\tCurrentValue = E.Details,\n\t\t\tCallback = function(Value)\n\t\t\t\tE.Details = Value\n\t\t\t\tFeatures.UpdateESP()\n\t\t\tend,\n\t\t})'''
+          new = '''\t\tControls.ESP.Details = esp:CreateToggle({\n\t\t\tName = "ESP Nombre + Studs + Vida",\n\t\t\tCurrentValue = E.DetailsEnabled,\n\t\t\tCallback = function(Value)\n\t\t\t\tE.DetailsEnabled = Value\n\t\t\t\tif not Value then E.Details = false end\n\t\t\t\tFeatures.UpdateESP()\n\t\t\tend,\n\t\t})'''
+          if old not in s:
+              raise SystemExit('ESP Details UI not found')
+          s = s.replace(old, new, 1)
+
+          # --- UI: Tracers master toggle ---
+          old = '''\t\tControls.ESP.Tracers = esp:CreateToggle({\n\t\t\tName = "Tracers",\n\t\t\tCurrentValue = E.Tracers,\n\t\t\tCallback = function(Value)\n\t\t\t\tE.Tracers = Value\n\t\t\t\tFeatures.UpdateESP()\n\t\t\tend,\n\t\t})'''
+          new = '''\t\tControls.ESP.Tracers = esp:CreateToggle({\n\t\t\tName = "Tracers",\n\t\t\tCurrentValue = E.TracersEnabled,\n\t\t\tCallback = function(Value)\n\t\t\t\tE.TracersEnabled = Value\n\t\t\t\tif not Value then E.Tracers = false end\n\t\t\t\tFeatures.UpdateESP()\n\t\t\tend,\n\t\t})'''
+          if old not in s:
+              raise SystemExit('ESP Tracers UI not found')
+          s = s.replace(old, new, 1)
+
+          # --- UI: Freecam master toggle ---
+          old = '''\t\tControls.Extras.Freecam = extras:CreateToggle({\n\t\t\tName = "Freecam",\n\t\t\tCurrentValue = C.Freecam,\n\t\t\tCallback = function(Value)\n\t\t\t\tC.Freecam = Value\n\t\t\t\tFeatures.SetFreecam(Value)\n\t\t\tend,\n\t\t})'''
+          new = '''\t\tControls.Extras.Freecam = extras:CreateToggle({\n\t\t\tName = "Freecam",\n\t\t\tCurrentValue = C.FreecamEnabled,\n\t\t\tCallback = function(Value)\n\t\t\t\tC.FreecamEnabled = Value\n\t\t\t\tif not Value then\n\t\t\t\t\tC.Freecam = false\n\t\t\t\t\tFeatures.SetFreecam(false)\n\t\t\t\tend\n\t\t\tend,\n\t\t})'''
+          if old not in s:
+              raise SystemExit('Freecam UI not found')
+          s = s.replace(old, new, 1)
+
+          # --- Cleanup ---
+          old = '''\t\tConfig.Extras.Camera.Freecam = false\n\t\tFeatures.SetFreecam(false)'''
+          new = '''\t\tConfig.Extras.Camera.Freecam = false\n\t\tConfig.Extras.Camera.FreecamEnabled = false\n\t\tFeatures.SetFreecam(false)'''
+          if old in s:
+              s = s.replace(old, new, 1)
+
+          p.write_text(s, encoding='utf-8')
+
+      - name: Commit patch and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add RATAHUB .github/workflows/ratahupatch.yml
+          git commit -m "Fix ESP and Freecam master keybind behavior" || exit 0
+          git push
