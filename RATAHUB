@@ -1,4 +1,4 @@
- --RATAHUB V5 OMG NO MAMES ENSERIO WE? NETA ME LO JURAS
+ --RATAHUB V5 OMG NO MAMES ENSERIO WE? NETA ME LO JURAS2
 	local TweenService = game:GetService("TweenService")
 	local Players = game:GetService("Players")
 
@@ -2166,7 +2166,7 @@ local overlayGui = create("ScreenGui", {
 		local listHeight = math.min(#options, 5) * 30 + 8
 		local list = create("Frame", {
 			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -18, 0, 18),
+			Position = UDim2.new(1, -18, 0, 76),
 			Size = UDim2.new(0, 0, 0, 0),
 			BackgroundColor3 = THEME.Panel,
 			BorderSizePixel = 0,
@@ -3097,7 +3097,7 @@ local watermarkStats = create("TextLabel", {
 local targetInfo = create("Frame", {
     Name = "TargetInfo",
     AnchorPoint = Vector2.new(1, 0),
-    Position = UDim2.new(1, -18, 0, 18),
+    Position = UDim2.new(1, -18, 0, 76),
     Size = UDim2.fromOffset(220, 122),
     BackgroundColor3 = THEME.Panel,
     BackgroundTransparency = 0.08,
@@ -3110,7 +3110,7 @@ local targetInfo = create("Frame", {
 local targetInfoVisible = false
 local targetInfoAnimating = false
 
-targetInfo.Position = UDim2.new(1, 238, 0, 18)
+targetInfo.Position = UDim2.new(1, 238, 0, 76)
 
 local function ShowTargetInfo()
     if targetInfoVisible or targetInfoAnimating then
@@ -3124,7 +3124,7 @@ local function ShowTargetInfo()
         targetInfo,
         TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
         {
-            Position = UDim2.new(1, -18, 0, 18)
+            Position = UDim2.new(1, -18, 0, 76)
         }
     )
 
@@ -3147,7 +3147,7 @@ local function HideTargetInfo()
         targetInfo,
         TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
         {
-            Position = UDim2.new(1, 238, 0, 18)
+            Position = UDim2.new(1, 238, 0, 76)
         }
     )
 
@@ -3181,40 +3181,87 @@ local targetName = create("TextLabel", {
 local targetStats = create("TextLabel", {
     Name = "Stats",
     Position = UDim2.fromOffset(12, 32),
-    Size = UDim2.new(1, -24, 0, 54),
+    Size = UDim2.new(1, -24, 0, 64),
     BackgroundTransparency = 1,
     Text = "",
     TextColor3 = THEME.Foreground,
     TextXAlignment = Enum.TextXAlignment.Left,
     TextYAlignment = Enum.TextYAlignment.Top,
     Font = FONT_MONO,
-    TextSize = 11,
+    TextSize = 14,
     ZIndex = 101,
     Parent = targetInfo,
 })
 
-local hpBackground = create("Frame", {
-    Name = "HealthBackground",
-    Position = UDim2.fromOffset(12, 94),
-    Size = UDim2.new(1, -24, 0, 8),
+local targetTeam = create("TextLabel", {
+    Name = "Team",
+    Position = UDim2.fromOffset(12, 48),
+    Size = UDim2.new(1, -24, 0, 20),
+    BackgroundTransparency = 1,
+    Text = "Team: Ninguno",
+    TextColor3 = THEME.Foreground,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    TextYAlignment = Enum.TextYAlignment.Center,
+    Font = FONT_MONO,
+    TextSize = 14,
+    ZIndex = 101,
+    Parent = targetInfo,
+})
+
+local teamBar = create("Frame", {
+    Name = "TeamColorBar",
+    Position = UDim2.fromOffset(12, 70),
+    Size = UDim2.fromOffset(105, 7),
     BackgroundColor3 = THEME.Secondary,
     BorderSizePixel = 0,
     ZIndex = 101,
     Parent = targetInfo,
 })
 
-corner(4, hpBackground)
+corner(2, teamBar)
 
-local hpFill = create("Frame", {
-    Name = "HealthFill",
-    Size = UDim2.fromScale(1, 1),
-    BackgroundColor3 = THEME.Primary,
+local hpBackground = create("Frame", {
+    Name = "HealthBar",
+    BackgroundColor3 = Color3.fromRGB(185, 55, 55),
     BorderSizePixel = 0,
-    ZIndex = 102,
+    Size = UDim2.new(1, -24, 0, 24),
+    Position = UDim2.fromOffset(12, 83),
+    Parent = targetInfo,
+})
+
+create("UICorner", {
+    CornerRadius = UDim.new(0, 7),
     Parent = hpBackground,
 })
 
-corner(4, hpFill)
+local hpFill = create("Frame", {
+    Name = "HealthFill",
+    BackgroundColor3 = Color3.fromRGB(65, 205, 95),
+    BorderSizePixel = 0,
+    Size = UDim2.new(1, 0, 1, 0),
+    Parent = hpBackground,
+})
+
+create("UICorner", {
+    CornerRadius = UDim.new(0, 7),
+    Parent = hpFill,
+})
+
+local hpText = create("TextLabel", {
+    Name = "HealthText",
+    BackgroundTransparency = 1,
+    Size = UDim2.fromScale(1, 1),
+    Font = Enum.Font.GothamBold,
+    Text = "100 / 100  •  100%",
+    TextSize = 14,
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    TextStrokeTransparency = 0.45,
+    TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
+    TextXAlignment = Enum.TextXAlignment.Center,
+    TextYAlignment = Enum.TextYAlignment.Center,
+    ZIndex = 3,
+    Parent = hpBackground,
+})
 
 local hudFrameCounter = 0
 local hudLastTime = os.clock()
@@ -3260,7 +3307,7 @@ return
     local humanoid = character and character:FindFirstChildOfClass("Humanoid")
     local root = character and character:FindFirstChild("HumanoidRootPart")
 
-    if not humanoid or not root or humanoid.Health <= 0 then
+   if not humanoid or not root or humanoid.Health <= 0 then
         targetInfo.Visible = false
         return
     end
@@ -3281,24 +3328,42 @@ return
 
     local teamName = target.Team and target.Team.Name or "Ninguno"
 
+local teamColor = Color3.fromRGB(150, 160, 173)
+
+if target.Team then
+    teamColor = target.Team.TeamColor.Color
+end
+
     targetName.Text = "TARGET  •  " .. target.DisplayName
 
 targetStats.Text = string.format(
-    "HP: %d / %d  (%d%%)\nDist: %d studs\nTeam: %s",
-    math.floor(hp + 0.5),
-    math.floor(maxHp + 0.5),
-    math.floor(hpPercent * 100 + 0.5),
-    distance,
-    teamName
+    "Dist: %d studs",
+    distance
 )
 
-    hpFill.Size = UDim2.new(hpPercent, 0, 1, 0)
+targetTeam.Text = "Team: " .. teamName
+targetTeam.TextColor3 = teamColor
+teamBar.BackgroundColor3 = teamColor
 
-    if hpPercent <= 0.25 then
-        hpFill.BackgroundColor3 = THEME.Destructive
-    else
-        hpFill.BackgroundColor3 = THEME.Primary
-    end
+    hpText.Text = string.format(
+    "%d / %d  •  %d%%",
+    math.floor(hp + 0.5),
+    math.floor(maxHp + 0.5),
+    math.floor(hpPercent * 100 + 0.5)
+)
+    TweenService:Create(
+    hpFill,
+    TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+    {
+        Size = UDim2.new(hpPercent, 0, 1, 0)
+    }
+):Play()
+
+if hpPercent <= 0.25 then
+    hpFill.BackgroundColor3 = Color3.fromRGB(75, 190, 85)
+else
+    hpFill.BackgroundColor3 = Color3.fromRGB(65, 205, 95)
+end
 
     ShowTargetInfo()
 end)
