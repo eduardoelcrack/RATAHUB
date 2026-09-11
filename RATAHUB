@@ -2930,10 +2930,10 @@ end
 				Gravity = 196.2,
 				InfiniteJump = false,
 				InfiniteJumpActive = false,
-				InfiniteJumpKeybind = "M",
+				InfiniteJumpKeybind = "None",
 				Noclip = false,
 				NoclipActive = false,
-				NoclipKeybind = "N",
+				NoclipKeybind = "None",
 			},
 			Player = {
 				HitboxExpander = false,
@@ -2949,15 +2949,15 @@ end
 ESP = {
     Highlight = false,
     HighlightEnabled = false,
-    HighlightKeybind = "H",
+    HighlightKeybind = "None",
 
     Names = false,
     NamesEnabled = false,
-    NamesKeybind = "O",
+    NamesKeybind = "None",
 
     Details = false,
     DetailsEnabled = false,
-    DetailsKeybind = "P",
+    DetailsKeybind = "None",
          
             OffsetX = 0,
              OffsetY = 0,
@@ -2965,7 +2965,7 @@ ESP = {
 
 Tracers = false,
 TracersEnabled = false,
-TracersKeybind = "X",
+TracersKeybind = "None",
 			TracerOrigin = "Bottom",
 			TeamColorTracers = false,
 			WhitelistMode = "Disabled",
@@ -2981,7 +2981,7 @@ TracersKeybind = "X",
 		},
 		Aimlock = {
 			Enabled = false,
-			Keybind = "RightShift",
+			Keybind = "None",
 			Smoothness = 25,
 			Prediction = false,
 			PredictionTime = 0.13,
@@ -3023,7 +3023,7 @@ TracersKeybind = "X",
 				FOV = 70,
 Freecam = false,
 FreecamEnabled = false,
-FreecamKeybind = "L",
+FreecamKeybind = "None",
 FreecamSpeed = 10,
 			},
 			Vision = {
@@ -5282,8 +5282,8 @@ function Features.StartHotkeys()
 				Features.ToggleInfiniteJumpActive()
 			elseif matchesKey(Config.Main.Movement.NoclipKeybind) then
 				Features.ToggleNoclipActive()
-			elseif matchesKey(Config.Aimlock.Keybind) then
-				Features.ToggleAimlockLock()
+elseif matchesKey(Config.Aimlock.Keybind) and Config.Aimlock.Enabled then
+    Features.ToggleAimlockLock()
 			elseif matchesKey(Config.Triggerbot.Keybind) then
 				Features.ToggleTriggerbotActive()
 
@@ -6098,14 +6098,18 @@ Controls.ESP.Tracers = esp:CreateToggle({
 				E.Camera.FOV = Value
 			end,
 		})
-		Controls.Extras.Freecam = extras:CreateToggle({
-			Name = "Freecam",
-			CurrentValue = E.Camera.Freecam,
-			Callback = function(Value)
-				E.Camera.Freecam = Value
-				Features.SetFreecam(Value)
-			end,
-		})
+Controls.Extras.Freecam = extras:CreateToggle({
+    Name = "Freecam",
+    CurrentValue = C.FreecamEnabled,
+    Callback = function(Value)
+        C.FreecamEnabled = Value
+
+        if not Value and C.Freecam then
+            C.Freecam = false
+            Features.SetFreecam(false)
+        end
+    end,
+})
 
         Controls.Extras.FreecamKeybind = extras:CreateKeybind({
     Name = "Freecam Keybind",
