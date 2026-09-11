@@ -1,4 +1,4 @@
- --RATAHUB V5 OMG NO MAMES ENSERIO WE? NETA ME LO JURAS2
+ --RATAHUB V5 OMG NO MAMES ENSERIO WE? NETA ME LO JURAS22
 	local TweenService = game:GetService("TweenService")
 	local Players = game:GetService("Players")
 
@@ -4512,6 +4512,15 @@ end)
 	function Features.UnlockAimlock(reason, targetName)
 		Runtime.Aimlock.locked = false
 		Runtime.Aimlock.currentTarget = nil
+        if Runtime.Aimlock.deathConnection then
+    Runtime.Aimlock.deathConnection:Disconnect()
+    Runtime.Aimlock.deathConnection = nil
+end
+
+if Runtime.Aimlock.leaveConnection then
+    Runtime.Aimlock.leaveConnection:Disconnect()
+    Runtime.Aimlock.leaveConnection = nil
+end
 		ClearAimlockHighlight()
 
 		if Runtime.Aimlock.tracer then
@@ -4544,6 +4553,27 @@ end)
 				Runtime.Aimlock.currentTarget = candidate
 				Runtime.Aimlock.locked = true
 				CreateAimlockHighlight(candidate)
+                local candidateCharacter = candidate.Character
+local candidateHumanoid = candidateCharacter
+    and candidateCharacter:FindFirstChildOfClass("Humanoid")
+
+if candidateHumanoid then
+    Runtime.Aimlock.deathConnection = candidateHumanoid.Died:Connect(function()
+        if Runtime.Aimlock.locked
+            and Runtime.Aimlock.currentTarget == candidate
+        then
+            Features.UnlockAimlock("died", candidate.Name)
+        end
+    end)
+end
+
+Runtime.Aimlock.leaveConnection = Players.PlayerRemoving:Connect(function(leavingPlayer)
+    if Runtime.Aimlock.locked
+        and Runtime.Aimlock.currentTarget == leavingPlayer
+    then
+        Features.UnlockAimlock("left", leavingPlayer.Name)
+    end
+end)
 
 				if Config.Sounds.LockSound and Config.Sounds.LockTargetSound then
 					Features.PlaySound(Config.Sounds.LockTargetSound)
@@ -4598,18 +4628,22 @@ end)
 				local targetPlayer = Runtime.Aimlock.currentTarget
 				local targetName = targetPlayer.Name
 
-				-- Check if target is still in game
-				if not targetPlayer.Parent then
-					Features.UnlockAimlock("left", targetName)
-					return
-				end
+-- Check if target is still in game
+if not targetPlayer.Parent or not Players:FindFirstChild(targetName) then
+    Features.UnlockAimlock("left", targetName)
+    return
+end
 
-				-- Check if target is still alive
-				if not Features.IsAlive(targetPlayer) then
-					Features.PlaySound("CS:GO Headshot")
-					Features.UnlockAimlock("died", targetName)
-					return
-				end
+-- Check if target is still alive
+local targetCharacter = targetPlayer.Character
+local targetHumanoid = targetCharacter
+    and targetCharacter:FindFirstChildOfClass("Humanoid")
+
+if not targetHumanoid or targetHumanoid.Health <= 0 then
+    Features.PlaySound("CS:GO Headshot")
+    Features.UnlockAimlock("died", targetName)
+    return
+end
 
 				-- Check whitelist validity
 				if not Features.IsWhitelisted(targetPlayer, Config.Aimlock.WhitelistMode, Config.Aimlock.WhitelistTarget) then
