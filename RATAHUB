@@ -1214,6 +1214,42 @@ local confirmPanel = create("Frame", {
 corner(14, confirmPanel)
 stroke(confirmPanel, 0.85)
 
+-- Drag de la ventana de confirmación
+local dragging = false
+local dragStart
+local startPos
+
+confirmPanel.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = confirmPanel.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if not dragging then
+        return
+    end
+
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+
+        confirmPanel.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
 create("TextLabel", {
     Position = UDim2.fromOffset(20, 18),
     Size = UDim2.new(1, -40, 0, 24),
@@ -5462,14 +5498,31 @@ then
         return
     end
 
+    -- Guardar el tamaño original una sola vez
+    local originalW = window:GetAttribute("RATAHUBOriginalWidth")
+    local originalH = window:GetAttribute("RATAHUBOriginalHeight")
+
+    if not originalW or not originalH then
+        originalW = window.AbsoluteSize.X
+        originalH = window.AbsoluteSize.Y
+
+        window:SetAttribute("RATAHUBOriginalWidth", originalW)
+        window:SetAttribute("RATAHUBOriginalHeight", originalH)
+    end
+
     local visible = screenGui.Enabled
 
     if visible then
+        -- Ocultar con animación
         local tweenOut = tween(
             window,
-            TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            TweenInfo.new(
+                0.16,
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.In
+            ),
             {
-                Size = UDim2.fromOffset(window.AbsoluteSize.X, 0)
+                Size = UDim2.fromOffset(originalW, 0)
             }
         )
 
@@ -5478,35 +5531,28 @@ then
                 screenGui.Enabled = false
             end
         end)
+
     else
+        -- Mostrar con animación
         screenGui.Enabled = true
 
-        local originalSize = window:GetAttribute("RATAHUBOriginalSize")
+        window.Size = UDim2.fromOffset(originalW, 0)
 
-        if originalSize then
-            window.Size = UDim2.fromOffset(
-                originalSize.X,
-                0
-            )
-
-            tween(
-                window,
-                TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                {
-                    Size = UDim2.fromOffset(
-                        originalSize.X,
-                        originalSize.Y
-                    )
-                }
-            )
-        else
-            screenGui.Enabled = true
-        end
+        tween(
+            window,
+            TweenInfo.new(
+                0.16,
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.Out
+            ),
+            {
+                Size = UDim2.fromOffset(originalW, originalH)
+            }
+        )
     end
 
     return
 end
-
         local keyName = nil
 			if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode ~= Enum.KeyCode.Unknown then
 				keyName = input.KeyCode.Name
