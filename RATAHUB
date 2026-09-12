@@ -2248,13 +2248,19 @@ end)
 			end
 		end)
 
-		function handle:Set(v)
-			value = cleanRound(v)
-			render()
-		end
-		function handle:Get() return value end
-		return handle
-	end
+function handle:Set(v)
+    value = cleanRound(v)
+    render()
+end
+
+function handle:SetSilent(v)
+    value = cleanRound(v)
+    render()
+end
+
+function handle:Get()
+    return value
+end
 
 	--=====================================================================
 	-- CONTROL: DROPDOWN (Event-Anchored Overlay Layer + Dynamic Scroll Tracking)
