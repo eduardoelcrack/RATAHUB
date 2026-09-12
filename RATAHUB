@@ -6079,6 +6079,9 @@ Loader:SetStatus("Loading extra features...")
 		local extras = win:CreateTab({ Name = "Extras", Icon = "✦", SubTitle = "Camera, vision, tools, performance" })
 		local E = Config.Extras
 
+        Loader:SetProgress(0.72)
+Loader:SetStatus("Extras: Camera...")
+
 		extras:CreateSection("Camera")
 		Controls.Extras.UnlockMaxDistance = extras:CreateToggle({
 			Name = "Unlock Max Camera Distance (Zoom Infinito)",
@@ -6126,6 +6129,9 @@ Controls.Extras.Freecam = extras:CreateToggle({
     end,
 })
 
+        Loader:SetProgress(0.75)
+Loader:SetStatus("Extras: Freecam...")
+
 		Controls.Extras.FreecamSpeed = extras:CreateSlider({
 			Name = "Freecam Camera Speed",
 			Range = { 1, 100 },
@@ -6135,6 +6141,10 @@ Controls.Extras.Freecam = extras:CreateToggle({
 				E.Camera.FreecamSpeed = Value
 			end,
 		})
+
+        Loader:SetProgress(0.75)
+Loader:SetStatus("Extras: Freecam...")
+
 
 		extras:CreateSection("Vision")
 		Controls.Extras.XRay = extras:CreateToggle({
@@ -6146,6 +6156,9 @@ Controls.Extras.Freecam = extras:CreateToggle({
 			end,
 		})
 
+        Loader:SetProgress(0.78)
+Loader:SetStatus("Extras: Vision...")
+      
 		extras:CreateSection("Tools")
 		Controls.Extras.ClickTP = extras:CreateToggle({
 			Name = "Click TP",
@@ -6154,6 +6167,10 @@ Controls.Extras.Freecam = extras:CreateToggle({
 				Features.SetClickTP(Value)
 			end,
 		})
+
+Loader:SetProgress(0.82)
+Loader:SetStatus("Extras: Tools...")
+
 		Controls.Extras.BTools = extras:CreateToggle({
 			Name = "BTools",
 			CurrentValue = E.Tools.BTools,
