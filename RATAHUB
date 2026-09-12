@@ -1356,6 +1356,24 @@ noBtn.MouseButton1Click:Connect(function()
     hideConfirmation()
 end)
 
+yesBtn.MouseButton1Click:Connect(function()
+    print("1 - CLICK SÍ")
+
+    hideConfirmation()
+
+    print("2 - HIDE EJECUTADO")
+
+    task.delay(0.12, function()
+        print("3 - EJECUTANDO DESTROYHUB")
+
+local ok, err = pcall(function()
+    RATAHUB._Features.DestroyHub()
+end)
+
+        print("4 - DESTROYHUB:", ok, err)
+    end)
+end)
+
 
 
 		--------------------------------------------------------------
@@ -3253,6 +3271,7 @@ FreecamSpeed = 10,
 		},
 		XRay         = { parts = {} },
 		AntiFling    = { conn = nil },
+        BTools       = { conn = nil },
 		ESP          = { loop = nil, container = nil, objects = {} },
 		Aimlock      = { loop = nil, locked = false, currentTarget = nil, tracer = nil, fovCircle = nil },
 		Triggerbot   = { active = false, loop = nil, isShooting = false },
@@ -3262,7 +3281,9 @@ FreecamSpeed = 10,
 	}
 
 	local Features = {}
-    -------------------------------------------------------------
+
+    RATAHUB._Features = Features
+-------------------------------------------------------------
 -- RATAHUB V5 HUD / TARGET INFO
 -------------------------------------------------------------
 
@@ -4199,6 +4220,7 @@ end)
 		end)
 	end
 
+
 	------------------------------------------------------------- DESTROY HUB (Idempotent & Safe)
 	function Features.DestroyHub()
 		Features.StopFly()
@@ -4252,8 +4274,17 @@ end)
 		end
 		Features.UnlockAimlock()
 
-		local sGui = playerGui:FindFirstChild("RATAHUB_V5_GUI")
-		if sGui then pcall(function() sGui:Destroy() end) end
+for _, gui in ipairs(playerGui:GetChildren()) do
+    if gui:IsA("ScreenGui") then
+        local name = string.lower(gui.Name)
+
+        if string.find(name, "ratahub") then
+            pcall(function()
+                gui:Destroy()
+            end)
+        end
+    end
+end
 
 		RATAHUB:Notify({ Title = "Destroy Hub", Content = "RATAHUB V5 apagado y limpiado completamente.", Duration = 2 })
 	end
