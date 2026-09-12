@@ -1330,6 +1330,37 @@ local function hideConfirmation()
     end)
 end
 
+yesBtn.MouseButton1Click:Connect(function()
+    hideConfirmation()
+
+    task.delay(0.13, function()
+        pcall(function()
+            Features.Shutdown()
+        end)
+    end)
+end)
+
+    tween(
+        confirmOverlay,
+        TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {
+            BackgroundTransparency = 1
+        }
+    )
+
+    local out = tween(
+        confirmPanel,
+        TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {
+            Size = UDim2.fromOffset(330, 135)
+        }
+    )
+
+    out.Completed:Connect(function()
+        confirmOverlay.Visible = false
+    end)
+end
+
 closeBtn.MouseButton1Click:Connect(function()
     confirmOverlay.Visible = true
     confirmOverlay.BackgroundTransparency = 1
