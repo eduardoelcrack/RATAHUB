@@ -3277,9 +3277,56 @@ FreecamSpeed = 10,
         HUD = { loop = nil },
 	}
 
-	local Features = {}
+local Features = {}
 
-    RATAHUB._Features = Features
+-- SISTEMA DE PRESETS
+local ConfigPresets = {}
+
+local function DeepCopy(original)
+    if type(original) ~= "table" then
+        return original
+    end
+
+    local copy = {}
+
+    for key, value in pairs(original) do
+        copy[key] = DeepCopy(value)
+    end
+
+    return copy
+end
+
+function RATAHUB:GetPresets()
+    return ConfigPresets
+end
+
+function RATAHUB:SavePreset(name, data)
+    if type(name) ~= "string" or name == "" then
+        return false
+    end
+
+    ConfigPresets[name] = DeepCopy(data)
+    return true
+end
+
+function RATAHUB:LoadPreset(name)
+    return ConfigPresets[name]
+end
+
+function RATAHUB:DeletePreset(name)
+    if not ConfigPresets[name] then
+        return false
+    end
+
+    ConfigPresets[name] = nil
+    return true
+end
+
+function RATAHUB:GetConfig()
+    return Config
+end
+
+RATAHUB._Features = Features
 -------------------------------------------------------------
 -- RATAHUB V5 HUD / TARGET INFO
 -------------------------------------------------------------
