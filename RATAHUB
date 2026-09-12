@@ -3316,7 +3316,19 @@ function RATAHUB:SavePreset(name, data)
 end
 
 function RATAHUB:LoadPreset(name)
-    return ConfigPresets[name]
+    local preset = ConfigPresets[name]
+
+    if not preset then
+        return false
+    end
+
+    if RATAHUB.ApplyConfig then
+        RATAHUB:ApplyConfig(preset)
+    else
+        ApplyConfigTable(Config, preset)
+    end
+
+    return true
 end
 
 function RATAHUB:DeletePreset(name)
@@ -3333,6 +3345,216 @@ function RATAHUB:GetConfig()
 end
 
 RATAHUB._Features = Features
+
+-- ============================================================
+-- APPLY CONFIG / PRESET
+-- ============================================================
+
+local function ApplyConfigTable(target, source)
+    if type(target) ~= "table" or type(source) ~= "table" then
+        return
+    end
+
+    for key, value in pairs(source) do
+        if type(value) == "table" then
+            if type(target[key]) ~= "table" then
+                target[key] = {}
+            end
+
+            ApplyConfigTable(target[key], value)
+        else
+            target[key] = value
+        end
+    end
+end
+
+function RATAHUB:ApplyConfig(data)
+    if type(data) ~= "table" then
+        return false
+    end
+
+    -- Copiar el preset dentro de Config sin reemplazar
+    -- la tabla principal ni sus subtablas.
+    ApplyConfigTable(Config, data)
+
+    -- ========================================================
+    -- ACTUALIZAR CONTROLES VISUALES
+    -- ========================================================
+
+    local function SilentSet(control, value)
+        if control and control.SetSilent then
+            pcall(function()
+                control:SetSilent(value)
+            end)
+        end
+    end
+
+    local function SilentSetText(control, value)
+        if control and control.SetText then
+            pcall(function()
+                control:SetText(value)
+            end)
+        end
+    end
+
+    -- --------------------------------------------------------
+    -- MAIN
+    -- --------------------------------------------------------
+
+    if Controls.Main then
+        local M = Config.Main
+        local C = Controls.Main
+
+        if M.Movement then
+            SilentSet(C.Fly, M.Movement.Fly)
+            SilentSet(C.WalkSpeed, M.Movement.WalkSpeed)
+            SilentSet(C.JumpPower, M.Movement.JumpPower)
+            SilentSet(C.Gravity, M.Movement.Gravity)
+            SilentSet(C.InfiniteJump, M.Movement.InfiniteJump)
+            SilentSet(C.Noclip, M.Movement.Noclip)
+            SilentSet(C.Hitbox, M.Movement.Hitbox)
+        end
+
+        if M.Movement and M.Movement.FlyKeybind then
+            SilentSetText(C.FlyKeybind, M.Movement.FlyKeybind)
+        end
+
+        if M.Movement and M.Movement.WalkSpeedKeybind then
+            SilentSetText(C.WalkSpeedKeybind, M.Movement.WalkSpeedKeybind)
+        end
+
+        if M.Movement and M.Movement.InfiniteJumpKeybind then
+            SilentSetText(C.InfiniteJumpKeybind, M.Movement.InfiniteJumpKeybind)
+        end
+
+        if M.Movement and M.Movement.NoclipKeybind then
+            SilentSetText(C.NoclipKeybind, M.Movement.NoclipKeybind)
+        end
+
+        if M.Utility then
+            SilentSet(C.AntiAFK, M.Utility.AntiAFK)
+            SilentSet(C.ClickTP, M.Utility.ClickTP)
+            SilentSet(C.BTools, M.Utility.BTools)
+        end
+    end
+
+    -- --------------------------------------------------------
+    -- ESP
+    -- --------------------------------------------------------
+
+    if Controls.ESP then
+        local E = Config.ESP
+        local C = Controls.ESP
+
+        SilentSet(C.Enabled, E.Enabled)
+        SilentSet(C.Highlight, E.Highlight)
+        SilentSet(C.Names, E.Names)
+        SilentSet(C.Details, E.Details)
+        SilentSet(C.Tracers, E.Tracers)
+
+        SilentSet(C.TeamCheck, E.TeamCheck)
+        SilentSet(C.FriendCheck, E.FriendCheck)
+        SilentSet(C.WhitelistEnabled, E.WhitelistEnabled)
+
+        if C.IgnoreTeams then
+            SilentSet(C.IgnoreTeams, E.IgnoreTeams)
+        end
+
+        if C.WhitelistTarget then
+            SilentSet(C.WhitelistTarget, E.WhitelistTarget)
+        end
+    end
+
+    -- --------------------------------------------------------
+    -- AIMLOCK
+    -- --------------------------------------------------------
+
+    if Controls.Aimlock then
+        local A = Config.Aimlock
+        local C = Controls.Aimlock
+
+        SilentSet(C.Enabled, A.Enabled)
+        SilentSet(C.TeamCheck, A.TeamCheck)
+        SilentSet(C.FriendCheck, A.FriendCheck)
+
+        SilentSet(C.FOV, A.FOV)
+        SilentSet(C.Smoothness, A.Smoothness)
+
+        if C.IgnoreTeams then
+            SilentSet(C.IgnoreTeams, A.IgnoreTeams)
+        end
+
+        if C.WhitelistTarget then
+            SilentSet(C.WhitelistTarget, A.WhitelistTarget)
+        end
+
+        if C.Keybind then
+            SilentSetText(C.Keybind, A.Keybind)
+        end
+    end
+
+    -- --------------------------------------------------------
+    -- TRIGGERBOT
+    -- --------------------------------------------------------
+
+    if Controls.Triggerbot then
+        local T = Config.Triggerbot
+        local C = Controls.Triggerbot
+
+        SilentSet(C.Enabled, T.Enabled)
+        SilentSet(C.TeamCheck, T.TeamCheck)
+        SilentSet(C.FriendCheck, T.FriendCheck)
+
+        SilentSet(C.Delay, T.Delay)
+
+        if C.Keybind then
+            SilentSetText(C.Keybind, T.Keybind)
+        end
+
+        if C.WhitelistTarget then
+            SilentSet(C.WhitelistTarget, T.WhitelistTarget)
+        end
+
+        if C.IgnoreTeams then
+            SilentSet(C.IgnoreTeams, T.IgnoreTeams)
+        end
+    end
+
+    -- --------------------------------------------------------
+    -- EXTRAS
+    -- --------------------------------------------------------
+
+    if Controls.Extras then
+        local E = Config.Extras
+        local C = Controls.Extras
+
+        SilentSet(C.UnlockMaxDistance, E.UnlockMaxDistance)
+        SilentSet(C.FPSBoost, E.FPSBoost)
+        SilentSet(C.AntiFling, E.AntiFling)
+        SilentSet(C.XRay, E.XRay)
+        SilentSet(C.Freecam, E.Freecam)
+        SilentSet(C.FOVChanger, E.FOVChanger)
+
+        if C.FreecamKeybind then
+            SilentSetText(C.FreecamKeybind, E.FreecamKeybind)
+        end
+    end
+
+    -- --------------------------------------------------------
+    -- SOUNDS
+    -- --------------------------------------------------------
+
+    if Controls.Sounds then
+        local S = Config.Sounds
+        local C = Controls.Sounds
+
+        SilentSet(C.HitSound, S.HitSound)
+        SilentSet(C.HitShootSound, S.HitShootSound)
+    end
+
+    return true
+end
+
 -------------------------------------------------------------
 -- RATAHUB V5 HUD / TARGET INFO
 -------------------------------------------------------------
