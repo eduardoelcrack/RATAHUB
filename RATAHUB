@@ -3272,7 +3272,12 @@ FreecamSpeed = 10,
 		XRay         = { parts = {} },
 		AntiFling    = { conn = nil },
         BTools       = { conn = nil },
-		ESP          = { loop = nil, container = nil, objects = {} },
+		ESP = {
+    loop = nil,
+    container = nil,
+    objects = {},
+    leaveConn = nil,
+},
 		Aimlock      = { loop = nil, locked = false, currentTarget = nil, tracer = nil, fovCircle = nil },
 		Triggerbot   = { active = false, loop = nil, isShooting = false },
 		Hitbox       = { loop = nil, origs = {} },
@@ -4510,165 +4515,358 @@ end
 	end
 
 	------------------------------------------------------------- ESP MODULE
-	function Features.UpdateESP()
-		local espCfg = Config.ESP
-		local anyEnabled =
-    (espCfg.HighlightEnabled and espCfg.Highlight)
-    or (espCfg.NamesEnabled and espCfg.Names)
-    or (espCfg.DetailsEnabled and espCfg.Details)
-    or (espCfg.TracersEnabled and espCfg.Tracers)
+function Features.UpdateESP()
+    local espCfg = Config.ESP
 
-		if not anyEnabled then
-			if Runtime.ESP.loop then
-				Runtime.ESP.loop:Disconnect()
-				Runtime.ESP.loop = nil
-			end
-			for _, entry in pairs(Runtime.ESP.objects) do
-				if entry.Highlight then entry.Highlight.Enabled = false end
-				if entry.Billboard then entry.Billboard.Enabled = false end
-				if entry.Tracer then entry.Tracer.Visible = false end
-			end
-			return
-		end
+    local anyEnabled =
+        (espCfg.HighlightEnabled and espCfg.Highlight)
+        or (espCfg.NamesEnabled and espCfg.Names)
+        or (espCfg.DetailsEnabled and espCfg.Details)
+        or (espCfg.TracersEnabled and espCfg.Tracers)
 
-		if not Runtime.ESP.container then
-			local f = Instance.new("Folder")
-			f.Name = "RATAHUB_ESP"
-			f.Parent = workspace
-			Runtime.ESP.container = f
-		end
+    if not anyEnabled then
+        if Runtime.ESP.loop then
+            Runtime.ESP.loop:Disconnect()
+            Runtime.ESP.loop = nil
+        end
 
-		if not Runtime.ESP.loop then
-			Runtime.ESP.loop = RunService.RenderStepped:Connect(function()
-				local cam = workspace.CurrentCamera
-				if not cam then return end
+        if Runtime.ESP.leaveConn then
+            Runtime.ESP.leaveConn:Disconnect()
+            Runtime.ESP.leaveConn = nil
+        end
 
-				for _, p in ipairs(Players:GetPlayers()) do
-					if p ~= player and p.Character then
-						local char = p.Character
-						local hum = char:FindFirstChildOfClass("Humanoid")
-						local root = char:FindFirstChild("HumanoidRootPart")
-						local valid = Features.IsPlayerValidESP(p)
+        for _, entry in pairs(Runtime.ESP.objects) do
+            if entry.Highlight then
+                entry.Highlight.Enabled = false
+            end
 
-						local entry = Runtime.ESP.objects[p]
-						if not entry then
-							entry = {}
-							Runtime.ESP.objects[p] = entry
-						end
+            if entry.Billboard then
+                entry.Billboard.Enabled = false
+            end
 
-						local color = Features.GetESPColor(p)
-						local tracerColor = Features.GetTracerColor(p)
+            if entry.Tracer then
+                entry.Tracer.Visible = false
+            end
+        end
 
-						-- 1. Highlight
-						-- 1. Highlight
-if espCfg.HighlightEnabled and espCfg.Highlight and valid and hum and hum.Health > 0 then
-							if not entry.Highlight or entry.Highlight.Parent ~= char then
-								if entry.Highlight then entry.Highlight:Destroy() end
-								local h = Instance.new("Highlight")
-								h.Name = "ESPHighlight"
-								h.Adornee = char
-								h.FillTransparency = 0.5
-								h.OutlineTransparency = 0
-								h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-								h.Parent = char
-								entry.Highlight = h
-							end
-							entry.Highlight.FillColor = color
-							entry.Highlight.OutlineColor = color
-							entry.Highlight.Enabled = true
-						elseif entry.Highlight then
-							entry.Highlight.Enabled = false
-						end
+        return
+    end
 
-						-- 2. Billboard (Names & Details)
-						local showText =
-    ((espCfg.NamesEnabled and espCfg.Names)
-    or (espCfg.DetailsEnabled and espCfg.Details))
-    and valid
-    and hum
-    and hum.Health > 0
-    and root
-						if showText then
-							if not entry.Billboard then
-								local b = Instance.new("BillboardGui")
-								b.Name = "ESP_Tag"
-								b.Size = UDim2.new(0, 200, 0, 40)
-								b.AlwaysOnTop = true
-								b.ResetOnSpawn = false
+    if not Runtime.ESP.container then
+        local f = Instance.new("Folder")
+        f.Name = "RATAHUB_ESP"
+        f.Parent = workspace
+        Runtime.ESP.container = f
+    end
 
-								local l = Instance.new("TextLabel")
-								l.Name = "Tag"
-								l.Size = UDim2.fromScale(1, 1)
-								l.BackgroundTransparency = 1
-								l.Font = FONT_BOLD
-								l.TextStrokeTransparency = 0.3
-								l.TextStrokeColor3 = Color3.new(0, 0, 0)
-								l.Parent = b
+    if not Runtime.ESP.leaveConn then
+        Runtime.ESP.leaveConn = Players.PlayerRemoving:Connect(function(p)
+            local entry = Runtime.ESP.objects[p]
 
-								b.Parent = Runtime.ESP.container
-								entry.Billboard = b
-								entry.Label = l
-							end
+            if entry then
+                if entry.Highlight then
+                    entry.Highlight:Destroy()
+                end
 
-							entry.Billboard.Adornee = root
-							entry.Billboard.StudsOffset = Vector3.new(espCfg.OffsetX, 2.5 + espCfg.OffsetY, 0)
-							entry.Billboard.Enabled = true
-							entry.Label.TextSize = espCfg.TextSize
-							entry.Label.TextColor3 = color
+                if entry.Billboard then
+                    entry.Billboard:Destroy()
+                end
 
-							if espCfg.Details then
-								local dist = math.floor((cam.CFrame.Position - root.Position).Magnitude)
-								local hp = math.floor(hum.Health)
-								entry.Label.Text = string.format("%s\n[%d HP] [%d studs]", p.DisplayName, hp, dist)
-							else
-								entry.Label.Text = p.DisplayName
-							end
-						elseif entry.Billboard then
-							entry.Billboard.Enabled = false
-						end
+                if entry.Tracer then
+                    pcall(function()
+                        entry.Tracer:Remove()
+                    end)
+                end
 
-						-- 3. Tracers
-						-- 3. Tracers
-if espCfg.TracersEnabled and espCfg.Tracers and valid and hum and hum.Health > 0 and root and Drawing then
-							if not entry.Tracer then
-								local line = Drawing.new("Line")
-								line.Thickness = 1.5
-								line.Transparency = 1
-								entry.Tracer = line
-							end
+                Runtime.ESP.objects[p] = nil
+            end
+        end)
+    end
 
-							local rootPos, onScreen = cam:WorldToViewportPoint(root.Position)
-							if onScreen then
-								local originPos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y)
-								if espCfg.TracerOrigin == "Center" then
-									originPos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
-								elseif espCfg.TracerOrigin == "Mouse" then
-									originPos = UserInputService:GetMouseLocation()
-								end
+    if Runtime.ESP.loop then
+        return
+    end
 
-								entry.Tracer.From = originPos
-								entry.Tracer.To = Vector2.new(rootPos.X, rootPos.Y)
-								entry.Tracer.Color = tracerColor
-								entry.Tracer.Visible = true
-							else
-								entry.Tracer.Visible = false
-							end
-						elseif entry.Tracer then
-							entry.Tracer.Visible = false
-						end
-					else
-						local entry = Runtime.ESP.objects[p]
-						if entry then
-							if entry.Highlight then entry.Highlight.Enabled = false end
-							if entry.Billboard then entry.Billboard.Enabled = false end
-							if entry.Tracer then entry.Tracer.Visible = false end
-						end
-					end
-				end
-			end)
-		end
-	end
+    local updateAccumulator = 0
+    local UPDATE_RATE = 0.10
 
+    local cachedPlayers = {}
+    local cacheDirty = true
+
+    local function rebuildPlayerCache()
+        table.clear(cachedPlayers)
+
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= player then
+                cachedPlayers[#cachedPlayers + 1] = p
+            end
+        end
+
+        cacheDirty = false
+    end
+
+    local playerAddedConn
+    playerAddedConn = Players.PlayerAdded:Connect(function()
+        cacheDirty = true
+    end)
+
+    Runtime.ESP.loop = RunService.RenderStepped:Connect(function(dt)
+        local cam = workspace.CurrentCamera
+
+        if not cam then
+            return
+        end
+
+        if cacheDirty then
+            rebuildPlayerCache()
+        end
+
+        updateAccumulator += dt
+
+        local heavyUpdate = updateAccumulator >= UPDATE_RATE
+
+        if heavyUpdate then
+            updateAccumulator = 0
+        end
+
+        for i = 1, #cachedPlayers do
+            local p = cachedPlayers[i]
+            local entry = Runtime.ESP.objects[p]
+
+            if not entry then
+                entry = {
+                    Character = nil,
+                    Humanoid = nil,
+                    Root = nil,
+                    Valid = false,
+                    Color = nil,
+                    TracerColor = nil,
+                    LastHealth = -1,
+                    LastDistance = -1,
+                }
+
+                Runtime.ESP.objects[p] = entry
+            end
+
+            local char = p.Character
+
+            if not char then
+                if entry.Highlight then
+                    entry.Highlight.Enabled = false
+                end
+
+                if entry.Billboard then
+                    entry.Billboard.Enabled = false
+                end
+
+                if entry.Tracer then
+                    entry.Tracer.Visible = false
+                end
+
+                continue
+            end
+
+            if heavyUpdate
+                or entry.Character ~= char then
+
+                entry.Character = char
+                entry.Humanoid =
+                    char:FindFirstChildOfClass("Humanoid")
+                entry.Root =
+                    char:FindFirstChild("HumanoidRootPart")
+
+                entry.Valid =
+                    Features.IsPlayerValidESP(p)
+
+                entry.Color =
+                    Features.GetESPColor(p)
+
+                entry.TracerColor =
+                    Features.GetTracerColor(p)
+            end
+
+            local hum = entry.Humanoid
+            local root = entry.Root
+            local valid = entry.Valid
+
+            local alive =
+                hum
+                and hum.Health > 0
+
+            -- 1. Highlight
+            if espCfg.HighlightEnabled
+                and espCfg.Highlight
+                and valid
+                and alive then
+
+                if not entry.Highlight
+                    or entry.Highlight.Parent ~= char then
+
+                    if entry.Highlight then
+                        entry.Highlight:Destroy()
+                    end
+
+                    local h = Instance.new("Highlight")
+                    h.Name = "ESPHighlight"
+                    h.Adornee = char
+                    h.FillTransparency = 0.5
+                    h.OutlineTransparency = 0
+                    h.DepthMode =
+                        Enum.HighlightDepthMode.AlwaysOnTop
+                    h.Parent = char
+
+                    entry.Highlight = h
+                end
+
+                entry.Highlight.FillColor = entry.Color
+                entry.Highlight.OutlineColor = entry.Color
+                entry.Highlight.Enabled = true
+
+            elseif entry.Highlight then
+                entry.Highlight.Enabled = false
+            end
+
+            -- 2. Billboard
+            local showText =
+                (
+                    (espCfg.NamesEnabled and espCfg.Names)
+                    or
+                    (espCfg.DetailsEnabled and espCfg.Details)
+                )
+                and valid
+                and alive
+                and root
+
+            if showText then
+                if not entry.Billboard then
+                    local b = Instance.new("BillboardGui")
+                    b.Name = "ESP_Tag"
+                    b.Size = UDim2.new(0, 200, 0, 40)
+                    b.AlwaysOnTop = true
+                    b.ResetOnSpawn = false
+
+                    local l = Instance.new("TextLabel")
+                    l.Name = "Tag"
+                    l.Size = UDim2.fromScale(1, 1)
+                    l.BackgroundTransparency = 1
+                    l.Font = FONT_BOLD
+                    l.TextStrokeTransparency = 0.3
+                    l.TextStrokeColor3 = Color3.new(0, 0, 0)
+                    l.Parent = b
+
+                    b.Parent = Runtime.ESP.container
+
+                    entry.Billboard = b
+                    entry.Label = l
+                end
+
+                entry.Billboard.Adornee = root
+                entry.Billboard.StudsOffset =
+                    Vector3.new(
+                        espCfg.OffsetX,
+                        2.5 + espCfg.OffsetY,
+                        0
+                    )
+
+                entry.Billboard.Enabled = true
+                entry.Label.TextSize = espCfg.TextSize
+                entry.Label.TextColor3 = entry.Color
+
+                if espCfg.Details then
+                    local health = math.floor(hum.Health)
+                    local distance =
+                        math.floor(
+                            (
+                                cam.CFrame.Position
+                                - root.Position
+                            ).Magnitude
+                        )
+
+                    if heavyUpdate
+                        or health ~= entry.LastHealth
+                        or distance ~= entry.LastDistance then
+
+                        entry.LastHealth = health
+                        entry.LastDistance = distance
+
+                        entry.Label.Text =
+                            string.format(
+                                "%s\n[%d HP] [%d studs]",
+                                p.DisplayName,
+                                health,
+                                distance
+                            )
+                    end
+                else
+                    if heavyUpdate
+                        or entry.Label.Text ~= p.DisplayName then
+
+                        entry.Label.Text = p.DisplayName
+                    end
+                end
+
+            elseif entry.Billboard then
+                entry.Billboard.Enabled = false
+            end
+
+            -- 3. Tracers
+            if espCfg.TracersEnabled
+                and espCfg.Tracers
+                and valid
+                and alive
+                and root
+                and Drawing then
+
+                if not entry.Tracer then
+                    local line = Drawing.new("Line")
+                    line.Thickness = 1.5
+                    line.Transparency = 1
+                    entry.Tracer = line
+                end
+
+                local rootPos, onScreen =
+                    cam:WorldToViewportPoint(root.Position)
+
+                if onScreen then
+                    local originPos =
+                        Vector2.new(
+                            cam.ViewportSize.X / 2,
+                            cam.ViewportSize.Y
+                        )
+
+                    if espCfg.TracerOrigin == "Center" then
+                        originPos =
+                            Vector2.new(
+                                cam.ViewportSize.X / 2,
+                                cam.ViewportSize.Y / 2
+                            )
+
+                    elseif espCfg.TracerOrigin == "Mouse" then
+                        originPos =
+                            UserInputService:GetMouseLocation()
+                    end
+
+                    entry.Tracer.From = originPos
+                    entry.Tracer.To =
+                        Vector2.new(rootPos.X, rootPos.Y)
+
+                    entry.Tracer.Color = entry.TracerColor
+                    entry.Tracer.Visible = true
+
+                else
+                    entry.Tracer.Visible = false
+                end
+
+            elseif entry.Tracer then
+                entry.Tracer.Visible = false
+            end
+        end
+    end)
+
+    task.spawn(function()
+        playerAddedConn:Disconnect()
+    end)
+end
 	------------------------------------------------------------- AIMLOCK MODULE (RAYFIELD LOGIC)
 	function Features.GetAimPart(char)
 		if not char then return nil end
