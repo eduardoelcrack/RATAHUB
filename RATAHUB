@@ -1044,7 +1044,18 @@ create("UIListLayout", {
 		})
 		corner(22, window)
 		stroke(window, 0.9)
+local originalW = window:GetAttribute("RATAHUBOriginalWidth") or START_W
+local originalH = window:GetAttribute("RATAHUBOriginalHeight") or START_H
 
+window.Size = UDim2.fromOffset(originalW, 0)
+
+tween(
+    window,
+    TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+    {
+        Size = UDim2.fromOffset(originalW, originalH)
+    }
+)
 		local self = setmetatable({
 			gui = window,
 			tabs = {},
@@ -1179,12 +1190,137 @@ create("UIListLayout", {
 		local minimizeBtn = controlButton("Minimize", "−", -34, THEME.Secondary, THEME.Foreground)
 		local closeBtn = controlButton("Close", "✕", 0, THEME.Destructive, THEME.Foreground)
 
-		closeBtn.MouseButton1Click:Connect(function()
-			local t = tween(window, PRESS, { Size = UDim2.fromOffset(window.AbsoluteSize.X, 0) })
-			t.Completed:Connect(function()
-				screenGui.Enabled = false
-			end)
-		end)
+        local confirmOverlay = create("Frame", {
+    Name = "CloseConfirmation",
+    Size = UDim2.fromScale(1, 1),
+    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+    BackgroundTransparency = 1,
+    Visible = false,
+    ZIndex = 100,
+    Parent = window,
+})
+
+local confirmPanel = create("Frame", {
+    Name = "ConfirmPanel",
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.fromScale(0.5, 0.5),
+    Size = UDim2.fromOffset(330, 150),
+    BackgroundColor3 = THEME.Panel,
+    BorderSizePixel = 0,
+    ZIndex = 101,
+    Parent = confirmOverlay,
+})
+
+corner(14, confirmPanel)
+stroke(confirmPanel, 0.85)
+
+create("TextLabel", {
+    Position = UDim2.fromOffset(20, 18),
+    Size = UDim2.new(1, -40, 0, 24),
+    BackgroundTransparency = 1,
+    Text = "¿Cerrar RATAHUB?",
+    TextColor3 = THEME.Foreground,
+    Font = FONT_BOLD,
+    TextSize = 16,
+    TextXAlignment = Enum.TextXAlignment.Center,
+    ZIndex = 102,
+    Parent = confirmPanel,
+})
+
+create("TextLabel", {
+    Position = UDim2.fromOffset(20, 48),
+    Size = UDim2.new(1, -40, 0, 38),
+    BackgroundTransparency = 1,
+    Text = "¿Estás seguro que quieres cerrar el GUI?",
+    TextColor3 = THEME.Muted,
+    Font = FONT,
+    TextSize = 12,
+    TextWrapped = true,
+    TextXAlignment = Enum.TextXAlignment.Center,
+    ZIndex = 102,
+    Parent = confirmPanel,
+})
+
+local noBtn = create("TextButton", {
+    Position = UDim2.new(0, 20, 1, -46),
+    Size = UDim2.new(0.5, -25, 0, 32),
+    BackgroundColor3 = THEME.Secondary,
+    BorderSizePixel = 0,
+    Text = "No",
+    TextColor3 = THEME.Foreground,
+    Font = FONT_BOLD,
+    TextSize = 13,
+    AutoButtonColor = false,
+    ZIndex = 102,
+    Parent = confirmPanel,
+})
+
+local yesBtn = create("TextButton", {
+    Position = UDim2.new(0.5, 5, 1, -46),
+    Size = UDim2.new(0.5, -25, 0, 32),
+    BackgroundColor3 = THEME.Destructive,
+    BorderSizePixel = 0,
+    Text = "Sí, cerrar",
+    TextColor3 = THEME.Foreground,
+    Font = FONT_BOLD,
+    TextSize = 13,
+    AutoButtonColor = false,
+    ZIndex = 102,
+    Parent = confirmPanel,
+})
+
+corner(8, noBtn)
+corner(8, yesBtn)
+
+local function hideConfirmation()
+    tween(
+        confirmOverlay,
+        TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {
+            BackgroundTransparency = 1
+        }
+    )
+
+    local out = tween(
+        confirmPanel,
+        TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {
+            Size = UDim2.fromOffset(330, 135)
+        }
+    )
+
+    out.Completed:Connect(function()
+        confirmOverlay.Visible = false
+    end)
+end
+
+closeBtn.MouseButton1Click:Connect(function()
+    confirmOverlay.Visible = true
+    confirmOverlay.BackgroundTransparency = 1
+    confirmPanel.Size = UDim2.fromOffset(330, 135)
+
+    tween(
+        confirmOverlay,
+        TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {
+            BackgroundTransparency = 0.35
+        }
+    )
+
+    tween(
+        confirmPanel,
+        TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        {
+            Size = UDim2.fromOffset(330, 150)
+        }
+    )
+end)
+
+noBtn.MouseButton1Click:Connect(function()
+    hideConfirmation()
+end)
+
+
 
 		--------------------------------------------------------------
 		-- RESIZE (PROTECTED — Center-locked Formula)
@@ -5240,6 +5376,72 @@ end
 		end
 	end
 
+function Features.Shutdown()
+    -- Desactivar estados principales
+    pcall(function()
+        Config.Main.Movement.Fly = false
+        Config.Main.Movement.WalkSpeedEnabled = false
+        Config.Main.Movement.InfiniteJump = false
+        Config.Main.Movement.Noclip = false
+        Config.Main.Movement.JumpPowerEnabled = false
+        Config.Main.Movement.GravityEnabled = false
+
+        Config.Aimlock.Enabled = false
+        Config.Triggerbot.Enabled = false
+
+        Config.ESP.Highlight = false
+        Config.ESP.Names = false
+        Config.ESP.Details = false
+        Config.ESP.Tracers = false
+
+        Config.Extras.Camera.Freecam = false
+        Config.Extras.Camera.FOVChanger = false
+        Config.Extras.ClickTP = false
+        Config.Extras.BTools = false
+    end)
+
+    -- Detener features
+    pcall(function() Features.ToggleFlyActive() end)
+    pcall(function() Features.StopJumpPower() end)
+    pcall(function() Features.StopGravity() end)
+    pcall(function() Features.UpdateESP() end)
+    pcall(function() Features.SetFreecam(false) end)
+    pcall(function() Features.SetClickTP(false) end)
+    pcall(function() Features.SetBTools(false) end)
+    pcall(function() Features.SetAntiFling(false) end)
+    pcall(function() Features.SetAntiAFK(false) end)
+
+    -- Desconectar hotkeys
+    if Runtime.Hotkeys.conn then
+        Runtime.Hotkeys.conn:Disconnect()
+        Runtime.Hotkeys.conn = nil
+    end
+
+    -- Limpiar conexiones conocidas
+    for _, category in pairs(Runtime) do
+        if type(category) == "table" then
+            for key, value in pairs(category) do
+                if typeof(value) == "RBXScriptConnection" then
+                    pcall(function()
+                        value:Disconnect()
+                    end)
+                    category[key] = nil
+                end
+            end
+        end
+    end
+
+    -- Destruir GUI principal
+    pcall(function()
+        screenGui:Destroy()
+    end)
+
+    -- Destruir overlay/notificaciones
+    pcall(function()
+        overlayGui:Destroy()
+    end)
+end
+
 	------------------------------------------------------------- Event-driven Hotkeys Listener (Restored from RATAHUBB)
 function Features.StartHotkeys()
     if Runtime.Hotkeys.conn then return end
@@ -5247,12 +5449,63 @@ function Features.StartHotkeys()
     Runtime.Hotkeys.conn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if UserInputService:GetFocusedTextBox() then return end
 
-        if input.UserInputType == Enum.UserInputType.Keyboard
-            and input.KeyCode == Enum.KeyCode.K
-        then
-            screenGui.Enabled = not screenGui.Enabled
-            return
+if input.UserInputType == Enum.UserInputType.Keyboard
+    and input.KeyCode == Enum.KeyCode.K
+then
+    if screenGui:GetAttribute("Closing") then
+        return
+    end
+
+    local window = screenGui:FindFirstChild("Window")
+    if not window then
+        screenGui.Enabled = not screenGui.Enabled
+        return
+    end
+
+    local visible = screenGui.Enabled
+
+    if visible then
+        local tweenOut = tween(
+            window,
+            TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {
+                Size = UDim2.fromOffset(window.AbsoluteSize.X, 0)
+            }
+        )
+
+        tweenOut.Completed:Connect(function()
+            if screenGui then
+                screenGui.Enabled = false
+            end
+        end)
+    else
+        screenGui.Enabled = true
+
+        local originalSize = window:GetAttribute("RATAHUBOriginalSize")
+
+        if originalSize then
+            window.Size = UDim2.fromOffset(
+                originalSize.X,
+                0
+            )
+
+            tween(
+                window,
+                TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                {
+                    Size = UDim2.fromOffset(
+                        originalSize.X,
+                        originalSize.Y
+                    )
+                }
+            )
+        else
+            screenGui.Enabled = true
         end
+    end
+
+    return
+end
 
         local keyName = nil
 			if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode ~= Enum.KeyCode.Unknown then
