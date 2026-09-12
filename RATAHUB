@@ -3502,6 +3502,8 @@ local hpText = create("TextLabel", {
 local hudFrameCounter = 0
 local hudLastTime = os.clock()
 local hudFPS = 0
+local hudAccumulator = 0
+local HUD_UPDATE_RATE = 0.10
 
 Runtime.HUD = {
     loop = nil,
@@ -3517,6 +3519,14 @@ Runtime.HUD.loop = RunService.RenderStepped:Connect(function(dt)
         hudFrameCounter = 0
         hudLastTime = now
     end
+
+    hudAccumulator += dt
+
+    if hudAccumulator < HUD_UPDATE_RATE then
+        return
+    end
+
+    hudAccumulator = 0
 
 
 local ping = 0
@@ -3587,13 +3597,9 @@ teamBar.BackgroundColor3 = teamColor
     math.floor(maxHp + 0.5),
     math.floor(hpPercent * 100 + 0.5)
 )
-    TweenService:Create(
-    hpFill,
-    TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-    {
-        Size = UDim2.new(hpPercent, 0, 1, 0)
-    }
-):Play()
+if math.abs(hpFill.Size.X.Scale - hpPercent) > 0.01 then
+    hpFill.Size = UDim2.new(hpPercent, 0, 1, 0)
+end
 
 if hpPercent <= 0.25 then
     hpFill.BackgroundColor3 = Color3.fromRGB(75, 190, 85)
@@ -4976,111 +4982,194 @@ end
 		Features.SetTriggerbotActive(enabled)
 	end
 
-	function Features.SetTriggerbotActive(active)
-		if active and not Config.Triggerbot.Enabled then return end
-		Config.Triggerbot.Active = active
-		Runtime.Triggerbot.active = active
+function Features.SetTriggerbotActive(active)
+    if active and not Config.Triggerbot.Enabled then
+        return
+    end
 
-		if active then
-			if Runtime.Triggerbot.loop then return end
-			local isShooting = false
+    Config.Triggerbot.Active = active
+    Runtime.Triggerbot.active = active
 
-			Runtime.Triggerbot.loop = RunService.RenderStepped:Connect(function()
-				if not Config.Triggerbot.Enabled or not Runtime.Triggerbot.active then
-					Features.SetTriggerbotActive(false)
-					return
-				end
-				if isShooting then return end
+    if active then
+        if Runtime.Triggerbot.loop then
+            return
+        end
 
-				local mouse = player:GetMouse()
-				local target = mouse and mouse.Target
-				if not target or not target.Parent then return end
+        local nextShot = 0
+        local holding = false
 
-				local model = target.Parent
-				if not model:FindFirstChildOfClass("Humanoid") and model.Parent then
-					model = model.Parent
-				end
+        Runtime.Triggerbot.loop = RunService.RenderStepped:Connect(function()
+            if not Config.Triggerbot.Enabled or not Runtime.Triggerbot.active then
+                Features.SetTriggerbotActive(false)
+                return
+            end
 
-				local hum = model:FindFirstChildOfClass("Humanoid")
-				if not hum or hum.Health <= 0 or model.Name == player.Name then return end
+            local mouse = player:GetMouse()
+local target = mouse and mouse.Target
 
-				local targetPlr = Players:GetPlayerFromCharacter(model)
-				if not targetPlr or targetPlr == player then return end
+if not target or not target.Parent then
+    return
+end
 
-				-- Whitelist Check
-				if not Features.IsWhitelisted(targetPlr, Config.Triggerbot.WhitelistMode, Config.Triggerbot.WhitelistTarget) then
-					return
-				end
+local model = target:FindFirstAncestorOfClass("Model")
+local hum = model and model:FindFirstChildOfClass("Humanoid")
 
-				-- Friend Check: never shoot friends
-				if Config.Triggerbot.FriendCheck and Features.IsFriend(targetPlr) then
-					return
-				end
+if not hum or hum.Health <= 0 or model == player.Character then
+    return
+end
 
-				-- Team Check & Ignore Teams (bypassed if in "Only Whitelist")
-				if Config.Triggerbot.WhitelistMode ~= "Only Whitelist" then
-					if Config.Triggerbot.TeamCheck and Features.IsSameTeam(targetPlr) then
-						return
-					end
+local targetPlr = Players:GetPlayerFromCharacter(model)
 
-					if Features.IsTeamIgnored(targetPlr, Config.Triggerbot.IgnoreTeams) then
-						return
-					end
-				end
+if not targetPlr or targetPlr == player then
+    return
+end
 
-				-- Wall Check
-				if Config.Triggerbot.WallCheck then
-					local char = player.Character
-					if char then
-						TriggerRayParams.FilterDescendantsInstances = { char }
-						local cam = workspace.CurrentCamera
-						if cam then
-							local origin = cam.CFrame.Position
-							local dir = (mouse.Hit.Position - origin).Unit * 1500
-							local ray = workspace:Raycast(origin, dir, TriggerRayParams)
-							if ray and not ray.Instance:IsDescendantOf(model) then
-								if ray.Instance.Transparency < 1 and ray.Instance.CanCollide then
-									return
-								end
-							end
-						end
-					end
-				end
+            if not Features.IsWhitelisted(
+                targetPlr,
+                Config.Triggerbot.WhitelistMode,
+                Config.Triggerbot.WhitelistTarget
+            ) then
+                return
+            end
 
-				isShooting = true
-				task.spawn(function()
-					if Config.Sounds.HitSound and Config.Sounds.HitShootSound then
-						Features.PlaySound(Config.Sounds.HitShootSound)
-					end
+            if Config.Triggerbot.FriendCheck and Features.IsFriend(targetPlr) then
+                return
+            end
 
-					if mouse1click then
-						pcall(mouse1click)
-					elseif mouse1press and mouse1release then
-						pcall(mouse1press)
-						task.wait(0.01)
-						pcall(mouse1release)
-					elseif VirtualUser then
-						pcall(function()
-							VirtualUser:Button1Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-							task.wait(0.01)
-							VirtualUser:Button1Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-						end)
-					end
+            if Config.Triggerbot.WhitelistMode ~= "Only Whitelist" then
+                if Config.Triggerbot.TeamCheck and Features.IsSameTeam(targetPlr) then
+                    return
+                end
 
-					local delayMs = Config.Triggerbot.Delay or 0
-					local delaySec = math.max(delayMs / 1000, 0.05)
-					task.wait(delaySec)
-					isShooting = false
-				end)
-			end)
-		else
-			if Runtime.Triggerbot.loop then
-				Runtime.Triggerbot.loop:Disconnect()
-				Runtime.Triggerbot.loop = nil
-			end
-			Runtime.Triggerbot.isShooting = false
-		end
-	end
+                if Features.IsTeamIgnored(targetPlr, Config.Triggerbot.IgnoreTeams) then
+                    return
+                end
+            end
+
+if Config.Triggerbot.WallCheck then
+    local char = player.Character
+    local cam = workspace.CurrentCamera
+
+    if char and cam then
+        TriggerRayParams.FilterDescendantsInstances = { char }
+
+        local origin = cam.CFrame.Position
+        local targetPosition = mouse.Hit.Position
+        local direction = targetPosition - origin
+
+        if direction.Magnitude > 0 then
+            local ray = workspace:Raycast(
+                origin,
+                direction,
+                TriggerRayParams
+            )
+
+            if ray and not ray.Instance:IsDescendantOf(model) then
+                return
+            end
+        end
+    end
+end
+
+            local delayMs = Config.Triggerbot.Delay or 0
+            local now = os.clock()
+
+            -- 0 ms = mantener disparo presionado
+            if delayMs <= 0 then
+                if not holding then
+                    holding = true
+
+                    if mouse1press and mouse1release then
+                        pcall(mouse1press)
+                    elseif VirtualUser then
+                        pcall(function()
+                            VirtualUser:Button1Down(
+                                Vector2.new(0, 0),
+                                workspace.CurrentCamera.CFrame
+                            )
+                        end)
+                    end
+                end
+
+                return
+            end
+
+            -- Si cambiamos de 0 ms a otro valor, liberar el hold
+            if holding then
+                if mouse1release then
+                    pcall(mouse1release)
+                elseif VirtualUser then
+                    pcall(function()
+                        VirtualUser:Button1Up(
+                            Vector2.new(0, 0),
+                            workspace.CurrentCamera.CFrame
+                        )
+                    end)
+                end
+
+                holding = false
+            end
+
+            -- 5 ms+ = clicks separados
+            if now < nextShot then
+                return
+            end
+
+            nextShot = now + math.max(delayMs / 1000, 0.005)
+
+            if Config.Sounds.HitSound and Config.Sounds.HitShootSound then
+                Features.PlaySound(Config.Sounds.HitShootSound)
+            end
+
+            if mouse1click then
+                pcall(mouse1click)
+
+            elseif mouse1press and mouse1release then
+                task.spawn(function()
+                    pcall(mouse1press)
+                    task.wait(0.01)
+                    pcall(mouse1release)
+                end)
+
+            elseif VirtualUser then
+                task.spawn(function()
+                    pcall(function()
+                        VirtualUser:Button1Down(
+                            Vector2.new(0, 0),
+                            workspace.CurrentCamera.CFrame
+                        )
+
+                        task.wait(0.01)
+
+                        VirtualUser:Button1Up(
+                            Vector2.new(0, 0),
+                            workspace.CurrentCamera.CFrame
+                        )
+                    end)
+                end)
+            end
+        end)
+
+    else
+        if Runtime.Triggerbot.loop then
+            Runtime.Triggerbot.loop:Disconnect()
+            Runtime.Triggerbot.loop = nil
+        end
+
+        if mouse1release then
+            pcall(mouse1release)
+        elseif VirtualUser then
+            pcall(function()
+                VirtualUser:Button1Up(
+                    Vector2.new(0, 0),
+                    workspace.CurrentCamera.CFrame
+                )
+            end)
+        end
+
+        Runtime.Triggerbot.isShooting = false
+    end
+end
 
 	function Features.ToggleTriggerbotActive()
 		if not Config.Triggerbot.Enabled then
@@ -6314,8 +6403,8 @@ Controls.ESP.Tracers = esp:CreateToggle({
 		})
 		Controls.Triggerbot.Delay = trig:CreateSlider({
 			Name = "Trigger Delay",
-			Range = { 0, 500 },
-			Increment = 5,
+			Range = { 1, 250 },
+			Increment = 1,
 			CurrentValue = T.Delay,
 			Suffix = " ms",
 			Callback = function(Value)
