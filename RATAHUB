@@ -5049,13 +5049,15 @@ end
 if Config.Triggerbot.WallCheck then
     local char = player.Character
     local cam = workspace.CurrentCamera
+    local root = model:FindFirstChild("HumanoidRootPart")
+        or model:FindFirstChild("UpperTorso")
+        or model:FindFirstChild("Torso")
 
-    if char and cam then
+    if char and cam and root then
         TriggerRayParams.FilterDescendantsInstances = { char }
 
         local origin = cam.CFrame.Position
-        local targetPosition = mouse.Hit.Position
-        local direction = targetPosition - origin
+        local direction = root.Position - origin
 
         if direction.Magnitude > 0 then
             local ray = workspace:Raycast(
