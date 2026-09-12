@@ -5049,26 +5049,42 @@ end
 if Config.Triggerbot.WallCheck then
     local char = player.Character
     local cam = workspace.CurrentCamera
-    local root = model:FindFirstChild("HumanoidRootPart")
-        or model:FindFirstChild("UpperTorso")
-        or model:FindFirstChild("Torso")
 
-    if char and cam and root then
+    if char and cam then
         TriggerRayParams.FilterDescendantsInstances = { char }
 
         local origin = cam.CFrame.Position
-        local direction = root.Position - origin
 
-        if direction.Magnitude > 0 then
-            local ray = workspace:Raycast(
-                origin,
-                direction,
-                TriggerRayParams
-            )
+        local partsToCheck = {
+            model:FindFirstChild("Head"),
+            model:FindFirstChild("HumanoidRootPart"),
+            model:FindFirstChild("UpperTorso"),
+            model:FindFirstChild("Torso"),
+        }
 
-            if ray and not ray.Instance:IsDescendantOf(model) then
-                return
+        local visible = false
+
+        for _, part in ipairs(partsToCheck) do
+            if part then
+                local direction = part.Position - origin
+
+                if direction.Magnitude > 0 then
+                    local ray = workspace:Raycast(
+                        origin,
+                        direction,
+                        TriggerRayParams
+                    )
+
+                    if not ray or ray.Instance:IsDescendantOf(model) then
+                        visible = true
+                        break
+                    end
+                end
             end
+        end
+
+        if not visible then
+            return
         end
     end
 end
