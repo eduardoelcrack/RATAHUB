@@ -5004,47 +5004,42 @@ function Features.SetTriggerbotActive(active)
                 return
             end
 
-            local mouse = player:GetMouse()
-local target = mouse and mouse.Target
+local mouse = player:GetMouse()
 
-if not target or not target.Parent then
-    return
-end
-
-local model = target:FindFirstAncestorOfClass("Model")
+local targetPlr = Runtime.Aimlock.currentTarget
+local model = targetPlr and targetPlr.Character
 local hum = model and model:FindFirstChildOfClass("Humanoid")
 
-if not hum or hum.Health <= 0 or model == player.Character then
+if not targetPlr
+    or targetPlr == player
+    or not targetPlr.Parent
+    or not model
+    or not hum
+    or hum.Health <= 0 then
     return
 end
 
-local targetPlr = Players:GetPlayerFromCharacter(model)
-
-if not targetPlr or targetPlr == player then
+if not Features.IsWhitelisted(
+    targetPlr,
+    Config.Triggerbot.WhitelistMode,
+    Config.Triggerbot.WhitelistTarget
+) then
     return
 end
 
-            if not Features.IsWhitelisted(
-                targetPlr,
-                Config.Triggerbot.WhitelistMode,
-                Config.Triggerbot.WhitelistTarget
-            ) then
-                return
-            end
+if Config.Triggerbot.FriendCheck and Features.IsFriend(targetPlr) then
+    return
+end
 
-            if Config.Triggerbot.FriendCheck and Features.IsFriend(targetPlr) then
-                return
-            end
+if Config.Triggerbot.WhitelistMode ~= "Only Whitelist" then
+    if Config.Triggerbot.TeamCheck and Features.IsSameTeam(targetPlr) then
+        return
+    end
 
-            if Config.Triggerbot.WhitelistMode ~= "Only Whitelist" then
-                if Config.Triggerbot.TeamCheck and Features.IsSameTeam(targetPlr) then
-                    return
-                end
-
-                if Features.IsTeamIgnored(targetPlr, Config.Triggerbot.IgnoreTeams) then
-                    return
-                end
-            end
+    if Features.IsTeamIgnored(targetPlr, Config.Triggerbot.IgnoreTeams) then
+        return
+    end
+end
 
 if Config.Triggerbot.WallCheck then
     local char = player.Character
