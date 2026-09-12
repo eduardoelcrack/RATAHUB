@@ -1357,20 +1357,12 @@ noBtn.MouseButton1Click:Connect(function()
 end)
 
 yesBtn.MouseButton1Click:Connect(function()
-    print("1 - CLICK SÍ")
-
     hideConfirmation()
 
-    print("2 - HIDE EJECUTADO")
-
     task.delay(0.12, function()
-        print("3 - EJECUTANDO DESTROYHUB")
-
-local ok, err = pcall(function()
-    RATAHUB._Features.DestroyHub()
-end)
-
-        print("4 - DESTROYHUB:", ok, err)
+        pcall(function()
+            RATAHUB._Features.DestroyHub()
+        end)
     end)
 end)
 
@@ -5196,11 +5188,31 @@ function Features.SetTriggerbotActive(active)
         local nextShot = 0
         local holding = false
 
-        Runtime.Triggerbot.loop = RunService.RenderStepped:Connect(function()
-            if not Config.Triggerbot.Enabled or not Runtime.Triggerbot.active then
-                Features.SetTriggerbotActive(false)
-                return
+Runtime.Triggerbot.loop = RunService.RenderStepped:Connect(function()
+    if not Config.Triggerbot.Enabled or not Runtime.Triggerbot.active then
+        if Runtime.Triggerbot.loop then
+            Runtime.Triggerbot.loop:Disconnect()
+            Runtime.Triggerbot.loop = nil
+        end
+
+        if holding then
+            if mouse1release then
+                pcall(mouse1release)
+            elseif VirtualUser then
+                pcall(function()
+                    VirtualUser:Button1Up(
+                        Vector2.new(0, 0),
+                        workspace.CurrentCamera.CFrame
+                    )
+                end)
             end
+
+            holding = false
+        end
+
+        Runtime.Triggerbot.isShooting = false
+        return
+    end
 
 local mouse = player:GetMouse()
 
