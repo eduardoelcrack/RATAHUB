@@ -3568,6 +3568,11 @@ FreecamSpeed = 10,
 			HitShootSound = "Skeet / Gamesense",
 			PreviewSound = "Neverlose Hit",
 		},
+
+		UISettings = {
+			Transparency = 0,
+			RememberOpenMinitabs = true,
+		},
 	}
 
 	function RATAHUB:GetConfig() return Config end
