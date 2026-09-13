@@ -1056,17 +1056,14 @@ tween(
         Size = UDim2.fromOffset(originalW, originalH)
     }
 )
-local self = setmetatable({
-    gui = window,
-    tabs = {},
-    navButtons = {},
-    _activeTab = nil,
-    _currentDropdownClose = nil,
-    _currentDropdownReposition = nil,
-
-    -- Recordar minitabs activados
-    rememberOpenMinitabs = true,
-}, Window)
+		local self = setmetatable({
+			gui = window,
+			tabs = {},
+			navButtons = {},
+			_activeTab = nil,
+			_currentDropdownClose = nil,
+			_currentDropdownReposition = nil,
+		}, Window)
 
 		--------------------------------------------------------------
 		-- TOP BAR (Header & Drag Handle)
@@ -1780,31 +1777,17 @@ end)
 		return self
 	end
 
-function Window:_select(id)
-    if self._currentDropdownClose then
-        self._currentDropdownClose()
-    end
+	function Window:_select(id)
+		if self._currentDropdownClose then
+			self._currentDropdownClose()
+		end
+		if self._activeTab == id then return end
+		self._activeTab = id
+		self.gui:SetAttribute("ActiveTab", id)
 
-    if self._activeTab == id then
-        return
-    end
-
-local previousTabId = self._activeTab
-
-if self.rememberOpenMinitabs == false and previousTabId then
-    local previousTab = self.tabs[previousTabId]
-
-    if previousTab then
-        previousTab:CloseAllMinitabs(true)
-    end
-end
-
-self._activeTab = id
-self.gui:SetAttribute("ActiveTab", id)
-
-    for tid, tab in pairs(self.tabs) do
-        tab.page.Visible = (tid == id)
-    end
+		for tid, tab in pairs(self.tabs) do
+			tab.page.Visible = (tid == id)
+		end
 
 		for tid, nb in pairs(self.navButtons) do
 			local active = (tid == id)
@@ -1832,25 +1815,6 @@ self.gui:SetAttribute("ActiveTab", id)
 	local Tab = {}
 	Tab.__index = Tab
 
-    local UIMode = "Minitab"
-
-    function Window:SetUIMode(mode)
-    mode = tostring(mode or "Minitab")
-
-    if mode ~= "Minitab" and mode ~= "Normal" then
-        mode = "Minitab"
-    end
-
-    self._uiMode = mode
-    UIMode = mode
-
-    for _, tab in pairs(self.tabs) do
-        if tab.SetUIMode then
-            tab:SetUIMode(mode)
-        end
-    end
-end
- 
 	function Window:CreateTab(cfg)
 		cfg = cfg or {}
 		local id = cfg.Name and cfg.Name:lower():gsub("%s", "") or ("tab" .. (#self.navButtons + 1))
@@ -1927,21 +1891,15 @@ end
 			Parent = page,
 		})
 
-local tab = setmetatable({
-    window = self,
-    id = id,
-    page = page,
-    title = cfg.Name or "Tab",
-    subtitle = cfg.SubTitle or "",
-    _order = 0,
-    _currentCard = nil,
-
-    -- Estado de los minitabs de esta pestaña
-    _minitabs = {},
-
-    -- Modo visual actual
-    _uiMode = UIMode,
-}, Tab)
+		local tab = setmetatable({
+			window = self,
+			id = id,
+			page = page,
+			title = cfg.Name or "Tab",
+			subtitle = cfg.SubTitle or "",
+			_order = 0,
+			_currentCard = nil,
+		}, Tab)
 
 		self.tabs[id] = tab
 
@@ -1991,397 +1949,20 @@ local tab = setmetatable({
 		return o
 	end
 
-function Tab:CreateSection(text)
-    local title = tostring(text or "Section")
-
-    self._minitabs = self._minitabs or {}
-    self._uiMode = self._uiMode or UIMode
-
-	local order = self:_next()
-	local HEADER_H = 42
-
-	-- ============================================================
-	-- MINITAB PRINCIPAL
-	-- ============================================================
-	local section = create("Frame", {
-		Name = "Minitab_" .. tostring(order),
-		LayoutOrder = order,
-		Size = UDim2.new(1, 0, 0, HEADER_H),
-		BackgroundColor3 = THEME.Card,
-		BorderSizePixel = 0,
-		ClipsDescendants = true,
-		Parent = self.page,
-	})
-
-	corner(14, section)
-	stroke(section, 0.9)
-
-	-- ============================================================
-	-- HEADER
-	-- ============================================================
-	local header = create("TextButton", {
-		Name = "Header",
-		Size = UDim2.new(1, 0, 0, HEADER_H),
-		BackgroundTransparency = 1,
-		Text = "",
-		AutoButtonColor = false,
-		ZIndex = 2,
-		Parent = section,
-	})
-
-	local headerTitle = create("TextLabel", {
-		Position = UDim2.fromOffset(16, 0),
-		Size = UDim2.new(1, -58, 1, 0),
-		BackgroundTransparency = 1,
-		Text = title,
-		TextColor3 = THEME.Foreground,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextYAlignment = Enum.TextYAlignment.Center,
-		Font = FONT_BOLD,
-		TextSize = 13,
-		ZIndex = 3,
-		Parent = header,
-	})
-
-	local arrow = create("TextLabel", {
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -16, 0.5, 0),
-		Size = UDim2.fromOffset(24, 24),
-		BackgroundTransparency = 1,
-		Text = "›",
-		TextColor3 = THEME.Muted,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		TextYAlignment = Enum.TextYAlignment.Center,
-		Font = FONT_BOLD,
-		TextSize = 20,
-		Rotation = 0,
-		ZIndex = 3,
-		Parent = header,
-	})
-
-	-- ============================================================
-	-- BODY
-	-- ============================================================
-	local body = create("Frame", {
-		Name = "Body",
-		Position = UDim2.fromOffset(0, HEADER_H),
-		Size = UDim2.new(1, 0, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ClipsDescendants = false,
-		Visible = false,
-		Parent = section,
-	})
-
-    body:SetAttribute("Order", 0)
-
-	padding(body, nil, 16, 16, 10, 14)
-
-	create("UIListLayout", {
-		Padding = UDim.new(0, 10),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-		HorizontalAlignment = Enum.HorizontalAlignment.Left,
-		Parent = body,
-	})
-
-	-- ============================================================
-	-- ESTADO
-	-- ============================================================
-	local entry = {
-		section = section,
-		header = header,
-		body = body,
-		arrow = arrow,
-		headerHeight = HEADER_H,
-		expandedHeight = 0,
-		open = false,
-	}
-
-	table.insert(self._minitabs, entry)
-
-	-- Este será el padre de los controles que vienen después
-	self._currentCard = body
-
-	-- ============================================================
-	-- ANIMACIÓN
-	-- ============================================================
-local function openSection()
-    if entry.open then
-        return
-    end
-
-    entry.open = true
-    body.Visible = true
-
-    task.defer(function()
-        if not entry.open then
-            return
-        end
-
-        -- Esperar a que Roblox termine de calcular el contenido.
-        task.wait()
-
-        if not entry.open then
-            return
-        end
-
-        local contentHeight = body.AbsoluteSize.Y
-        local targetHeight = HEADER_H + contentHeight
-
-        entry.expandedHeight = targetHeight
-
-        -- Siempre comenzamos desde la altura del header.
-        section.Size = UDim2.new(1, 0, 0, HEADER_H)
-
-        local extraHeight = math.max(0, targetHeight - HEADER_H)
-
-        -- Secciones grandes reciben un poco más de tiempo.
-        local duration = math.clamp(
-            0.22 + (extraHeight / 1400) * 0.18,
-            0.22,
-            0.40
-        )
-
-        tween(
-            section,
-            TweenInfo.new(
-                duration,
-                Enum.EasingStyle.Quint,
-                Enum.EasingDirection.Out
-            ),
-            {
-                Size = UDim2.new(1, 0, 0, targetHeight)
-            }
-        )
-
-        tween(
-            arrow,
-            TweenInfo.new(
-                0.18,
-                Enum.EasingStyle.Quad,
-                Enum.EasingDirection.Out
-            ),
-            {
-                Rotation = 90,
-                TextColor3 = THEME.Primary
-            }
-        )
-    end)
-end
-
-	local function closeSection()
-		if not entry.open then
-			return
-		end
-
-		entry.open = false
-
-		tween(
-			section,
-			TweenInfo.new(
-				0.18,
-				Enum.EasingStyle.Quad,
-				Enum.EasingDirection.In
-			),
-			{
-				Size = UDim2.new(1, 0, 0, HEADER_H)
-			}
-		)
-
-		tween(
-			arrow,
-			TweenInfo.new(
-				0.18,
-				Enum.EasingStyle.Quad,
-				Enum.EasingDirection.Out
-			),
-			{
-				Rotation = 0,
-				TextColor3 = THEME.Muted
-			}
-		)
-
-		task.delay(0.19, function()
-			if not entry.open then
-				body.Visible = false
-			end
-		end)
+	function Tab:CreateSection(text)
+		local card = self:_card()
+		create("TextLabel", {
+			LayoutOrder = self:_cardOrder(card),
+			Size = UDim2.new(1, 0, 0, 14),
+			BackgroundTransparency = 1,
+			Text = tostring(text or "Section"),
+			TextColor3 = THEME.Muted,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Font = FONT_BOLD, TextSize = 11,
+			Parent = card,
+		})
+		return card
 	end
-
-	header.MouseButton1Click:Connect(function()
-		if entry.open then
-			closeSection()
-		else
-			openSection()
-		end
-	end)
-
-	header.MouseEnter:Connect(function()
-		if not entry.open then
-			tween(
-				headerTitle,
-				HOVER,
-				{
-					TextColor3 = THEME.Foreground
-				}
-			)
-
-			tween(
-				arrow,
-				HOVER,
-				{
-					TextColor3 = THEME.Foreground
-				}
-			)
-		end
-	end)
-
-	header.MouseLeave:Connect(function()
-		if not entry.open then
-			tween(
-				headerTitle,
-				HOVER,
-				{
-					TextColor3 = THEME.Foreground
-				}
-			)
-
-			tween(
-				arrow,
-				HOVER,
-				{
-					TextColor3 = THEME.Muted
-				}
-			)
-		end
-	end)
-
-	-- Métodos internos para el sistema de Remember Open Minitabs
-	entry.Open = openSection
-	entry.Close = closeSection
-
-entry.Refresh = function()
-
-    if not entry.open then
-        return
-    end
-
-    task.defer(function()
-        if not entry.open then
-            return
-        end
-
-        task.wait()
-
-        local contentHeight = body.AbsoluteSize.Y
-        local targetHeight = HEADER_H + contentHeight
-
-        if math.abs(section.AbsoluteSize.Y - targetHeight) < 1 then
-            entry.expandedHeight = targetHeight
-            return
-        end
-
-        entry.expandedHeight = targetHeight
-
-        tween(
-            section,
-            TweenInfo.new(
-                0.16,
-                Enum.EasingStyle.Quad,
-                Enum.EasingDirection.Out
-            ),
-            {
-                Size = UDim2.new(1, 0, 0, targetHeight)
-            }
-        )
-    end)
-end
-
-	return body
-end
-
-function Tab:SetUIMode(mode)
-    mode = tostring(mode or "Minitab")
-
-    if mode ~= "Minitab" and mode ~= "Normal" then
-        mode = "Minitab"
-    end
-
-    self._uiMode = mode
-
-    if not self._minitabs then
-        return
-    end
-
-    for _, entry in ipairs(self._minitabs) do
-        local section = entry.section
-        local body = entry.body
-        local header = entry.header
-        local arrow = entry.arrow
-        local HEADER_H = entry.headerHeight or 42
-
-        if mode == "Normal" then
-            -- Sección normal: siempre abierta
-            entry.open = true
-
-            header.Active = false
-            header.AutoButtonColor = false
-
-            arrow.Visible = false
-
-            body.Visible = true
-            body.Position = UDim2.fromOffset(0, HEADER_H)
-
-            task.defer(function()
-                if not section or not section.Parent then
-                    return
-                end
-
-                task.wait()
-
-                local contentHeight = body.AbsoluteSize.Y
-                local targetHeight = HEADER_H + contentHeight
-
-                section.Size = UDim2.new(1, 0, 0, targetHeight)
-                entry.expandedHeight = targetHeight
-            end)
-
-        else
-            -- Minitab: vuelve al estado cerrado
-            header.Active = true
-            arrow.Visible = true
-
-            body.Position = UDim2.fromOffset(0, HEADER_H)
-
-            entry.open = false
-            body.Visible = false
-
-            section.Size = UDim2.new(1, 0, 0, HEADER_H)
-
-            arrow.Rotation = 0
-            arrow.TextColor3 = THEME.Muted
-        end
-    end
-end
-
-function Tab:CloseAllMinitabs(animated)
-    if UIMode == "Normal" then
-        return
-    end
-
-    if not self._minitabs then
-        return
-    end
-
-    for _, minitab in ipairs(self._minitabs) do
-        if minitab.open then
-            if minitab.Close then
-                minitab.Close()
-            end
-        end
-    end
-end
 
 	--=====================================================================
 	-- CONTROLS
@@ -2827,9 +2408,9 @@ end
 				return
 			end
 
-local relX = btnPos.X - winPos.X + btn.AbsoluteSize.X
-local relY = btnPos.Y - winPos.Y + btn.AbsoluteSize.Y + 4
-list.Position = UDim2.fromOffset(relX, relY)
+			local relX = btnPos.X - winPos.X
+			local relY = btnPos.Y - winPos.Y + btn.AbsoluteSize.Y + 4
+			list.Position = UDim2.fromOffset(relX, relY)
 			list.Size = UDim2.fromOffset(btn.AbsoluteSize.X, listHeight)
 		end
 
@@ -3557,23 +3138,21 @@ end
 			},
 		},
 ESP = {
-    Enabled = false,
-Highlight = false,
-HighlightEnabled = false,
-HighlightKeybind = "None",
+    Highlight = false,
+    HighlightEnabled = false,
+    HighlightKeybind = "None",
 
-Names = false,
-NamesEnabled = false,
-NamesKeybind = "None",
+    Names = false,
+    NamesEnabled = false,
+    NamesKeybind = "None",
 
-Distance = false,
-HealthBar = false,
-Weapon = false,
-
-OffsetX = 0,
-OffsetY = 0,
-TextSize = 14,
-ESPSize = 1.0,
+    Details = false,
+    DetailsEnabled = false,
+    DetailsKeybind = "None",
+         
+            OffsetX = 0,
+             OffsetY = 0,
+            TextSize = 14,
 
 Tracers = false,
 TracersEnabled = false,
@@ -3660,11 +3239,6 @@ FreecamSpeed = 10,
 			HitSound = false,
 			HitShootSound = "Skeet / Gamesense",
 			PreviewSound = "Neverlose Hit",
-		},
-
-		UISettings = {
-			Transparency = 0,
-			RememberOpenMinitabs = true,
 		},
 	}
 
@@ -4937,430 +4511,163 @@ end
 
 	------------------------------------------------------------- ESP MODULE
 	function Features.UpdateESP()
-	local espCfg = Config.ESP
+		local espCfg = Config.ESP
+		local anyEnabled =
+    (espCfg.HighlightEnabled and espCfg.Highlight)
+    or (espCfg.NamesEnabled and espCfg.Names)
+    or (espCfg.DetailsEnabled and espCfg.Details)
+    or (espCfg.TracersEnabled and espCfg.Tracers)
 
-	local anyEnabled =
-		espCfg.Enabled and (
-			(espCfg.HighlightEnabled and espCfg.Highlight)
-			or (espCfg.NamesEnabled and espCfg.Names)
-			or espCfg.Distance
-			or espCfg.HealthBar
-			or espCfg.Weapon
-			or (espCfg.TracersEnabled and espCfg.Tracers)
-		)
-
-	if not anyEnabled then
-		if Runtime.ESP.loop then
-			Runtime.ESP.loop:Disconnect()
-			Runtime.ESP.loop = nil
+		if not anyEnabled then
+			if Runtime.ESP.loop then
+				Runtime.ESP.loop:Disconnect()
+				Runtime.ESP.loop = nil
+			end
+			for _, entry in pairs(Runtime.ESP.objects) do
+				if entry.Highlight then entry.Highlight.Enabled = false end
+				if entry.Billboard then entry.Billboard.Enabled = false end
+				if entry.Tracer then entry.Tracer.Visible = false end
+			end
+			return
 		end
 
-		for _, entry in pairs(Runtime.ESP.objects) do
-			if entry.Highlight then
-				entry.Highlight.Enabled = false
-			end
-			if entry.Billboard then
-				entry.Billboard.Enabled = false
-			end
-			if entry.Tracer then
-				entry.Tracer.Visible = false
-			end
-            if entry.HealthBarGui then
-	entry.HealthBarGui.Enabled = false
-end
-if entry.WeaponBillboard then
-	entry.WeaponBillboard.Enabled = false
-end
+		if not Runtime.ESP.container then
+			local f = Instance.new("Folder")
+			f.Name = "RATAHUB_ESP"
+			f.Parent = workspace
+			Runtime.ESP.container = f
 		end
 
-		return
-	end
+		if not Runtime.ESP.loop then
+			Runtime.ESP.loop = RunService.RenderStepped:Connect(function()
+				local cam = workspace.CurrentCamera
+				if not cam then return end
 
-	if not Runtime.ESP.container then
-		local f = Instance.new("Folder")
-		f.Name = "RATAHUB_ESP"
-		f.Parent = workspace
-		Runtime.ESP.container = f
-	end
+				for _, p in ipairs(Players:GetPlayers()) do
+					if p ~= player and p.Character then
+						local char = p.Character
+						local hum = char:FindFirstChildOfClass("Humanoid")
+						local root = char:FindFirstChild("HumanoidRootPart")
+						local valid = Features.IsPlayerValidESP(p)
 
-	if not Runtime.ESP.loop then
-		Runtime.ESP.loop = RunService.RenderStepped:Connect(function()
-			local cam = workspace.CurrentCamera
-			if not cam then
-				return
-			end
-
-			for _, p in ipairs(Players:GetPlayers()) do
-				if p ~= player and p.Character then
-					local char = p.Character
-					local hum = char:FindFirstChildOfClass("Humanoid")
-					local root = char:FindFirstChild("HumanoidRootPart")
-					local valid = Features.IsPlayerValidESP(p)
-
-					local entry = Runtime.ESP.objects[p]
-					if not entry then
-						entry = {}
-						Runtime.ESP.objects[p] = entry
-					end
-
-					local color = Features.GetESPColor(p)
-					local tracerColor = Features.GetTracerColor(p)
-
-					-- 1. Highlight
-					if espCfg.HighlightEnabled
-						and espCfg.Highlight
-						and valid
-						and hum
-						and hum.Health > 0 then
-
-						if not entry.Highlight or entry.Highlight.Parent ~= char then
-							if entry.Highlight then
-								entry.Highlight:Destroy()
-							end
-
-							local h = Instance.new("Highlight")
-							h.Name = "ESPHighlight"
-							h.Adornee = char
-							h.FillTransparency = 0.5
-							h.OutlineTransparency = 0
-							h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-							h.Parent = char
-
-							entry.Highlight = h
+						local entry = Runtime.ESP.objects[p]
+						if not entry then
+							entry = {}
+							Runtime.ESP.objects[p] = entry
 						end
 
-						entry.Highlight.FillColor = color
-						entry.Highlight.OutlineColor = color
-						entry.Highlight.Enabled = true
-					elseif entry.Highlight then
-						entry.Highlight.Enabled = false
-					end
+						local color = Features.GetESPColor(p)
+						local tracerColor = Features.GetTracerColor(p)
 
--- 2. Billboard (Names / Distance / Weapon)
-local showInfo =
-    (
-        (espCfg.NamesEnabled and espCfg.Names)
-        or espCfg.Distance
-        or espCfg.Weapon
-    )
+						-- 1. Highlight
+						-- 1. Highlight
+if espCfg.HighlightEnabled and espCfg.Highlight and valid and hum and hum.Health > 0 then
+							if not entry.Highlight or entry.Highlight.Parent ~= char then
+								if entry.Highlight then entry.Highlight:Destroy() end
+								local h = Instance.new("Highlight")
+								h.Name = "ESPHighlight"
+								h.Adornee = char
+								h.FillTransparency = 0.5
+								h.OutlineTransparency = 0
+								h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+								h.Parent = char
+								entry.Highlight = h
+							end
+							entry.Highlight.FillColor = color
+							entry.Highlight.OutlineColor = color
+							entry.Highlight.Enabled = true
+						elseif entry.Highlight then
+							entry.Highlight.Enabled = false
+						end
+
+						-- 2. Billboard (Names & Details)
+						local showText =
+    ((espCfg.NamesEnabled and espCfg.Names)
+    or (espCfg.DetailsEnabled and espCfg.Details))
     and valid
     and hum
     and hum.Health > 0
     and root
+						if showText then
+							if not entry.Billboard then
+								local b = Instance.new("BillboardGui")
+								b.Name = "ESP_Tag"
+								b.Size = UDim2.new(0, 200, 0, 40)
+								b.AlwaysOnTop = true
+								b.ResetOnSpawn = false
 
-if showInfo then
-    if not entry.Billboard then
-        local b = Instance.new("BillboardGui")
-        b.Name = "ESP_Tag"
-        b.Size = UDim2.new(0, 220, 0, 80)
-        b.AlwaysOnTop = true
-        b.ResetOnSpawn = false
+								local l = Instance.new("TextLabel")
+								l.Name = "Tag"
+								l.Size = UDim2.fromScale(1, 1)
+								l.BackgroundTransparency = 1
+								l.Font = FONT_BOLD
+								l.TextStrokeTransparency = 0.3
+								l.TextStrokeColor3 = Color3.new(0, 0, 0)
+								l.Parent = b
 
-        local container = Instance.new("Frame")
-        container.Name = "Container"
-        container.Size = UDim2.fromScale(1, 1)
-        container.BackgroundTransparency = 1
-        container.Parent = b
-
-        local layout = Instance.new("UIListLayout")
-        layout.FillDirection = Enum.FillDirection.Vertical
-        layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-        layout.VerticalAlignment = Enum.VerticalAlignment.Center
-        layout.SortOrder = Enum.SortOrder.LayoutOrder
-        layout.Padding = UDim.new(0, 2)
-        layout.Parent = container
-
-        local nameLabel = Instance.new("TextLabel")
-        nameLabel.Name = "Name"
-        nameLabel.Size = UDim2.new(1, 0, 0, 20)
-        nameLabel.BackgroundTransparency = 1
-        nameLabel.Font = FONT_BOLD
-        nameLabel.TextStrokeTransparency = 0.3
-        nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        nameLabel.LayoutOrder = 1
-        nameLabel.Parent = container
-
-        local distanceLabel = Instance.new("TextLabel")
-        distanceLabel.Name = "Distance"
-        distanceLabel.Size = UDim2.new(1, 0, 0, 18)
-        distanceLabel.BackgroundTransparency = 1
-        distanceLabel.Font = FONT_BOLD
-        distanceLabel.TextStrokeTransparency = 0.3
-        distanceLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-        distanceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        distanceLabel.LayoutOrder = 2
-        distanceLabel.Parent = container
-
-        local weaponLabel = Instance.new("TextLabel")
-        weaponLabel.Name = "Weapon"
-        weaponLabel.Size = UDim2.new(1, 0, 0, 18)
-        weaponLabel.BackgroundTransparency = 1
-        weaponLabel.Font = FONT_BOLD
-        weaponLabel.TextStrokeTransparency = 0.3
-        weaponLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        weaponLabel.LayoutOrder = 3
-        weaponLabel.Parent = container
-
-        b.Parent = Runtime.ESP.container
-
-        entry.Billboard = b
-        entry.InfoContainer = container
-        entry.NameLabel = nameLabel
-        entry.DistanceLabel = distanceLabel
-        entry.InfoWeaponLabel = weaponLabel
-    end
-
-    local scale = math.clamp(espCfg.ESPSize or 1, 0.5, 2.0)
-
-    entry.Billboard.Adornee = root
-    entry.Billboard.Size = UDim2.new(
-        0,
-        math.floor(220 * scale),
-        0,
-        math.floor(80 * scale)
-    )
-
-    entry.Billboard.StudsOffset = Vector3.new(
-        espCfg.OffsetX,
-        2.8 + espCfg.OffsetY,
-        0
-    )
-
-    entry.Billboard.Enabled = true
-
-    local nameLabel = entry.NameLabel
-    local distanceLabel = entry.DistanceLabel
-    local weaponLabel = entry.InfoWeaponLabel
-
-    local baseTextSize = 14 * scale
-    local baseSpacing = 2 * scale
-
-    nameLabel.TextSize = baseTextSize
-    distanceLabel.TextSize = baseTextSize
-    weaponLabel.TextSize = baseTextSize
-
-    nameLabel.Size = UDim2.new(
-        1,
-        0,
-        0,
-        math.floor(20 * scale)
-    )
-
-    distanceLabel.Size = UDim2.new(
-        1,
-        0,
-        0,
-        math.floor(18 * scale)
-    )
-
-    weaponLabel.Size = UDim2.new(
-        1,
-        0,
-        0,
-        math.floor(18 * scale)
-    )
-
-    local layout = entry.InfoContainer:FindFirstChildOfClass("UIListLayout")
-    if layout then
-        layout.Padding = UDim.new(0, baseSpacing)
-    end
-
-    nameLabel.Visible = espCfg.NamesEnabled and espCfg.Names
-
-    distanceLabel.Visible = espCfg.Distance
-
-    weaponLabel.Visible = espCfg.Weapon
-
-    if nameLabel.Visible then
-        nameLabel.Text = p.DisplayName
-    end
-
-    if distanceLabel.Visible then
-        local dist = math.floor(
-            (cam.CFrame.Position - root.Position).Magnitude
-        )
-
-        distanceLabel.Text = string.format(
-            "[%d studs]",
-            dist
-        )
-    end
-
-    if weaponLabel.Visible then
-        local tool = char:FindFirstChildOfClass("Tool")
-        local weaponName = tool and tool.Name or "None"
-
-        weaponLabel.Text = "[ " .. weaponName .. " ]"
-    end
-
-    -- Solo mover el Billboard cuando realmente hay información.
-    -- Las líneas visibles se acomodan automáticamente mediante UIListLayout.
-elseif entry.Billboard then
-    entry.Billboard.Enabled = false
-end
-
-					-- 3. Tracers
-					if espCfg.TracersEnabled
-						and espCfg.Tracers
-						and valid
-						and hum
-						and hum.Health > 0
-						and root
-						and Drawing then
-
-						if not entry.Tracer then
-							local line = Drawing.new("Line")
-							line.Thickness = 1.5
-							line.Transparency = 1
-							entry.Tracer = line
-						end
-
-						local rootPos, onScreen =
-							cam:WorldToViewportPoint(root.Position)
-
-						if onScreen then
-							local originPos =
-								Vector2.new(
-									cam.ViewportSize.X / 2,
-									cam.ViewportSize.Y
-								)
-
-							if espCfg.TracerOrigin == "Center" then
-								originPos = Vector2.new(
-									cam.ViewportSize.X / 2,
-									cam.ViewportSize.Y / 2
-								)
-							elseif espCfg.TracerOrigin == "Mouse" then
-								originPos = UserInputService:GetMouseLocation()
+								b.Parent = Runtime.ESP.container
+								entry.Billboard = b
+								entry.Label = l
 							end
 
-							entry.Tracer.From = originPos
-							entry.Tracer.To = Vector2.new(rootPos.X, rootPos.Y)
-							entry.Tracer.Color = tracerColor
-							entry.Tracer.Visible = true
-						else
+							entry.Billboard.Adornee = root
+							entry.Billboard.StudsOffset = Vector3.new(espCfg.OffsetX, 2.5 + espCfg.OffsetY, 0)
+							entry.Billboard.Enabled = true
+							entry.Label.TextSize = espCfg.TextSize
+							entry.Label.TextColor3 = color
+
+							if espCfg.Details then
+								local dist = math.floor((cam.CFrame.Position - root.Position).Magnitude)
+								local hp = math.floor(hum.Health)
+								entry.Label.Text = string.format("%s\n[%d HP] [%d studs]", p.DisplayName, hp, dist)
+							else
+								entry.Label.Text = p.DisplayName
+							end
+						elseif entry.Billboard then
+							entry.Billboard.Enabled = false
+						end
+
+						-- 3. Tracers
+						-- 3. Tracers
+if espCfg.TracersEnabled and espCfg.Tracers and valid and hum and hum.Health > 0 and root and Drawing then
+							if not entry.Tracer then
+								local line = Drawing.new("Line")
+								line.Thickness = 1.5
+								line.Transparency = 1
+								entry.Tracer = line
+							end
+
+							local rootPos, onScreen = cam:WorldToViewportPoint(root.Position)
+							if onScreen then
+								local originPos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y)
+								if espCfg.TracerOrigin == "Center" then
+									originPos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+								elseif espCfg.TracerOrigin == "Mouse" then
+									originPos = UserInputService:GetMouseLocation()
+								end
+
+								entry.Tracer.From = originPos
+								entry.Tracer.To = Vector2.new(rootPos.X, rootPos.Y)
+								entry.Tracer.Color = tracerColor
+								entry.Tracer.Visible = true
+							else
+								entry.Tracer.Visible = false
+							end
+						elseif entry.Tracer then
 							entry.Tracer.Visible = false
 						end
-					elseif entry.Tracer then
-						entry.Tracer.Visible = false
+					else
+						local entry = Runtime.ESP.objects[p]
+						if entry then
+							if entry.Highlight then entry.Highlight.Enabled = false end
+							if entry.Billboard then entry.Billboard.Enabled = false end
+							if entry.Tracer then entry.Tracer.Visible = false end
+						end
 					end
-
--- 4. Health Bar
-if espCfg.HealthBar
-    and valid
-    and hum
-    and hum.Health > 0
-    and root then
-
-    local scale = math.clamp(espCfg.ESPSize or 1, 0.5, 2.0)
-
-    if not entry.HealthBarGui then
-        local gui = Instance.new("BillboardGui")
-        gui.Name = "ESP_HealthBar"
-        gui.AlwaysOnTop = true
-        gui.ResetOnSpawn = false
-        gui.LightInfluence = 0
-
-        local background = Instance.new("Frame")
-        background.Name = "Background"
-        background.AnchorPoint = Vector2.new(0.5, 0.5)
-        background.Position = UDim2.fromScale(0.5, 0.5)
-        background.Size = UDim2.fromScale(1, 1)
-        background.BackgroundColor3 = Color3.fromRGB(190, 45, 45)
-        background.BorderSizePixel = 0
-        background.Parent = gui
-
-        local backgroundCorner = Instance.new("UICorner")
-        backgroundCorner.CornerRadius = UDim.new(0, 4)
-        backgroundCorner.Parent = background
-
-        local stroke = Instance.new("UIStroke")
-        stroke.Color = Color3.fromRGB(0, 0, 0)
-        stroke.Thickness = 1
-        stroke.Transparency = 0.15
-        stroke.Parent = background
-
-        local fill = Instance.new("Frame")
-        fill.Name = "Fill"
-        fill.AnchorPoint = Vector2.new(0, 0.5)
-        fill.Position = UDim2.fromScale(0, 0.5)
-        fill.Size = UDim2.fromScale(1, 1)
-        fill.BackgroundColor3 = Color3.fromRGB(55, 220, 90)
-        fill.BorderSizePixel = 0
-        fill.Parent = background
-
-        local fillCorner = Instance.new("UICorner")
-        fillCorner.CornerRadius = UDim.new(0, 4)
-        fillCorner.Parent = fill
-
-        entry.HealthBarGui = gui
-        entry.HealthBarBackground = background
-        entry.HealthBarFill = fill
-
-        gui.Parent = Runtime.ESP.container
-    end
-
-    local gui = entry.HealthBarGui
-    local background = entry.HealthBarBackground
-    local fill = entry.HealthBarFill
-
-    gui.Adornee = root
-
-    -- El slider controla TODO el tamaño de la barra
-    local barWidth = math.floor(110 * scale)
-    local barHeight = math.max(3, math.floor(5 * scale))
-
-    gui.Size = UDim2.fromOffset(
-        barWidth,
-        barHeight
-    )
-
-    -- Horizontal y centrada justo encima de la información
-    gui.StudsOffset = Vector3.new(
-        espCfg.OffsetX,
-        3.55 + espCfg.OffsetY,
-        0
-    )
-
-    gui.Enabled = true
-
-    local maxHealth = math.max(hum.MaxHealth, 1)
-    local healthPercent = math.clamp(
-        hum.Health / maxHealth,
-        0,
-        1
-    )
-
-    -- Rojo = vida faltante
-    background.BackgroundColor3 = Color3.fromRGB(
-        190,
-        45,
-        45
-    )
-
-    -- Verde = vida actual
-    fill.BackgroundColor3 = Color3.fromRGB(
-        55,
-        220,
-        90
-    )
-
-    -- El verde se reduce horizontalmente según la vida
-    fill.Size = UDim2.fromScale(
-        healthPercent,
-        1
-    )
-
-elseif entry.HealthBarGui then
-    entry.HealthBarGui.Enabled = false
-end
-
-                end
-            end
-        end)
-    end
-end
+				end
+			end)
+		end
+	end
 
 	------------------------------------------------------------- AIMLOCK MODULE (RAYFIELD LOGIC)
 	function Features.GetAimPart(char)
@@ -5624,35 +4931,14 @@ end
 				local cam = workspace.CurrentCamera
 				if not cam then return end
 
-local screenPos, onScreen = cam:WorldToViewportPoint(part.Position)
-local worldDist = (part.Position - cam.CFrame.Position).Magnitude
+				local screenPos, onScreen = cam:WorldToViewportPoint(part.Position)
+				local worldDist = (part.Position - cam.CFrame.Position).Magnitude
 
-local smoothness = tonumber(Config.Aimlock.Smoothness) or 100
-
--- Con Smoothness 100 toleramos pequeños instantes en los que
--- el objetivo sale del viewport por movimiento extremadamente rápido.
--- El límite de distancia real sigue siendo respetado.
-local allowOffscreenGrace = smoothness >= 100
-
-if Config.Aimlock.UseMaxDistance and worldDist > Config.Aimlock.MaxDistance then
-    Features.UnlockAimlock()
-    RATAHUB:Notify({
-        Title = "Aimlock",
-        Content = "Objetivo fuera de rango",
-        Duration = 1.5
-    })
-    return
-end
-
-if not onScreen and not allowOffscreenGrace then
-    Features.UnlockAimlock()
-    RATAHUB:Notify({
-        Title = "Aimlock",
-        Content = "Objetivo fuera de rango",
-        Duration = 1.5
-    })
-    return
-end
+				if not onScreen or (Config.Aimlock.UseMaxDistance and worldDist > Config.Aimlock.MaxDistance) then
+					Features.UnlockAimlock()
+					RATAHUB:Notify({ Title = "Aimlock", Content = "Objetivo fuera de rango", Duration = 1.5 })
+					return
+				end
 
 				-- Prediction
 				local targetPos = part.Position
@@ -6442,6 +5728,9 @@ elseif matchesKey(Config.ESP.NamesKeybind) and Config.ESP.NamesEnabled then
     Config.ESP.Names = not Config.ESP.Names
     Features.UpdateESP()
 
+elseif matchesKey(Config.ESP.DetailsKeybind) and Config.ESP.DetailsEnabled then
+    Config.ESP.Details = not Config.ESP.Details
+    Features.UpdateESP()
 
 elseif matchesKey(Config.ESP.TracersKeybind) and Config.ESP.TracersEnabled then
     Config.ESP.Tracers = not Config.ESP.Tracers
@@ -6519,7 +5808,7 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.
 		})
 		Controls.Main.FlySpeed = main:CreateSlider({
 			Name = "Fly Speed",
-			Range = { 50, 1000 },
+			Range = { 50, 600 },
 			Increment = 5,
 			CurrentValue = M.Movement.FlySpeed,
 			Callback = function(Value)
@@ -6543,7 +5832,7 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.
 		})
 		Controls.Main.WalkSpeedValue = main:CreateSlider({
 			Name = "WalkSpeed",
-			Range = { 16, 500 },
+			Range = { 16, 300 },
 			Increment = 1,
 			CurrentValue = M.Movement.WalkSpeed,
 			Callback = function(Value)
@@ -6705,217 +5994,125 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.
 		local esp = win:CreateTab({ Name = "ESP", Icon = "👁", SubTitle = "Visual extra-sensory perception" })
 		local E = Config.ESP
 
-		-- ESP MASTER TOGGLE
-		Controls.ESP.Master = esp:CreateToggle({
-			Name = "ESP",
-			CurrentValue = E.Enabled,
-			Callback = function(Value)
-				E.Enabled = Value
-				Features.UpdateESP()
-			end,
-		})
-
-		-- ============================================================
-		-- ESP - ELEMENTS
-		-- ============================================================
-
-		esp:CreateSection("Elements")
-
+		esp:CreateSection("General")
 		Controls.ESP.Highlight = esp:CreateToggle({
-			Name = "ESP Highlight",
-			CurrentValue = E.HighlightEnabled,
-			Callback = function(Value)
-				E.HighlightEnabled = Value
-				E.Highlight = Value
-				Features.UpdateESP()
-			end,
-		})
-
-		Controls.ESP.HighlightKeybind = esp:CreateKeybind({
-			Name = "ESP Highlight Keybind",
-			CurrentKeybind = E.HighlightKeybind,
-			Callback = function(Key)
-				E.HighlightKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
-			end,
-		})
-
-		Controls.ESP.Names = esp:CreateToggle({
-			Name = "ESP Nombres",
-			CurrentValue = E.NamesEnabled,
-			Callback = function(Value)
-				E.NamesEnabled = Value
-				E.Names = Value
-				Features.UpdateESP()
-			end,
-		})
-
-		Controls.ESP.NamesKeybind = esp:CreateKeybind({
-			Name = "ESP Nombres Keybind",
-			CurrentKeybind = E.NamesKeybind,
-			Callback = function(Key)
-				E.NamesKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
-			end,
-		})
-
-		Controls.ESP.Tracers = esp:CreateToggle({
-			Name = "Tracers",
-			CurrentValue = E.TracersEnabled,
-			Callback = function(Value)
-				E.TracersEnabled = Value
-
-				if not Value then
-					E.Tracers = false
-				else
-					E.Tracers = true
-				end
-
-				Features.UpdateESP()
-			end,
-		})
-
-		Controls.ESP.TracersKeybind = esp:CreateKeybind({
-			Name = "Tracers Keybind",
-			CurrentKeybind = E.TracersKeybind,
-			Callback = function(Key)
-				E.TracersKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
-			end,
-		})
-
-		Controls.ESP.Distance = esp:CreateToggle({
-			Name = "Distance",
-			CurrentValue = E.Distance,
-			Callback = function(Value)
-				E.Distance = Value
-				Features.UpdateESP()
-			end,
-		})
-
-		Controls.ESP.HealthBar = esp:CreateToggle({
-			Name = "Health Bar",
-			CurrentValue = E.HealthBar,
-			Callback = function(Value)
-				E.HealthBar = Value
-				Features.UpdateESP()
-			end,
-		})
-
-		Controls.ESP.Weapon = esp:CreateToggle({
-			Name = "Weapon",
-			CurrentValue = E.Weapon,
-			Callback = function(Value)
-				E.Weapon = Value
-				Features.UpdateESP()
-			end,
-		})
-
-		-- ============================================================
-		-- ESP - FUNCTIONS
-		-- ============================================================
-
-		esp:CreateSection("Functions")
-
-Controls.ESP.TeamCheck = esp:CreateToggle({
-    Name = "Team Check",
-    CurrentValue = E.TeamCheck,
+    Name = "ESP Highlight",
+    CurrentValue = E.HighlightEnabled,
     Callback = function(Value)
-        E.TeamCheck = Value
-        Features.SyncManager.SyncProperty("ESP", "TeamCheck", Value)
+        E.HighlightEnabled = Value
+
+        if not Value then
+            E.Highlight = false
+        end
+
         Features.UpdateESP()
     end,
 })
 
-Controls.ESP.IgnoreTeams = esp:CreateDropdown({
-    Name = "Ignore Team",
-    Options = IGNORE_TEAMS,
-    CurrentOption = E.IgnoreTeams,
-    MultipleOptions = true,
+        Controls.ESP.HighlightKeybind = esp:CreateKeybind({
+    Name = "ESP Highlight Keybind",
+    CurrentKeybind = E.HighlightKeybind,
+    Callback = function(Key)
+        E.HighlightKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+    end,
+})
+
+Controls.ESP.Names = esp:CreateToggle({
+    Name = "ESP Nombres",
+    CurrentValue = E.NamesEnabled,
     Callback = function(Value)
-        E.IgnoreTeams = Value
-        Features.SyncManager.SyncProperty("ESP", "IgnoreTeams", Value)
+        E.NamesEnabled = Value
+
+        if not Value then
+            E.Names = false
+        end
+
         Features.UpdateESP()
     end,
 })
 
-		Controls.ESP.FriendCheck = esp:CreateToggle({
-			Name = "Friend Check",
-			CurrentValue = E.FriendCheck,
-			Callback = function(Value)
-				E.FriendCheck = Value
-				if Value then
-					Features.RefreshAllFriends()
-				end
-				Features.SyncManager.SyncProperty("ESP", "FriendCheck", Value)
-				Features.UpdateESP()
-			end,
-		})
-
-Controls.ESP.ESPSize = esp:CreateSlider({
-    Name = "ESP Size",
-    Range = { 0.5, 2.0 },
-    Increment = 0.05,
-    CurrentValue = E.ESPSize,
-    Suffix = "x",
+Controls.ESP.NamesKeybind = esp:CreateKeybind({
+    Name = "ESP Nombres Keybind",
+    CurrentKeybind = E.NamesKeybind,
+    Callback = function(Key)
+        E.NamesKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+    end,
+})
+Controls.ESP.Details = esp:CreateToggle({
+    Name = "ESP Nombre + Studs + Vida",
+    CurrentValue = E.DetailsEnabled,
     Callback = function(Value)
-        E.ESPSize = Value
+        E.DetailsEnabled = Value
+
+        if not Value then
+            E.Details = false
+        end
+
         Features.UpdateESP()
     end,
 })
 
-		Controls.ESP.WhitelistMode = esp:CreateDropdown({
-			Name = "ESP Whitelist Mode",
-			Options = { "Disabled", "Ignore Whitelist", "Only Whitelist" },
-			CurrentOption = E.WhitelistMode,
+        Controls.ESP.DetailsKeybind = esp:CreateKeybind({
+    Name = "ESP Stats Keybind",
+    CurrentKeybind = E.DetailsKeybind,
+    Callback = function(Key)
+        E.DetailsKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+    end,
+})
+
+		Controls.ESP.OffsetX = esp:CreateSlider({
+			Name = "Posicion Offset X (Lados)",
+			Range = { -10, 10 },
+			Increment = 0.5,
+			CurrentValue = E.OffsetX,
 			Callback = function(Value)
-				E.WhitelistMode = Value
-				Features.SyncManager.SyncProperty("ESP", "WhitelistMode", Value)
+				E.OffsetX = Value
+				Features.UpdateESP()
+			end,
+		})
+		Controls.ESP.OffsetY = esp:CreateSlider({
+			Name = "Posicion Offset Y (Altura)",
+			Range = { -10, 10 },
+			Increment = 0.5,
+			CurrentValue = E.OffsetY,
+			Callback = function(Value)
+				E.OffsetY = Value
+				Features.UpdateESP()
+			end,
+		})
+		Controls.ESP.TextSize = esp:CreateSlider({
+			Name = "Tamaño de Texto ESP",
+			Range = { 8, 32 },
+			Increment = 1,
+			CurrentValue = E.TextSize,
+			Callback = function(Value)
+				E.TextSize = Value
 				Features.UpdateESP()
 			end,
 		})
 
-		Controls.ESP.WhitelistTarget = esp:CreateDropdown({
-			Name = "Seleccionar Objetivo Whitelist",
-			Options = WHITELIST_TARGETS,
-			CurrentOption = E.WhitelistTarget,
-			Callback = function(Value)
-				E.WhitelistTarget = Value
-				Features.SyncManager.SyncProperty("ESP", "WhitelistTarget", Value)
-				Features.UpdateESP()
-			end,
-		})
+		esp:CreateSection("Tracers")
+Controls.ESP.Tracers = esp:CreateToggle({
+    Name = "Tracers",
+    CurrentValue = E.TracersEnabled,
+    Callback = function(Value)
+        E.TracersEnabled = Value
 
-		-- ============================================================
-		-- ESP - VISUAL
-		-- ============================================================
+        if not Value then
+            E.Tracers = false
+        end
 
-		esp:CreateSection("Visual")
+        Features.UpdateESP()
+    end,
+})
 
-		Controls.ESP.HighlightColor = esp:CreateDropdown({
-			Name = "Color Highlight",
-			Options = { "Morado", "Rojo", "Azul", "Verde Neon", "Cyan", "Blanco" },
-			CurrentOption = E.HighlightColor,
-			Callback = function(Value)
-				E.HighlightColor = Value
-				Features.UpdateESP()
-			end,
-		})
-
-		Controls.ESP.TeamColorHighlight = esp:CreateToggle({
-			Name = "Team Color Highlight",
-			CurrentValue = E.TeamColorHighlight,
-			Callback = function(Value)
-				E.TeamColorHighlight = Value
-				Features.UpdateESP()
-			end,
-		})
-
-		Controls.ESP.TeamColorTracers = esp:CreateToggle({
-			Name = "Team Color Tracers",
-			CurrentValue = E.TeamColorTracers,
-			Callback = function(Value)
-				E.TeamColorTracers = Value
-				Features.UpdateESP()
-			end,
-		})
+        Controls.ESP.TracersKeybind = esp:CreateKeybind({
+    Name = "Tracers Keybind",
+    CurrentKeybind = E.TracersKeybind,
+    Callback = function(Key)
+        E.TracersKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+    end,
+})
 
 		Controls.ESP.TracerOrigin = esp:CreateDropdown({
 			Name = "Origen de Tracers",
@@ -6926,13 +6123,36 @@ Controls.ESP.ESPSize = esp:CreateSlider({
 				Features.UpdateESP()
 			end,
 		})
+		Controls.ESP.TeamColorTracers = esp:CreateToggle({
+			Name = "Team Color Tracers",
+			CurrentValue = E.TeamColorTracers,
+			Callback = function(Value)
+				E.TeamColorTracers = Value
+				Features.UpdateESP()
+			end,
+		})
 
-		-- ============================================================
-		-- ESP - SYNCHRONIZATION
-		-- ============================================================
-
-		esp:CreateSection("Synchronization")
-
+		esp:CreateSection("Whitelist")
+		Controls.ESP.WhitelistMode = esp:CreateDropdown({
+			Name = "ESP Whitelist Mode",
+			Options = { "Disabled", "Ignore Whitelist", "Only Whitelist" },
+			CurrentOption = E.WhitelistMode,
+			Callback = function(Value)
+				E.WhitelistMode = Value
+				Features.SyncManager.SyncProperty("ESP", "WhitelistMode", Value)
+				Features.UpdateESP()
+			end,
+		})
+		Controls.ESP.WhitelistTarget = esp:CreateDropdown({
+			Name = "Seleccionar Objetivo Whitelist",
+			Options = WHITELIST_TARGETS,
+			CurrentOption = E.WhitelistTarget,
+			Callback = function(Value)
+				E.WhitelistTarget = Value
+				Features.SyncManager.SyncProperty("ESP", "WhitelistTarget", Value)
+				Features.UpdateESP()
+			end,
+		})
 		Controls.ESP.SyncAimlock = esp:CreateToggle({
 			Name = "Sincronizar con Aimlock",
 			CurrentValue = E.SyncAimlock,
@@ -6941,7 +6161,6 @@ Controls.ESP.ESPSize = esp:CreateSlider({
 				Features.SyncManager.OnSyncToggled("ESP", "Aimlock", Value)
 			end,
 		})
-
 		Controls.ESP.SyncTriggerbot = esp:CreateToggle({
 			Name = "Sincronizar con Triggerbot",
 			CurrentValue = E.SyncTriggerbot,
@@ -6951,13 +6170,57 @@ Controls.ESP.ESPSize = esp:CreateSlider({
 			end,
 		})
 
-		-- ============================================================
-		-- ESP - PREVIEW
-		-- ============================================================
+		esp:CreateSection("Visual")
+		Controls.ESP.HighlightColor = esp:CreateDropdown({
+			Name = "Color Highlight",
+			Options = { "Morado", "Rojo", "Azul", "Verde Neon", "Cyan", "Blanco" },
+			CurrentOption = E.HighlightColor,
+			Callback = function(Value)
+				E.HighlightColor = Value
+				Features.UpdateESP()
+			end,
+		})
+		Controls.ESP.TeamColorHighlight = esp:CreateToggle({
+			Name = "Team Color Highlight",
+			CurrentValue = E.TeamColorHighlight,
+			Callback = function(Value)
+				E.TeamColorHighlight = Value
+				Features.UpdateESP()
+			end,
+		})
+		Controls.ESP.RainbowESP = esp:CreateToggle({
+			Name = "Rainbow ESP",
+			CurrentValue = E.RainbowESP,
+			Callback = function(Value)
+				E.RainbowESP = Value
+				Features.UpdateESP()
+			end,
+		})
 
-		esp:CreateSection("Preview")
+		esp:CreateSection("Team Check")
+		Controls.ESP.IgnoreTeams = esp:CreateDropdown({
+			Name = "Equipos a Ignorar",
+			Options = IGNORE_TEAMS,
+			CurrentOption = E.IgnoreTeams,
+			MultipleOptions = true,
+			Callback = function(Value)
+				E.IgnoreTeams = Value
+				Features.SyncManager.SyncProperty("ESP", "IgnoreTeams", Value)
+				Features.UpdateESP()
+			end,
+		})
+		Controls.ESP.FriendCheck = esp:CreateToggle({
+			Name = "Friend Check (Resaltar Amigos en Verde)",
+			CurrentValue = E.FriendCheck,
+			Callback = function(Value)
+				E.FriendCheck = Value
+				if Value then Features.RefreshAllFriends() end
+				Features.SyncManager.SyncProperty("ESP", "FriendCheck", Value)
+				Features.UpdateESP()
+			end,
+		})
+	end
 
-		-- Preview controls go here
 	--------------------------------------------------------------
 	-- 3. AIMLOCK TAB (Restored from RATAHUBB)
 	--------------------------------------------------------------
@@ -7483,36 +6746,6 @@ Loader:SetStatus("Extras: Tools...")
 		})
 	end
 
---------------------------------------------------------------
--- UI SETTINGS TAB
---------------------------------------------------------------
-do
-    local uiSettings = win:CreateTab({
-        Name = "UI Settings",
-        Icon = "⚙",
-        SubTitle = "Interface and visual settings"
-    })
-
-    local U = Config.UISettings
-
-    uiSettings:CreateSection("Appearance")
-
-    Controls.UISettings = Controls.UISettings or {}
-
-
-    uiSettings:CreateSection("Minitabs")
-
-    Controls.UISettings.RememberOpenMinitabs = uiSettings:CreateToggle({
-        Name = "Remember Open Minitabs",
-        Description = "Remember which minitabs are open when switching tabs",
-        CurrentValue = U.RememberOpenMinitabs,
-        Callback = function(Value)
-            U.RememberOpenMinitabs = Value
-            win.rememberOpenMinitabs = Value
-        end,
-    })
-end
-
 	--=====================================================================
 	-- PLAYER & TEAM DYNAMIC CONNECTIONS
 	--=====================================================================
@@ -7561,4 +6794,3 @@ Features.StartHotkeys()
 Loader:SetProgress(1)
 Loader:SetStatus("Ready!")
 Loader:Finish()
-end
