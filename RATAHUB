@@ -3481,6 +3481,7 @@ Weapon = false,
 OffsetX = 0,
 OffsetY = 0,
 TextSize = 14,
+ESPSize = 1.0,
 
 Tracers = false,
 TracersEnabled = false,
@@ -4943,63 +4944,169 @@ end
 						entry.Highlight.Enabled = false
 					end
 
-					-- 2. Billboard (Names / Distance)
-					local showText =
-						((espCfg.NamesEnabled and espCfg.Names) or espCfg.Distance)
-						and valid
-						and hum
-						and hum.Health > 0
-						and root
+-- 2. Billboard (Names / Distance / Weapon)
+local showInfo =
+    (
+        (espCfg.NamesEnabled and espCfg.Names)
+        or espCfg.Distance
+        or espCfg.Weapon
+    )
+    and valid
+    and hum
+    and hum.Health > 0
+    and root
 
-					if showText then
-						if not entry.Billboard then
-							local b = Instance.new("BillboardGui")
-							b.Name = "ESP_Tag"
-							b.Size = UDim2.new(0, 200, 0, 50)
-							b.AlwaysOnTop = true
-							b.ResetOnSpawn = false
+if showInfo then
+    if not entry.Billboard then
+        local b = Instance.new("BillboardGui")
+        b.Name = "ESP_Tag"
+        b.Size = UDim2.new(0, 220, 0, 80)
+        b.AlwaysOnTop = true
+        b.ResetOnSpawn = false
 
-							local l = Instance.new("TextLabel")
-							l.Name = "Tag"
-							l.Size = UDim2.fromScale(1, 1)
-							l.BackgroundTransparency = 1
-							l.Font = FONT_BOLD
-							l.TextStrokeTransparency = 0.3
-							l.TextStrokeColor3 = Color3.new(0, 0, 0)
-							l.Parent = b
+        local container = Instance.new("Frame")
+        container.Name = "Container"
+        container.Size = UDim2.fromScale(1, 1)
+        container.BackgroundTransparency = 1
+        container.Parent = b
 
-							b.Parent = Runtime.ESP.container
-							entry.Billboard = b
-							entry.Label = l
-						end
+        local layout = Instance.new("UIListLayout")
+        layout.FillDirection = Enum.FillDirection.Vertical
+        layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        layout.VerticalAlignment = Enum.VerticalAlignment.Center
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
+        layout.Padding = UDim.new(0, 2)
+        layout.Parent = container
 
-						entry.Billboard.Adornee = root
-						entry.Billboard.StudsOffset = Vector3.new(
-							espCfg.OffsetX,
-							2.5 + espCfg.OffsetY,
-							0
-						)
-						entry.Billboard.Enabled = true
-						entry.Label.TextSize = espCfg.TextSize
-						entry.Label.TextColor3 = color
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Name = "Name"
+        nameLabel.Size = UDim2.new(1, 0, 0, 20)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Font = FONT_BOLD
+        nameLabel.TextStrokeTransparency = 0.3
+        nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nameLabel.LayoutOrder = 1
+        nameLabel.Parent = container
 
-						local textParts = {}
+        local distanceLabel = Instance.new("TextLabel")
+        distanceLabel.Name = "Distance"
+        distanceLabel.Size = UDim2.new(1, 0, 0, 18)
+        distanceLabel.BackgroundTransparency = 1
+        distanceLabel.Font = FONT_BOLD
+        distanceLabel.TextStrokeTransparency = 0.3
+        distanceLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+        distanceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        distanceLabel.LayoutOrder = 2
+        distanceLabel.Parent = container
 
-						if espCfg.NamesEnabled and espCfg.Names then
-							table.insert(textParts, p.DisplayName)
-						end
+        local weaponLabel = Instance.new("TextLabel")
+        weaponLabel.Name = "Weapon"
+        weaponLabel.Size = UDim2.new(1, 0, 0, 18)
+        weaponLabel.BackgroundTransparency = 1
+        weaponLabel.Font = FONT_BOLD
+        weaponLabel.TextStrokeTransparency = 0.3
+        weaponLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        weaponLabel.LayoutOrder = 3
+        weaponLabel.Parent = container
 
-						if espCfg.Distance then
-							local dist = math.floor(
-								(cam.CFrame.Position - root.Position).Magnitude
-							)
-							table.insert(textParts, string.format("[%d studs]", dist))
-						end
+        b.Parent = Runtime.ESP.container
 
-						entry.Label.Text = table.concat(textParts, "\n")
-					elseif entry.Billboard then
-						entry.Billboard.Enabled = false
-					end
+        entry.Billboard = b
+        entry.InfoContainer = container
+        entry.NameLabel = nameLabel
+        entry.DistanceLabel = distanceLabel
+        entry.InfoWeaponLabel = weaponLabel
+    end
+
+    local scale = math.clamp(espCfg.ESPSize or 1, 0.5, 2.0)
+
+    entry.Billboard.Adornee = root
+    entry.Billboard.Size = UDim2.new(
+        0,
+        math.floor(220 * scale),
+        0,
+        math.floor(80 * scale)
+    )
+
+    entry.Billboard.StudsOffset = Vector3.new(
+        espCfg.OffsetX,
+        2.8 + espCfg.OffsetY,
+        0
+    )
+
+    entry.Billboard.Enabled = true
+
+    local nameLabel = entry.NameLabel
+    local distanceLabel = entry.DistanceLabel
+    local weaponLabel = entry.InfoWeaponLabel
+
+    local baseTextSize = 14 * scale
+    local baseSpacing = 2 * scale
+
+    nameLabel.TextSize = baseTextSize
+    distanceLabel.TextSize = baseTextSize
+    weaponLabel.TextSize = baseTextSize
+
+    nameLabel.Size = UDim2.new(
+        1,
+        0,
+        0,
+        math.floor(20 * scale)
+    )
+
+    distanceLabel.Size = UDim2.new(
+        1,
+        0,
+        0,
+        math.floor(18 * scale)
+    )
+
+    weaponLabel.Size = UDim2.new(
+        1,
+        0,
+        0,
+        math.floor(18 * scale)
+    )
+
+    local layout = entry.InfoContainer:FindFirstChildOfClass("UIListLayout")
+    if layout then
+        layout.Padding = UDim.new(0, baseSpacing)
+    end
+
+    nameLabel.Visible = espCfg.NamesEnabled and espCfg.Names
+
+    distanceLabel.Visible = espCfg.Distance
+
+    weaponLabel.Visible = espCfg.Weapon
+
+    if nameLabel.Visible then
+        nameLabel.Text = p.DisplayName
+    end
+
+    if distanceLabel.Visible then
+        local dist = math.floor(
+            (cam.CFrame.Position - root.Position).Magnitude
+        )
+
+        distanceLabel.Text = string.format(
+            "[%d studs]",
+            dist
+        )
+    end
+
+    if weaponLabel.Visible then
+        local tool = char:FindFirstChildOfClass("Tool")
+        local weaponName = tool and tool.Name or "None"
+
+        weaponLabel.Text = "[ " .. weaponName .. " ]"
+    end
+
+    -- Solo mover el Billboard cuando realmente hay información.
+    -- Las líneas visibles se acomodan automáticamente mediante UIListLayout.
+elseif entry.Billboard then
+    entry.Billboard.Enabled = false
+end
 
 					-- 3. Tracers
 					if espCfg.TracersEnabled
@@ -5047,67 +5154,89 @@ end
 						entry.Tracer.Visible = false
 					end
 
-					-- 4. Health Bar
-					if espCfg.HealthBar
-						and valid
-						and hum
-						and hum.Health > 0
-						and root then
+-- 4. Health Bar
+if espCfg.HealthBar
+    and valid
+    and hum
+    and hum.Health > 0
+    and root then
 
-						if not entry.HealthBarGui then
-							local gui = Instance.new("BillboardGui")
-							gui.Name = "ESP_HealthBar"
-							gui.Size = UDim2.new(0, 6, 0, 50)
-							gui.AlwaysOnTop = true
-							gui.ResetOnSpawn = false
-							gui.Parent = Runtime.ESP.container
+    if not entry.HealthBarGui then
+        local gui = Instance.new("BillboardGui")
+        gui.Name = "ESP_HealthBar"
+        gui.Size = UDim2.new(0, 8, 0, 50)
+        gui.AlwaysOnTop = true
+        gui.ResetOnSpawn = false
 
-							local background = Instance.new("Frame")
-							background.Name = "Background"
-							background.Size = UDim2.fromScale(1, 1)
-							background.Position = UDim2.fromScale(0, 0)
-							background.BorderSizePixel = 0
-							background.BackgroundColor3 = Color3.new(0, 0, 0)
-							background.Parent = gui
+        local background = Instance.new("Frame")
+        background.Name = "Background"
+        background.Size = UDim2.fromScale(1, 1)
+        background.BackgroundColor3 = Color3.fromRGB(190, 45, 45)
+        background.BorderSizePixel = 0
+        background.Parent = gui
 
-							local fill = Instance.new("Frame")
-							fill.Name = "Fill"
-							fill.AnchorPoint = Vector2.new(0, 1)
-							fill.Position = UDim2.fromScale(0, 1)
-							fill.Size = UDim2.fromScale(1, 1)
-							fill.BorderSizePixel = 0
-							fill.BackgroundColor3 = color
-							fill.Parent = background
+        local fill = Instance.new("Frame")
+        fill.Name = "Fill"
+        fill.AnchorPoint = Vector2.new(0, 1)
+        fill.Position = UDim2.fromScale(0, 1)
+        fill.Size = UDim2.fromScale(1, 1)
+        fill.BackgroundColor3 = Color3.fromRGB(50, 220, 90)
+        fill.BorderSizePixel = 0
+        fill.Parent = background
 
-							entry.HealthBarGui = gui
-							entry.HealthBarFill = fill
-						end
+        entry.HealthBarGui = gui
+        entry.HealthBarBackground = background
+        entry.HealthBarFill = fill
 
-						entry.HealthBarGui.Adornee = root
-						entry.HealthBarGui.StudsOffset = Vector3.new(
-							-3.5 + espCfg.OffsetX,
-							2.5 + espCfg.OffsetY,
-							0
-						)
-						entry.HealthBarGui.Enabled = true
+        gui.Parent = Runtime.ESP.container
+    end
 
-						local maxHealth = math.max(hum.MaxHealth, 1)
-						local healthPercent = math.clamp(
-							hum.Health / maxHealth,
-							0,
-							1
-						)
+    local scale = math.clamp(espCfg.ESPSize or 1, 0.5, 2.0)
 
-						entry.HealthBarFill.Size = UDim2.fromScale(
-							1,
-							healthPercent
-						)
+    entry.HealthBarGui.Adornee = root
+    entry.HealthBarGui.Size = UDim2.fromOffset(
+        math.floor(8 * scale),
+        math.floor(50 * scale)
+    )
 
-						entry.HealthBarFill.BackgroundColor3 = color
-					elseif entry.HealthBarGui then
-						entry.HealthBarGui.Enabled = false
-					end
+    -- Siempre a un lado del jugador, separado del texto.
+    entry.HealthBarGui.StudsOffset = Vector3.new(
+        -3.5 * scale + espCfg.OffsetX,
+        2.5 * scale + espCfg.OffsetY,
+        0
+    )
 
+    entry.HealthBarGui.Enabled = true
+
+    local maxHealth = math.max(hum.MaxHealth, 1)
+    local healthPercent = math.clamp(
+        hum.Health / maxHealth,
+        0,
+        1
+    )
+
+    entry.HealthBarFill.Size = UDim2.fromScale(
+        1,
+        healthPercent
+    )
+
+    -- Verde = vida actual
+    entry.HealthBarFill.BackgroundColor3 = Color3.fromRGB(
+        50,
+        220,
+        90
+    )
+
+    -- Rojo = vida faltante
+    entry.HealthBarBackground.BackgroundColor3 = Color3.fromRGB(
+        190,
+        45,
+        45
+    )
+
+elseif entry.HealthBarGui then
+    entry.HealthBarGui.Enabled = false
+end
 					-- 5. Weapon
 					if espCfg.Weapon
 						and valid
@@ -6262,9 +6391,6 @@ elseif matchesKey(Config.ESP.NamesKeybind) and Config.ESP.NamesEnabled then
     Config.ESP.Names = not Config.ESP.Names
     Features.UpdateESP()
 
-elseif matchesKey(Config.ESP.DetailsKeybind) and Config.ESP.DetailsEnabled then
-    Config.ESP.Details = not Config.ESP.Details
-    Features.UpdateESP()
 
 elseif matchesKey(Config.ESP.TracersKeybind) and Config.ESP.TracersEnabled then
     Config.ESP.Tracers = not Config.ESP.Tracers
@@ -6671,6 +6797,18 @@ Controls.ESP.IgnoreTeams = esp:CreateDropdown({
 				Features.UpdateESP()
 			end,
 		})
+
+Controls.ESP.ESPSize = esp:CreateSlider({
+    Name = "ESP Size",
+    Range = { 0.5, 2.0 },
+    Increment = 0.05,
+    CurrentValue = E.ESPSize,
+    Suffix = "x",
+    Callback = function(Value)
+        E.ESPSize = Value
+        Features.UpdateESP()
+    end,
+})
 
 		Controls.ESP.WhitelistMode = esp:CreateDropdown({
 			Name = "ESP Whitelist Mode",
