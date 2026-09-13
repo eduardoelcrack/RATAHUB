@@ -4872,6 +4872,12 @@ end
 			if entry.Tracer then
 				entry.Tracer.Visible = false
 			end
+            if entry.HealthBarGui then
+	entry.HealthBarGui.Enabled = false
+end
+if entry.WeaponBillboard then
+	entry.WeaponBillboard.Enabled = false
+end
 		end
 
 		return
