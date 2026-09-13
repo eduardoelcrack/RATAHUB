@@ -1091,6 +1091,7 @@ local self = setmetatable({
 			BackgroundTransparency = 0.15,
 			BorderSizePixel = 0,
 			Parent = topBar,
+            ClipsDescendants = true,
 		})
 		create("Frame", {
 			Name = "Divider",
@@ -1332,13 +1333,22 @@ local function hideConfirmation()
         }
     )
 
-    out.Completed:Connect(function()
-        confirmOverlay.Visible = false
-    end)
+out.Completed:Connect(function()
+    confirmOverlay.Visible = false
+
+    for _, handle in ipairs(resizeHandles) do
+        handle.Visible = true
+    end
+end)
 end
 
 closeBtn.MouseButton1Click:Connect(function()
     confirmOverlay.Visible = true
+
+    for _, handle in ipairs(resizeHandles) do
+        handle.Visible = false
+    end
+
     confirmOverlay.BackgroundTransparency = 1
     confirmPanel.Size = UDim2.fromOffset(330, 135)
 
@@ -1396,9 +1406,10 @@ end)
 			{ id = "br", ax = 1, ay = 1, pos = UDim2.new(1, 0, 1, 0), signX =  1, signY =  1 },
 		}
 
-		local HANDLE = 22
-
-		for _, c in ipairs(CORNERS) do
+            local HANDLE = 22
+            local resizeHandles = {}
+     
+            for _, c in ipairs(CORNERS) do
 			local handle = create("TextButton", {
 				Name = "Resize_" .. c.id,
 				Active = true,
@@ -1411,6 +1422,8 @@ end)
 				ZIndex = 90,
 				Parent = window,
 			})
+
+            resizeHandles[#resizeHandles + 1] = handle
 
 			local resizing = false
 			local origin
@@ -1578,7 +1591,7 @@ end)
 			ScrollBarImageTransparency = 0.6,
 			CanvasSize = UDim2.new(),
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
-			ClipsDescendants = true,
+			ClipsDescendants = false,
 			Parent = sidebar,
 		})
 		local highlight = create("Frame", {
