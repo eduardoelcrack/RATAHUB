@@ -249,7 +249,7 @@ local function CreateRATAHUBLoader()
 	local barBg = Instance.new("Frame")
 	barBg.Name = "BarBackground"
 	barBg.BackgroundColor3 = RATAHUB_LOADER_COLORS.Secondary
-	barBg.ClipsDescendants = true
+	barBg.ClipsDescendants = false
 	barBg.Size = UDim2.new(1, 0, 0, 8)
 	barBg.Position = UDim2.new(0, 0, 0, 0)
 	barBg.BorderSizePixel = 0
@@ -756,6 +756,7 @@ create("UIListLayout", {
 	--=====================================================================
 	-- RATAHUB FRAMEWORK TABLE
 	--=====================================================================
+	local Features = {}
 	local RATAHUB = {}
 RATAHUB.__index = RATAHUB
 
@@ -1082,6 +1083,13 @@ function RATAHUB:CreateWindow(cfg)
 				pcall(function()
 					if Features and Features.DestroyHub then
 						Features.DestroyHub()
+					elseif RATAHUB.Features and RATAHUB.Features.DestroyHub then
+						RATAHUB.Features.DestroyHub()
+					end
+				end)
+				pcall(function()
+					if screenGui and screenGui.Parent then
+						screenGui:Destroy()
 					end
 				end)
 			end)
@@ -1129,6 +1137,7 @@ function RATAHUB:CreateWindow(cfg)
 		end
 
 		handle.InputBegan:Connect(function(input)
+			if minimized then return end
 			if input.UserInputType ~= Enum.UserInputType.MouseButton1
 				and input.UserInputType ~= Enum.UserInputType.Touch then
 				return
@@ -1252,8 +1261,8 @@ function RATAHUB:CreateWindow(cfg)
 	create("Frame", {
 		Name = "Divider",
 		AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1.089, 0, -0.039, 0),
-        Size = UDim2.new(0, 2, 1.075, 0),
+		Position = UDim2.new(1.089, 0, -0.039, 0),
+		Size = UDim2.new(0, 2, 1.075, 0),
 		BackgroundColor3 = THEME.Stroke,
 		BackgroundTransparency = 0.9,
 		BorderSizePixel = 0,
@@ -1282,7 +1291,7 @@ function RATAHUB:CreateWindow(cfg)
 		ScrollBarImageTransparency = 0.6,
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ClipsDescendants = false,
+		ClipsDescendants = true,
 		Parent = sidebar,
 	})
 	local highlight = create("Frame", {
@@ -1469,12 +1478,25 @@ function RATAHUB:CreateWindow(cfg)
 		Parent = status,
 	})
 
+	local savedHeight = START_H
 	minimizeBtn.MouseButton1Click:Connect(function()
 		minimized = not minimized
-		body.Visible = not minimized
-		footerBar.Visible = not minimized
-		if minimized and self._currentDropdownClose then
-			self._currentDropdownClose()
+		if minimized then
+			if self._currentDropdownClose then
+				self._currentDropdownClose()
+			end
+			savedHeight = (window.AbsoluteSize.Y > TOPBAR_H) and window.AbsoluteSize.Y or START_H
+			body.Visible = false
+			footerBar.Visible = false
+			tween(window, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Size = UDim2.fromOffset(window.AbsoluteSize.X, TOPBAR_H)
+			})
+		else
+			body.Visible = true
+			footerBar.Visible = true
+			tween(window, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Size = UDim2.fromOffset(window.AbsoluteSize.X, savedHeight)
+			})
 		end
 	end)
 
@@ -2440,7 +2462,7 @@ function Tab:CreateInput(cfg)
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Font = FONT, TextSize = 13,
 		ClearTextOnFocus = false,
-		ClipsDescendants = true,
+		ClipsDescendants = false,
 		Parent = row,
 	})
 	corner(8, box)
@@ -2516,7 +2538,7 @@ function Tab:CreateColorPicker(cfg)
 		Size = UDim2.fromOffset(PANEL_W, 0),
 		BackgroundColor3 = THEME.Panel,
 		BorderSizePixel = 0,
-		ClipsDescendants = true,
+		ClipsDescendants = false,
 		Visible = false,
 		ZIndex = 20,
 		Parent = row,
@@ -2530,7 +2552,7 @@ function Tab:CreateColorPicker(cfg)
 		Size = UDim2.fromOffset(SV_W, SV_H),
 		BackgroundColor3 = Color3.fromHSV(h, 1, 1),
 		BorderSizePixel = 0,
-		ClipsDescendants = true,
+		ClipsDescendants = false,
 		ZIndex = 21,
 		Parent = panel,
 	})
@@ -2589,7 +2611,7 @@ function Tab:CreateColorPicker(cfg)
 		Size = UDim2.fromOffset(SV_W, HUE_H),
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 		BorderSizePixel = 0,
-		ClipsDescendants = true,
+		ClipsDescendants = false,
 		ZIndex = 21,
 		Parent = panel,
 	})
@@ -2846,6 +2868,7 @@ local Config = {
 		TeamColorTracers = false,
 		WhitelistMode = "Disabled",
 		WhitelistTarget = "Nadie",
+		TeamCheck = false,
 		SyncAimlock = false,
 		SyncTriggerbot = false,
 		HighlightColor = "Morado",
@@ -2935,6 +2958,7 @@ local Controls = {
 	Extras = {},
 	Troll = {},
 	Sounds = {},
+	Settings = {},
 }
 function RATAHUB:GetControls() return Controls end
 
@@ -2961,7 +2985,7 @@ local Runtime = {
 	Hotkeys      = { conn = nil },
 }
 
-local Features = {}
+Features = Features or {}
 
 -------------------------------------------------------------
 -- RATAHUB V5 HUD / TARGET INFO & WATERMARK
@@ -4146,6 +4170,11 @@ function Features.IsPlayerValidESP(targetPlayer)
 		return false
 	end
 
+	-- Team Check
+	if espCfg.TeamCheck and Features.IsSameTeam(targetPlayer) then
+		return false
+	end
+
 	-- Team Filtering
 	if Features.IsTeamIgnored(targetPlayer, espCfg.IgnoreTeams) then
 		return false
@@ -5217,6 +5246,18 @@ function Features.StartHotkeys()
 			Features.ToggleAimlockLock()
 		elseif matchesKey(Config.Triggerbot.Keybind) then
 			Features.ToggleTriggerbotActive()
+		elseif matchesKey(Config.ESP.HighlightKeybind) then
+			Config.ESP.Highlight = not Config.ESP.Highlight
+			if Controls.ESP and Controls.ESP.Highlight then Controls.ESP.Highlight:Set(Config.ESP.Highlight) end
+			Features.UpdateESP()
+		elseif matchesKey(Config.ESP.NamesKeybind) then
+			Config.ESP.Names = not Config.ESP.Names
+			if Controls.ESP and Controls.ESP.Names then Controls.ESP.Names:Set(Config.ESP.Names) end
+			Features.UpdateESP()
+		elseif matchesKey(Config.ESP.TracersKeybind) then
+			Config.ESP.Tracers = not Config.ESP.Tracers
+			if Controls.ESP and Controls.ESP.Tracers then Controls.ESP.Tracers:Set(Config.ESP.Tracers) end
+			Features.UpdateESP()
 		end
 	end)
 end
@@ -5472,21 +5513,25 @@ do
 	local esp = win:CreateTab({ Name = "ESP", Icon = "👁", SubTitle = "Visual extra-sensory perception" })
 	local E = Config.ESP
 
-	-- 1. Master ESP
-	esp:CreateSection("Master ESP")
-	Controls.ESP.Master = esp:CreateToggle({
-		Name = "Master ESP",
-		CurrentValue = E.Master ~= false,
+	-- 1. General
+	esp:CreateSection("General")
+	Controls.ESP.Highlight = esp:CreateToggle({
+		Name = "ESP Highlight",
+		CurrentValue = E.Highlight,
 		Callback = function(Value)
-			E.Master = Value
+			E.Highlight = Value
 			Features.UpdateESP()
 		end,
 	})
-
-	-- 2. Elements
-	esp:CreateSection("Elements")
+	Controls.ESP.HighlightKeybind = esp:CreateKeybind({
+		Name = "ESP Highlight Keybind",
+		CurrentKeybind = E.HighlightKeybind,
+		Callback = function(Key)
+			E.HighlightKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+		end,
+	})
 	Controls.ESP.Names = esp:CreateToggle({
-		Name = "ESP Name",
+		Name = "ESP Names",
 		CurrentValue = E.Names,
 		Callback = function(Value)
 			E.Names = Value
@@ -5494,7 +5539,7 @@ do
 		end,
 	})
 	Controls.ESP.NamesKeybind = esp:CreateKeybind({
-		Name = "ESP Name Keybind",
+		Name = "ESP Names Keybind",
 		CurrentKeybind = E.NamesKeybind,
 		Callback = function(Key)
 			E.NamesKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
@@ -5524,44 +5569,8 @@ do
 			Features.UpdateESP()
 		end,
 	})
-	Controls.ESP.Highlight = esp:CreateToggle({
-		Name = "Highlight",
-		CurrentValue = E.Highlight,
-		Callback = function(Value)
-			E.Highlight = Value
-			Features.UpdateESP()
-		end,
-	})
-	Controls.ESP.Tracers = esp:CreateToggle({
-		Name = "Tracers",
-		CurrentValue = E.Tracers,
-		Callback = function(Value)
-			E.Tracers = Value
-			Features.UpdateESP()
-		end,
-	})
-	Controls.ESP.TracerOrigin = esp:CreateDropdown({
-		Name = "Trace Origin",
-		Options = { "Bottom", "Center", "Mouse" },
-		CurrentOption = E.TracerOrigin,
-		Callback = function(Value)
-			E.TracerOrigin = Value
-			Features.UpdateESP()
-		end,
-	})
-	Controls.ESP.TeamColorTracers = esp:CreateToggle({
-		Name = "Team Color Tracers",
-		CurrentValue = E.TeamColorTracers,
-		Callback = function(Value)
-			E.TeamColorTracers = Value
-			Features.UpdateESP()
-		end,
-	})
-
-	-- 3. Functions
-	esp:CreateSection("Functions")
 	Controls.ESP.OffsetX = esp:CreateSlider({
-		Name = "Position Offset X",
+		Name = "Offset X",
 		Range = { -10, 10 },
 		Increment = 0.5,
 		CurrentValue = E.OffsetX,
@@ -5571,7 +5580,7 @@ do
 		end,
 	})
 	Controls.ESP.OffsetY = esp:CreateSlider({
-		Name = "Position Offset Y",
+		Name = "Offset Y",
 		Range = { -10, 10 },
 		Increment = 0.5,
 		CurrentValue = E.OffsetY,
@@ -5591,49 +5600,45 @@ do
 		end,
 	})
 
-	-- 4. Visual
-	esp:CreateSection("Visual")
-	Controls.ESP.HighlightColor = esp:CreateDropdown({
-		Name = "Color Highlight",
-		Options = { "Morado", "Rojo", "Azul", "Verde Neon", "Cyan", "Blanco" },
-		CurrentOption = E.HighlightColor,
+	-- 2. Tracers
+	esp:CreateSection("Tracers")
+	Controls.ESP.Tracers = esp:CreateToggle({
+		Name = "Tracers",
+		CurrentValue = E.Tracers,
 		Callback = function(Value)
-			E.HighlightColor = Value
+			E.Tracers = Value
 			Features.UpdateESP()
 		end,
 	})
-	Controls.ESP.TeamColorHighlight = esp:CreateToggle({
-		Name = "Team Color Highlight",
-		CurrentValue = E.TeamColorHighlight,
+	Controls.ESP.TracersKeybind = esp:CreateKeybind({
+		Name = "Tracers Keybind",
+		CurrentKeybind = E.TracersKeybind,
+		Callback = function(Key)
+			E.TracersKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+		end,
+	})
+	Controls.ESP.TracerOrigin = esp:CreateDropdown({
+		Name = "Tracer Origin",
+		Options = { "Bottom", "Center", "Mouse" },
+		CurrentOption = E.TracerOrigin,
 		Callback = function(Value)
-			E.TeamColorHighlight = Value
+			E.TracerOrigin = Value
 			Features.UpdateESP()
 		end,
 	})
-	Controls.ESP.RainbowESP = esp:CreateToggle({
-		Name = "Rainbow ESP",
-		CurrentValue = E.RainbowESP,
+	Controls.ESP.TeamColorTracers = esp:CreateToggle({
+		Name = "Team Color Tracers",
+		CurrentValue = E.TeamColorTracers,
 		Callback = function(Value)
-			E.RainbowESP = Value
+			E.TeamColorTracers = Value
 			Features.UpdateESP()
 		end,
 	})
 
-	-- 5. Synchronization
-	esp:CreateSection("Synchronization")
-	Controls.ESP.IgnoreTeams = esp:CreateDropdown({
-		Name = "Ignore Teams",
-		Options = IGNORE_TEAMS,
-		CurrentOption = E.IgnoreTeams,
-		MultipleOptions = true,
-		Callback = function(Value)
-			E.IgnoreTeams = Value
-			Features.SyncManager.SyncProperty("ESP", "IgnoreTeams", Value)
-			Features.UpdateESP()
-		end,
-	})
+	-- 3. Configuration
+	esp:CreateSection("Configuration")
 	Controls.ESP.WhitelistMode = esp:CreateDropdown({
-		Name = "ESP Whitelist",
+		Name = "ESP Whitelist Mode",
 		Options = { "Disabled", "Ignore Whitelist", "Only Whitelist" },
 		CurrentOption = E.WhitelistMode,
 		Callback = function(Value)
@@ -5652,13 +5657,12 @@ do
 			Features.UpdateESP()
 		end,
 	})
-	Controls.ESP.FriendCheck = esp:CreateToggle({
-		Name = "Friend Check",
-		CurrentValue = E.FriendCheck,
+	Controls.ESP.TeamCheck = esp:CreateToggle({
+		Name = "Team Check",
+		CurrentValue = E.TeamCheck,
 		Callback = function(Value)
-			E.FriendCheck = Value
-			if Value then Features.RefreshAllFriends() end
-			Features.SyncManager.SyncProperty("ESP", "FriendCheck", Value)
+			E.TeamCheck = Value
+			Features.SyncManager.SyncProperty("ESP", "TeamCheck", Value)
 			Features.UpdateESP()
 		end,
 	})
@@ -5678,13 +5682,20 @@ do
 			Features.SyncManager.OnSyncToggled("ESP", "Triggerbot", Value)
 		end,
 	})
-
-	-- 6. Preview
-	esp:CreateSection("Preview")
-	esp:CreateParagraph({
-		Title = "ESP Preview",
-		Content = "Visualiza nombres, distancia, barra de vida horizontal y armas en tiempo real con offsets y tamaño ajustables.",
+	Controls.ESP.IgnoreTeams = esp:CreateDropdown({
+		Name = "Ignore Teams",
+		Options = IGNORE_TEAMS,
+		CurrentOption = E.IgnoreTeams,
+		MultipleOptions = true,
+		Callback = function(Value)
+			E.IgnoreTeams = Value
+			Features.SyncManager.SyncProperty("ESP", "IgnoreTeams", Value)
+			Features.UpdateESP()
+		end,
 	})
+
+	-- 4. Preview
+	esp:CreateSection("Preview")
 end
 
 --------------------------------------------------------------
@@ -6174,6 +6185,17 @@ do
 			Features.DestroyHub()
 		end,
 	})
+end
+
+--------------------------------------------------------------
+-- 8. SETTINGS TAB
+--------------------------------------------------------------
+do
+	local settings = win:CreateTab({ Name = "Settings", Icon = "⚙", SubTitle = "Hub preferences and configuration" })
+
+	settings:CreateSection("Target Info")
+	settings:CreateSection("Watermark")
+	settings:CreateSection("Menu")
 end
 
 --=====================================================================
