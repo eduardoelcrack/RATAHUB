@@ -1834,6 +1834,23 @@ self.gui:SetAttribute("ActiveTab", id)
 
     local UIMode = "Minitab"
 
+    function Window:SetUIMode(mode)
+    mode = tostring(mode or "Minitab")
+
+    if mode ~= "Minitab" and mode ~= "Normal" then
+        mode = "Minitab"
+    end
+
+    self._uiMode = mode
+    UIMode = mode
+
+    for _, tab in pairs(self.tabs) do
+        if tab.SetUIMode then
+            tab:SetUIMode(mode)
+        end
+    end
+end
+ 
 	function Window:CreateTab(cfg)
 		cfg = cfg or {}
 		local id = cfg.Name and cfg.Name:lower():gsub("%s", "") or ("tab" .. (#self.navButtons + 1))
