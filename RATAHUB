@@ -5263,8 +5263,6 @@ if espCfg.HealthBar
 elseif entry.HealthBarGui then
     entry.HealthBarGui.Enabled = false
 end
-    entry.HealthBarGui.Enabled = false
-end
 
                 end
             end
