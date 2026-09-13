@@ -5,6 +5,26 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+-- Clean up all pre-existing instances of RATAHUB from prior runs
+pcall(function()
+	local searchRoots = {}
+	if gethui then pcall(function() local h = gethui() if h then table.insert(searchRoots, h) end end) end
+	if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") then table.insert(searchRoots, LocalPlayer.PlayerGui) end
+	pcall(function() local cg = game:GetService("CoreGui") if cg then table.insert(searchRoots, cg) end end)
+
+	for _, root in ipairs(searchRoots) do
+		if root then
+			pcall(function()
+				for _, inst in ipairs(root:GetChildren()) do
+					if inst.Name == "RATAHUBGui" or inst.Name == "RATAHUBOverlay" or inst.Name == "RATAHUB_Loader" or inst.Name == "RATAHUBWatermark" then
+						pcall(function() inst:Destroy() end)
+					end
+				end
+			end)
+		end
+	end
+end)
+
 -- ============================================================
 -- CONFIG & LOADER
 -- ============================================================
@@ -496,6 +516,24 @@ local function CreateRATAHUBLoader()
 
 			if mainGui and mainGui:IsA("ScreenGui") then
 				mainGui.Enabled = true
+				local w = mainGui:FindFirstChild("Window")
+				if w then
+					local originalW = w:GetAttribute("RATAHUBOriginalWidth") or w.AbsoluteSize.X
+					local originalH = w:GetAttribute("RATAHUBOriginalHeight") or 572
+					if originalW <= 0 then originalW = 880 end
+					if originalH <= 0 then originalH = 572 end
+					w:SetAttribute("RATAHUBOriginalWidth", originalW)
+					w:SetAttribute("RATAHUBOriginalHeight", originalH)
+					w.ClipsDescendants = true
+					w.Size = UDim2.fromOffset(originalW, 0)
+					local tw = TweenService:Create(w, TweenInfo.new(0.20, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						Size = UDim2.fromOffset(originalW, originalH)
+					})
+					tw:Play()
+					tw.Completed:Connect(function()
+						w.ClipsDescendants = false
+					end)
+				end
 			end
 		end)
 	end
@@ -843,9 +881,11 @@ function RATAHUB:CreateWindow(cfg)
 	})
 	corner(22, window)
 	stroke(window, 0.9)
+	local windowScale = create("UIScale", { Scale = 1, Parent = window })
 
 	local self = setmetatable({
 		gui = window,
+		_windowScale = windowScale,
 		tabs = {},
 		navButtons = {},
 		_activeTab = nil,
@@ -1066,38 +1106,16 @@ function RATAHUB:CreateWindow(cfg)
 		end
 
 		closeBtn.MouseButton1Click:Connect(function()
-			confirmOverlay.Visible = true
-			confirmOverlay.BackgroundTransparency = 1
-			confirmPanel.Size = UDim2.fromOffset(330, 135)
-			tween(confirmOverlay, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 0.35 })
-			tween(confirmPanel, TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(330, 150) })
-		end)
-
-		noBtn.MouseButton1Click:Connect(function()
-			hideConfirmation()
-		end)
-
-		yesBtn.MouseButton1Click:Connect(function()
-			hideConfirmation()
-			task.delay(0.12, function()
-				pcall(function()
-					if Features and Features.DestroyHub then
-						Features.DestroyHub()
-					elseif RATAHUB.Features and RATAHUB.Features.DestroyHub then
-						RATAHUB.Features.DestroyHub()
-					end
+			if Features and Features.ToggleGUI then
+				Features.ToggleGUI()
+			else
+				local originalW = window:GetAttribute("RATAHUBOriginalWidth") or window.AbsoluteSize.X
+				window.ClipsDescendants = true
+				local t = tween(window, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = UDim2.fromOffset(originalW, 0) })
+				t.Completed:Connect(function()
+					screenGui.Enabled = false
 				end)
-				pcall(function()
-					if watermark then watermark:Destroy() watermark = nil end
-					if overlayGui and overlayGui.Parent then
-						overlayGui:Destroy()
-						overlayGui = nil
-					end
-					if screenGui and screenGui.Parent then
-						screenGui:Destroy()
-					end
-				end)
-			end)
+			end
 		end)
 
 		--------------------------------------------------------------
@@ -1491,17 +1509,28 @@ function RATAHUB:CreateWindow(cfg)
 				self._currentDropdownClose()
 			end
 			savedHeight = (window.AbsoluteSize.Y > TOPBAR_H) and window.AbsoluteSize.Y or START_H
-			body.Visible = false
-			footerBar.Visible = false
-			tween(window, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			window.ClipsDescendants = true
+			local tw = tween(window, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 				Size = UDim2.fromOffset(window.AbsoluteSize.X, TOPBAR_H)
 			})
+			tw.Completed:Connect(function()
+				if minimized then
+					body.Visible = false
+					footerBar.Visible = false
+				end
+			end)
 		else
 			body.Visible = true
 			footerBar.Visible = true
-			tween(window, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			window.ClipsDescendants = true
+			local tw = tween(window, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 				Size = UDim2.fromOffset(window.AbsoluteSize.X, savedHeight)
 			})
+			tw.Completed:Connect(function()
+				if not minimized then
+					window.ClipsDescendants = false
+				end
+			end)
 		end
 	end)
 
@@ -2959,6 +2988,9 @@ local Config = {
 			Time = true,
 			Players = true,
 		},
+		Menu = {
+			ToggleKeybind = "K",
+		},
 	},
 }
 
@@ -2974,6 +3006,7 @@ local Controls = {
 	Sounds = {},
 	Settings = {
 		Watermark = {},
+		Menu = {},
 	},
 }
 function RATAHUB:GetControls() return Controls end
@@ -3028,8 +3061,10 @@ create("TextLabel", {
     Text = "RATAHUB V5",
     TextColor3 = THEME.Foreground,
     TextXAlignment = Enum.TextXAlignment.Center,
+    TextYAlignment = Enum.TextYAlignment.Center,
     Font = FONT_BOLD,
     TextSize = 13,
+    TextStrokeTransparency = 1,
     ZIndex = 101,
     Parent = watermark,
 })
@@ -3807,9 +3842,6 @@ function Features.SetJumpPower(enabled)
 		Features.StopJumpPower()
 		RATAHUB:Notify({ Title = "JumpPower", Content = "Desactivado", Duration = 1.2 })
 	end
-	if Controls.Main and Controls.Main.JumpPower and Controls.Main.JumpPower.CurrentValue ~= enabled then
-		Controls.Main.JumpPower:Set(enabled)
-	end
 end
 
 ------------------------------------------------------------- Movement: Gravity
@@ -3840,9 +3872,6 @@ function Features.SetGravity(enabled)
 	else
 		Features.StopGravity()
 		RATAHUB:Notify({ Title = "Gravity", Content = "Desactivado", Duration = 1.2 })
-	end
-	if Controls.Main and Controls.Main.Gravity and Controls.Main.Gravity.CurrentValue ~= enabled then
-		Controls.Main.Gravity:Set(enabled)
 	end
 end
 
@@ -5419,6 +5448,51 @@ function Features.SetAntiFling(enabled)
 end
 
 ------------------------------------------------------------- Event-driven Hotkeys Listener (Restored from RATAHUBB)
+local isTogglingGUI = false
+function Features.ToggleGUI()
+	local window = (win and win.gui) or (screenGui and screenGui:FindFirstChild("Window"))
+	if not screenGui or not window then return end
+	if isTogglingGUI then return end
+
+	local originalW = window:GetAttribute("RATAHUBOriginalWidth") or window.AbsoluteSize.X
+	local originalH = window:GetAttribute("RATAHUBOriginalHeight") or (window.AbsoluteSize.Y > TOPBAR_H and window.AbsoluteSize.Y or START_H)
+	if originalW <= 0 then originalW = START_W end
+	if originalH <= 0 then originalH = START_H end
+	window:SetAttribute("RATAHUBOriginalWidth", originalW)
+	window:SetAttribute("RATAHUBOriginalHeight", originalH)
+
+	if screenGui.Enabled then
+		isTogglingGUI = true
+		if win and win._currentDropdownClose then
+			pcall(win._currentDropdownClose)
+		end
+		window.ClipsDescendants = true
+		local tweenOut = tween(
+			window,
+			TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+			{ Size = UDim2.fromOffset(originalW, 0) }
+		)
+		tweenOut.Completed:Connect(function()
+			screenGui.Enabled = false
+			isTogglingGUI = false
+		end)
+	else
+		isTogglingGUI = true
+		screenGui.Enabled = true
+		window.ClipsDescendants = true
+		window.Size = UDim2.fromOffset(originalW, 0)
+		local tweenIn = tween(
+			window,
+			TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ Size = UDim2.fromOffset(originalW, originalH) }
+		)
+		tweenIn.Completed:Connect(function()
+			window.ClipsDescendants = false
+			isTogglingGUI = false
+		end)
+	end
+end
+
 function Features.StartHotkeys()
 	if Runtime.Hotkeys.conn then return end
 	Runtime.Hotkeys.conn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -5445,7 +5519,10 @@ function Features.StartHotkeys()
 			return tostring(cfgKey) == keyName
 		end
 
-		if matchesKey(Config.Main.Movement.FlyKeybind) then
+		local menuKey = (Config.Settings and Config.Settings.Menu and Config.Settings.Menu.ToggleKeybind) or "K"
+		if matchesKey(menuKey) then
+			Features.ToggleGUI()
+		elseif matchesKey(Config.Main.Movement.FlyKeybind) then
 			Features.ToggleFlyActive()
 		elseif matchesKey(Config.Main.Movement.WalkSpeedKeybind) then
 			Features.ToggleWalkSpeed()
@@ -6448,6 +6525,14 @@ do
 	})
 
 	settings:CreateSection("Menu")
+	local M = Config.Settings.Menu
+	Controls.Settings.Menu.ToggleKeybind = settings:CreateKeybind({
+		Name = "Toggle GUI Keybind",
+		CurrentKeybind = M.ToggleKeybind or "K",
+		Callback = function(Key)
+			M.ToggleKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+		end,
+	})
 end
 
 --=====================================================================
