@@ -1042,8 +1042,16 @@ create("UIListLayout", {
 			ClipsDescendants = false,
 			Parent = screenGui,
 		})
-		corner(22, window)
-		stroke(window, 0.9)
+corner(22, window)
+stroke(window, 0.9)
+
+-- UI Transparency
+window.BackgroundTransparency = math.clamp(
+    (Config.UISettings and Config.UISettings.Transparency or 0) / 100,
+    0,
+    0.45
+)
+
 local originalW = window:GetAttribute("RATAHUBOriginalWidth") or START_W
 local originalH = window:GetAttribute("RATAHUBOriginalHeight") or START_H
 
@@ -1789,19 +1797,18 @@ function Window:_select(id)
         return
     end
 
-    self._activeTab = id
-    self.gui:SetAttribute("ActiveTab", id)
+local previousTabId = self._activeTab
 
-    -- Si "Recordar Open Minitabs" está desactivado,
-    -- cada vez que entramos a una pestaña sus minitabs
-    -- vuelven a estar cerrados.
-if self.rememberOpenMinitabs == false then
-    local selectedTab = self.tabs[id]
+if self.rememberOpenMinitabs == false and previousTabId then
+    local previousTab = self.tabs[previousTabId]
 
-    if selectedTab then
-        selectedTab:CloseAllMinitabs(false)
+    if previousTab then
+        previousTab:CloseAllMinitabs(true)
     end
 end
+
+self._activeTab = id
+self.gui:SetAttribute("ActiveTab", id)
 
     for tid, tab in pairs(self.tabs) do
         tab.page.Visible = (tid == id)
@@ -7116,16 +7123,25 @@ do
 
     Controls.UISettings = Controls.UISettings or {}
 
-    Controls.UISettings.Transparency = uiSettings:CreateSlider({
-        Name = "Transparency",
-        Range = { 0, 45 },
-        Increment = 1,
-        CurrentValue = U.Transparency,
-        Suffix = "%",
-        Callback = function(Value)
-            U.Transparency = Value
-        end,
-    })
+Controls.UISettings.Transparency = uiSettings:CreateSlider({
+    Name = "Transparency",
+    Description = "Adjust the main GUI background transparency",
+    Range = { 0, 45 },
+    Increment = 1,
+    CurrentValue = U.Transparency,
+    Suffix = "%",
+    Callback = function(Value)
+        U.Transparency = Value
+
+        if window and window.Parent then
+            window.BackgroundTransparency = math.clamp(
+                Value / 100,
+                0,
+                0.45
+            )
+        end
+    end,
+})
 
     uiSettings:CreateSection("Minitabs")
 
