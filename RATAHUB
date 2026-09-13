@@ -6113,7 +6113,7 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.
 		})
 		Controls.Main.FlySpeed = main:CreateSlider({
 			Name = "Fly Speed",
-			Range = { 50, 600 },
+			Range = { 50, 1000 },
 			Increment = 5,
 			CurrentValue = M.Movement.FlySpeed,
 			Callback = function(Value)
@@ -6137,7 +6137,7 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.
 		})
 		Controls.Main.WalkSpeedValue = main:CreateSlider({
 			Name = "WalkSpeed",
-			Range = { 16, 300 },
+			Range = { 16, 500 },
 			Increment = 1,
 			CurrentValue = M.Movement.WalkSpeed,
 			Callback = function(Value)
