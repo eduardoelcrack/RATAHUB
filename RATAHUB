@@ -1832,6 +1832,8 @@ self.gui:SetAttribute("ActiveTab", id)
 	local Tab = {}
 	Tab.__index = Tab
 
+    local UIMode = "Minitab"
+
 	function Window:CreateTab(cfg)
 		cfg = cfg or {}
 		local id = cfg.Name and cfg.Name:lower():gsub("%s", "") or ("tab" .. (#self.navButtons + 1))
@@ -2238,7 +2240,8 @@ end
 	entry.Open = openSection
 	entry.Close = closeSection
 
-    entry.Refresh = function()
+entry.Refresh = function()
+
     if not entry.open then
         return
     end
@@ -2277,7 +2280,75 @@ end
 	return body
 end
 
+function Tab:SetUIMode(mode)
+    mode = tostring(mode or "Minitab")
+
+    if mode ~= "Minitab" and mode ~= "Normal" then
+        mode = "Minitab"
+    end
+
+    self._uiMode = mode
+
+    if not self._minitabs then
+        return
+    end
+
+    for _, entry in ipairs(self._minitabs) do
+        local section = entry.section
+        local body = entry.body
+        local header = entry.header
+        local arrow = entry.arrow
+        local HEADER_H = entry.headerHeight or 42
+
+        if mode == "Normal" then
+            -- Sección normal: siempre abierta
+            entry.open = true
+
+            header.Active = false
+            header.AutoButtonColor = false
+
+            arrow.Visible = false
+
+            body.Visible = true
+            body.Position = UDim2.fromOffset(0, HEADER_H)
+
+            task.defer(function()
+                if not section or not section.Parent then
+                    return
+                end
+
+                task.wait()
+
+                local contentHeight = body.AbsoluteSize.Y
+                local targetHeight = HEADER_H + contentHeight
+
+                section.Size = UDim2.new(1, 0, 0, targetHeight)
+                entry.expandedHeight = targetHeight
+            end)
+
+        else
+            -- Minitab: vuelve al estado cerrado
+            header.Active = true
+            arrow.Visible = true
+
+            body.Position = UDim2.fromOffset(0, HEADER_H)
+
+            entry.open = false
+            body.Visible = false
+
+            section.Size = UDim2.new(1, 0, 0, HEADER_H)
+
+            arrow.Rotation = 0
+            arrow.TextColor3 = THEME.Muted
+        end
+    end
+end
+
 function Tab:CloseAllMinitabs(animated)
+    if UIMode == "Normal" then
+        return
+    end
+
     if not self._minitabs then
         return
     end
