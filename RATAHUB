@@ -5161,28 +5161,66 @@ if espCfg.HealthBar
     and hum.Health > 0
     and root then
 
+    local scale = math.clamp(espCfg.ESPSize or 1, 0.5, 2.0)
+
     if not entry.HealthBarGui then
         local gui = Instance.new("BillboardGui")
         gui.Name = "ESP_HealthBar"
-        gui.Size = UDim2.new(0, 8, 0, 50)
+        gui.Size = UDim2.fromOffset(
+            math.floor(10 * scale),
+            math.floor(54 * scale)
+        )
         gui.AlwaysOnTop = true
         gui.ResetOnSpawn = false
+        gui.LightInfluence = 0
 
+        -- Contenedor exterior
+        local holder = Instance.new("Frame")
+        holder.Name = "Holder"
+        holder.AnchorPoint = Vector2.new(0.5, 0.5)
+        holder.Position = UDim2.fromScale(0.5, 0.5)
+        holder.Size = UDim2.fromScale(1, 1)
+        holder.BackgroundTransparency = 1
+        holder.Parent = gui
+
+        -- Borde / fondo
         local background = Instance.new("Frame")
         background.Name = "Background"
-        background.Size = UDim2.fromScale(1, 1)
-        background.BackgroundColor3 = Color3.fromRGB(190, 45, 45)
+        background.AnchorPoint = Vector2.new(0.5, 0.5)
+        background.Position = UDim2.fromScale(0.5, 0.5)
+        background.Size = UDim2.new(
+            0,
+            math.max(6, math.floor(7 * scale)),
+            1,
+            0
+        )
+        background.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
         background.BorderSizePixel = 0
-        background.Parent = gui
+        background.Parent = holder
 
+        local backgroundCorner = Instance.new("UICorner")
+        backgroundCorner.CornerRadius = UDim.new(0, math.max(2, math.floor(3 * scale)))
+        backgroundCorner.Parent = background
+
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = Color3.fromRGB(0, 0, 0)
+        stroke.Thickness = math.max(1, math.floor(scale))
+        stroke.Transparency = 0.15
+        stroke.Parent = background
+
+        -- Vida
         local fill = Instance.new("Frame")
         fill.Name = "Fill"
         fill.AnchorPoint = Vector2.new(0, 1)
         fill.Position = UDim2.fromScale(0, 1)
         fill.Size = UDim2.fromScale(1, 1)
-        fill.BackgroundColor3 = Color3.fromRGB(50, 220, 90)
+        fill.BackgroundColor3 = Color3.fromRGB(60, 220, 95)
         fill.BorderSizePixel = 0
         fill.Parent = background
+
+        local fillCorner = Instance.new("UICorner")
+        fillCorner.CornerRadius = UDim.new(0, math.max(2, math.floor(3 * scale)))
+        fillCorner.Parent = fill
 
         entry.HealthBarGui = gui
         entry.HealthBarBackground = background
@@ -5191,21 +5229,27 @@ if espCfg.HealthBar
         gui.Parent = Runtime.ESP.container
     end
 
-    local scale = math.clamp(espCfg.ESPSize or 1, 0.5, 2.0)
+    local gui = entry.HealthBarGui
+    local background = entry.HealthBarBackground
+    local fill = entry.HealthBarFill
 
-    entry.HealthBarGui.Adornee = root
-    entry.HealthBarGui.Size = UDim2.fromOffset(
-        math.floor(8 * scale),
-        math.floor(50 * scale)
-    )
+    gui.Adornee = root
 
-    entry.HealthBarGui.StudsOffset = Vector3.new(
-        -3.5 * scale + espCfg.OffsetX,
-        2.5 * scale + espCfg.OffsetY,
+    -- Mantiene la barra separada del bloque Name / Distance / Weapon.
+    local sideOffset = 3.2 + (1.1 * scale)
+
+    gui.StudsOffset = Vector3.new(
+        -sideOffset + espCfg.OffsetX,
+        2.7 + espCfg.OffsetY,
         0
     )
 
-    entry.HealthBarGui.Enabled = true
+    gui.Size = UDim2.fromOffset(
+        math.floor(10 * scale),
+        math.floor(54 * scale)
+    )
+
+    gui.Enabled = true
 
     local maxHealth = math.max(hum.MaxHealth, 1)
     local healthPercent = math.clamp(
@@ -5214,51 +5258,28 @@ if espCfg.HealthBar
         1
     )
 
-    entry.HealthBarFill.Size = UDim2.fromScale(
-        1,
-        healthPercent
-    )
-
-    entry.HealthBarFill.BackgroundColor3 = Color3.fromRGB(
-        50,
-        220,
-        90
-    )
-
-    entry.HealthBarBackground.BackgroundColor3 = Color3.fromRGB(
+    -- Rojo = vida faltante
+    background.BackgroundColor3 = Color3.fromRGB(
         190,
         45,
         45
     )
 
+    -- Verde = vida actual
+    fill.BackgroundColor3 = Color3.fromRGB(
+        55,
+        220,
+        90
+    )
+
+    fill.Size = UDim2.fromScale(
+        1,
+        healthPercent
+    )
+
 elseif entry.HealthBarGui then
     entry.HealthBarGui.Enabled = false
 end
-
-
-else
-    local entry = Runtime.ESP.objects[p]
-
-    if entry then
-        if entry.Highlight then
-            entry.Highlight.Enabled = false
-        end
-
-        if entry.Billboard then
-            entry.Billboard.Enabled = false
-        end
-
-        if entry.Tracer then
-            entry.Tracer.Visible = false
-        end
-
-        if entry.HealthBarGui then
-            entry.HealthBarGui.Enabled = false
-        end
-
-        if entry.WeaponBillboard then
-            entry.WeaponBillboard.Enabled = false
-        end
     end
 end
 			end
