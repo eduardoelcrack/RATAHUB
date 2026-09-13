@@ -3465,6 +3465,7 @@ end
 			},
 		},
 ESP = {
+    Enabled = false,
 Highlight = false,
 HighlightEnabled = false,
 HighlightKeybind = "None",
@@ -6349,71 +6350,98 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.
 		local esp = win:CreateTab({ Name = "ESP", Icon = "👁", SubTitle = "Visual extra-sensory perception" })
 		local E = Config.ESP
 
-		esp:CreateSection("General")
+		-- ESP MASTER TOGGLE
+		Controls.ESP.Master = esp:CreateToggle({
+			Name = "ESP",
+			CurrentValue = E.Enabled,
+			Callback = function(Value)
+				E.Enabled = Value
+				Features.UpdateESP()
+			end,
+		})
+
+		esp:CreateSection("Elements")
+
 		Controls.ESP.Highlight = esp:CreateToggle({
-    Name = "ESP Highlight",
-    CurrentValue = E.HighlightEnabled,
-    Callback = function(Value)
-        E.HighlightEnabled = Value
+			Name = "ESP Highlight",
+			CurrentValue = E.HighlightEnabled,
+			Callback = function(Value)
+				E.HighlightEnabled = Value
+				E.Highlight = Value
+				Features.UpdateESP()
+			end,
+		})
 
-        if not Value then
-            E.Highlight = false
-        end
+		Controls.ESP.HighlightKeybind = esp:CreateKeybind({
+			Name = "ESP Highlight Keybind",
+			CurrentKeybind = E.HighlightKeybind,
+			Callback = function(Key)
+				E.HighlightKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+			end,
+		})
 
-        Features.UpdateESP()
-    end,
-})
+		Controls.ESP.Names = esp:CreateToggle({
+			Name = "ESP Nombres",
+			CurrentValue = E.NamesEnabled,
+			Callback = function(Value)
+				E.NamesEnabled = Value
+				E.Names = Value
+				Features.UpdateESP()
+			end,
+		})
 
-        Controls.ESP.HighlightKeybind = esp:CreateKeybind({
-    Name = "ESP Highlight Keybind",
-    CurrentKeybind = E.HighlightKeybind,
-    Callback = function(Key)
-        E.HighlightKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
-    end,
-})
+		Controls.ESP.NamesKeybind = esp:CreateKeybind({
+			Name = "ESP Nombres Keybind",
+			CurrentKeybind = E.NamesKeybind,
+			Callback = function(Key)
+				E.NamesKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+			end,
+		})
 
-Controls.ESP.Names = esp:CreateToggle({
-    Name = "ESP Nombres",
-    CurrentValue = E.NamesEnabled,
-    Callback = function(Value)
-        E.NamesEnabled = Value
+		Controls.ESP.Distance = esp:CreateToggle({
+			Name = "Distance",
+			CurrentValue = E.Distance,
+			Callback = function(Value)
+				E.Distance = Value
+				Features.UpdateESP()
+			end,
+		})
 
-        if not Value then
-            E.Names = false
-        end
+		Controls.ESP.HealthBar = esp:CreateToggle({
+			Name = "Health Bar",
+			CurrentValue = E.HealthBar,
+			Callback = function(Value)
+				E.HealthBar = Value
+				Features.UpdateESP()
+			end,
+		})
 
-        Features.UpdateESP()
-    end,
-})
+		Controls.ESP.Weapon = esp:CreateToggle({
+			Name = "Weapon",
+			CurrentValue = E.Weapon,
+			Callback = function(Value)
+				E.Weapon = Value
+				Features.UpdateESP()
+			end,
+		})
 
-Controls.ESP.NamesKeybind = esp:CreateKeybind({
-    Name = "ESP Nombres Keybind",
-    CurrentKeybind = E.NamesKeybind,
-    Callback = function(Key)
-        E.NamesKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
-    end,
-})
-Controls.ESP.Details = esp:CreateToggle({
-    Name = "ESP Nombre + Studs + Vida",
-    CurrentValue = E.DetailsEnabled,
-    Callback = function(Value)
-        E.DetailsEnabled = Value
+		Controls.ESP.Tracers = esp:CreateToggle({
+			Name = "Tracers",
+			CurrentValue = E.TracersEnabled,
+			Callback = function(Value)
+				E.TracersEnabled = Value
+				E.Tracers = Value
+				Features.UpdateESP()
+			end,
+		})
 
-        if not Value then
-            E.Details = false
-        end
-
-        Features.UpdateESP()
-    end,
-})
-
-        Controls.ESP.DetailsKeybind = esp:CreateKeybind({
-    Name = "ESP Stats Keybind",
-    CurrentKeybind = E.DetailsKeybind,
-    Callback = function(Key)
-        E.DetailsKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
-    end,
-})
+		Controls.ESP.TracersKeybind = esp:CreateKeybind({
+			Name = "Tracers Keybind",
+			CurrentKeybind = E.TracersKeybind,
+			Callback = function(Key)
+				E.TracersKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+			end,
+		})
 
 		Controls.ESP.OffsetX = esp:CreateSlider({
 			Name = "Posicion Offset X (Lados)",
@@ -6425,6 +6453,7 @@ Controls.ESP.Details = esp:CreateToggle({
 				Features.UpdateESP()
 			end,
 		})
+
 		Controls.ESP.OffsetY = esp:CreateSlider({
 			Name = "Posicion Offset Y (Altura)",
 			Range = { -10, 10 },
@@ -6435,6 +6464,7 @@ Controls.ESP.Details = esp:CreateToggle({
 				Features.UpdateESP()
 			end,
 		})
+
 		Controls.ESP.TextSize = esp:CreateSlider({
 			Name = "Tamaño de Texto ESP",
 			Range = { 8, 32 },
