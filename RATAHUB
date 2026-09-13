@@ -5166,60 +5166,40 @@ if espCfg.HealthBar
     if not entry.HealthBarGui then
         local gui = Instance.new("BillboardGui")
         gui.Name = "ESP_HealthBar"
-        gui.Size = UDim2.fromOffset(
-            math.floor(10 * scale),
-            math.floor(54 * scale)
-        )
         gui.AlwaysOnTop = true
         gui.ResetOnSpawn = false
         gui.LightInfluence = 0
 
-        -- Contenedor exterior
-        local holder = Instance.new("Frame")
-        holder.Name = "Holder"
-        holder.AnchorPoint = Vector2.new(0.5, 0.5)
-        holder.Position = UDim2.fromScale(0.5, 0.5)
-        holder.Size = UDim2.fromScale(1, 1)
-        holder.BackgroundTransparency = 1
-        holder.Parent = gui
-
-        -- Borde / fondo
         local background = Instance.new("Frame")
         background.Name = "Background"
         background.AnchorPoint = Vector2.new(0.5, 0.5)
         background.Position = UDim2.fromScale(0.5, 0.5)
-        background.Size = UDim2.new(
-            0,
-            math.max(6, math.floor(7 * scale)),
-            1,
-            0
-        )
-        background.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+        background.Size = UDim2.fromScale(1, 1)
+        background.BackgroundColor3 = Color3.fromRGB(190, 45, 45)
         background.BorderSizePixel = 0
-        background.Parent = holder
+        background.Parent = gui
 
         local backgroundCorner = Instance.new("UICorner")
-        backgroundCorner.CornerRadius = UDim.new(0, math.max(2, math.floor(3 * scale)))
+        backgroundCorner.CornerRadius = UDim.new(0, 4)
         backgroundCorner.Parent = background
 
         local stroke = Instance.new("UIStroke")
         stroke.Color = Color3.fromRGB(0, 0, 0)
-        stroke.Thickness = math.max(1, math.floor(scale))
+        stroke.Thickness = 1
         stroke.Transparency = 0.15
         stroke.Parent = background
 
-        -- Vida
         local fill = Instance.new("Frame")
         fill.Name = "Fill"
-        fill.AnchorPoint = Vector2.new(0, 1)
-        fill.Position = UDim2.fromScale(0, 1)
+        fill.AnchorPoint = Vector2.new(0, 0.5)
+        fill.Position = UDim2.fromScale(0, 0.5)
         fill.Size = UDim2.fromScale(1, 1)
-        fill.BackgroundColor3 = Color3.fromRGB(60, 220, 95)
+        fill.BackgroundColor3 = Color3.fromRGB(55, 220, 90)
         fill.BorderSizePixel = 0
         fill.Parent = background
 
         local fillCorner = Instance.new("UICorner")
-        fillCorner.CornerRadius = UDim.new(0, math.max(2, math.floor(3 * scale)))
+        fillCorner.CornerRadius = UDim.new(0, 4)
         fillCorner.Parent = fill
 
         entry.HealthBarGui = gui
@@ -5235,18 +5215,20 @@ if espCfg.HealthBar
 
     gui.Adornee = root
 
-    -- Mantiene la barra separada del bloque Name / Distance / Weapon.
-    local sideOffset = 3.2 + (1.1 * scale)
-
-    gui.StudsOffset = Vector3.new(
-        -sideOffset + espCfg.OffsetX,
-        2.7 + espCfg.OffsetY,
-        0
-    )
+    -- El slider controla TODO el tamaño de la barra
+    local barWidth = math.floor(110 * scale)
+    local barHeight = math.max(3, math.floor(5 * scale))
 
     gui.Size = UDim2.fromOffset(
-        math.floor(10 * scale),
-        math.floor(54 * scale)
+        barWidth,
+        barHeight
+    )
+
+    -- Horizontal y centrada justo encima de la información
+    gui.StudsOffset = Vector3.new(
+        espCfg.OffsetX,
+        3.55 + espCfg.OffsetY,
+        0
     )
 
     gui.Enabled = true
@@ -5272,19 +5254,22 @@ if espCfg.HealthBar
         90
     )
 
+    -- El verde se reduce horizontalmente según la vida
     fill.Size = UDim2.fromScale(
-        1,
-        healthPercent
+        healthPercent,
+        1
     )
 
 elseif entry.HealthBarGui then
     entry.HealthBarGui.Enabled = false
 end
-    end
+    entry.HealthBarGui.Enabled = false
 end
-			end
-		end)
-	end
+
+                end
+            end
+        end)
+    end
 end
 
 	------------------------------------------------------------- AIMLOCK MODULE (RAYFIELD LOGIC)
