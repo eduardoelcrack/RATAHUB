@@ -1548,12 +1548,12 @@ end)
 		create("Frame", {
 			Name = "Divider",
 			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, 0, 0, 0),
-			Size = UDim2.new(0, 1, 1, 0),
+			Position = UDim2.new(1.08, 0, -0.038, 0),
+			Size = UDim2.new(0, 2, 1.07, 0),
 			BackgroundColor3 = THEME.Stroke,
 			BackgroundTransparency = 0.9,
 			BorderSizePixel = 0,
-			Parent = sidebar,
+			Parent = sidebar,	
 		})
 		padding(sidebar, nil, 14, 14, 18, 14)
 
