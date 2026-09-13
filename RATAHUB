@@ -3465,9 +3465,13 @@ end
 			},
 		},
 ESP = {
-    Highlight = false,
-    HighlightEnabled = false,
-    HighlightKeybind = "None",
+Highlight = false,
+HighlightEnabled = false,
+HighlightKeybind = "None",
+
+Names = false,
+NamesEnabled = false,
+NamesKeybind = "None",
 
 Distance = false,
 HealthBar = false,
@@ -3476,10 +3480,6 @@ Weapon = false,
 OffsetX = 0,
 OffsetY = 0,
 TextSize = 14,
-         
-            OffsetX = 0,
-             OffsetY = 0,
-            TextSize = 14,
 
 Tracers = false,
 TracersEnabled = false,
