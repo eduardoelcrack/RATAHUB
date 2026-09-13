@@ -1046,11 +1046,9 @@ corner(22, window)
 stroke(window, 0.9)
 
 -- UI Transparency
-window.BackgroundTransparency = math.clamp(
-    (Config.UISettings and Config.UISettings.Transparency or 0) / 100,
-    0,
-    0.45
-)
+corner(22, window)
+stroke(window, 0.9)
+local originalW = window:GetAttribute("RATAHUBOriginalWidth") or START_W
 
 local originalW = window:GetAttribute("RATAHUBOriginalWidth") or START_W
 local originalH = window:GetAttribute("RATAHUBOriginalHeight") or START_H
@@ -1071,9 +1069,7 @@ local self = setmetatable({
     _activeTab = nil,
     _currentDropdownClose = nil,
     _currentDropdownReposition = nil,
-
-    -- Recordar minitabs activados
-    rememberOpenMinitabs = true,
+    _uiTransparency = 0,
 }, Window)
 
 		--------------------------------------------------------------
@@ -1768,6 +1764,25 @@ end)
 			ZIndex = 6,
 			Parent = status,
 		})
+
+--------------------------------------------------------------
+-- UI TRANSPARENCY
+--------------------------------------------------------------
+function self:SetTransparency(value)
+    value = math.clamp(tonumber(value) or 0, 0, 45)
+
+    self._uiTransparency = value
+
+    local t = value / 100
+
+    -- Fondo principal
+    window.BackgroundTransparency = t
+
+    -- Fondos estructurales
+    topBar.BackgroundTransparency = math.clamp(0.15 + t, 0, 0.95)
+    sidebar.BackgroundTransparency = math.clamp(0.25 + t, 0, 0.95)
+    footerBar.BackgroundTransparency = math.clamp(0.15 + t, 0, 0.95)
+end
 
 		minimizeBtn.MouseButton1Click:Connect(function()
 			minimized = not minimized
@@ -7133,15 +7148,12 @@ Controls.UISettings.Transparency = uiSettings:CreateSlider({
     Callback = function(Value)
         U.Transparency = Value
 
-        if window and window.Parent then
-            window.BackgroundTransparency = math.clamp(
-                Value / 100,
-                0,
-                0.45
-            )
+        if win and win.SetTransparency then
+            win:SetTransparency(Value)
         end
     end,
 })
+
 
     uiSettings:CreateSection("Minitabs")
 
@@ -7154,6 +7166,9 @@ Controls.UISettings.Transparency = uiSettings:CreateSlider({
             win.rememberOpenMinitabs = Value
         end,
     })
+    if win and win.SetTransparency then
+        win:SetTransparency(U.Transparency)
+    end
 end
 
 	--=====================================================================
