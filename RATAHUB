@@ -2735,9 +2735,9 @@ end
 				return
 			end
 
-			local relX = btnPos.X - winPos.X
-			local relY = btnPos.Y - winPos.Y + btn.AbsoluteSize.Y + 4
-			list.Position = UDim2.fromOffset(relX, relY)
+local relX = btnPos.X - winPos.X + btn.AbsoluteSize.X
+local relY = btnPos.Y - winPos.Y + btn.AbsoluteSize.Y + 4
+list.Position = UDim2.fromOffset(relX, relY)
 			list.Size = UDim2.fromOffset(btn.AbsoluteSize.X, listHeight)
 		end
 
@@ -6637,17 +6637,27 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.
 
 		esp:CreateSection("Functions")
 
-		Controls.ESP.IgnoreTeams = esp:CreateDropdown({
-			Name = "Team Check",
-			Options = IGNORE_TEAMS,
-			CurrentOption = E.IgnoreTeams,
-			MultipleOptions = true,
-			Callback = function(Value)
-				E.IgnoreTeams = Value
-				Features.SyncManager.SyncProperty("ESP", "IgnoreTeams", Value)
-				Features.UpdateESP()
-			end,
-		})
+Controls.ESP.TeamCheck = esp:CreateToggle({
+    Name = "Team Check",
+    CurrentValue = E.TeamCheck,
+    Callback = function(Value)
+        E.TeamCheck = Value
+        Features.SyncManager.SyncProperty("ESP", "TeamCheck", Value)
+        Features.UpdateESP()
+    end,
+})
+
+Controls.ESP.IgnoreTeams = esp:CreateDropdown({
+    Name = "Ignore Team",
+    Options = IGNORE_TEAMS,
+    CurrentOption = E.IgnoreTeams,
+    MultipleOptions = true,
+    Callback = function(Value)
+        E.IgnoreTeams = Value
+        Features.SyncManager.SyncProperty("ESP", "IgnoreTeams", Value)
+        Features.UpdateESP()
+    end,
+})
 
 		Controls.ESP.FriendCheck = esp:CreateToggle({
 			Name = "Friend Check",
