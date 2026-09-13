@@ -4846,12 +4846,14 @@ end
 	function Features.UpdateESP()
 		local espCfg = Config.ESP
 local anyEnabled =
-    (espCfg.HighlightEnabled and espCfg.Highlight)
-    or (espCfg.NamesEnabled and espCfg.Names)
-    or espCfg.Distance
-    or espCfg.HealthBar
-    or espCfg.Weapon
-    or (espCfg.TracersEnabled and espCfg.Tracers)
+    espCfg.Enabled and (
+        (espCfg.HighlightEnabled and espCfg.Highlight)
+        or (espCfg.NamesEnabled and espCfg.Names)
+        or espCfg.Distance
+        or espCfg.HealthBar
+        or espCfg.Weapon
+        or (espCfg.TracersEnabled and espCfg.Tracers)
+    )
 
 		if not anyEnabled then
 			if Runtime.ESP.loop then
@@ -4916,93 +4918,52 @@ if espCfg.HighlightEnabled and espCfg.Highlight and valid and hum and hum.Health
 						end
 
 						-- 2. Billboard (Names & Details)
-						local showText =
+local showText =
     ((espCfg.NamesEnabled and espCfg.Names)
     or (espCfg.DetailsEnabled and espCfg.Details))
     and valid
     and hum
     and hum.Health > 0
     and root
-						if showText then
-							if not entry.Billboard then
-								local b = Instance.new("BillboardGui")
-								b.Name = "ESP_Tag"
-								b.Size = UDim2.new(0, 200, 0, 40)
-								b.AlwaysOnTop = true
-								b.ResetOnSpawn = false
 
-								local l = Instance.new("TextLabel")
-								l.Name = "Tag"
-								l.Size = UDim2.fromScale(1, 1)
-								l.BackgroundTransparency = 1
-								l.Font = FONT_BOLD
-								l.TextStrokeTransparency = 0.3
-								l.TextStrokeColor3 = Color3.new(0, 0, 0)
-								l.Parent = b
+if showText then
+    if not entry.Billboard then
+        local b = Instance.new("BillboardGui")
+        b.Name = "ESP_Tag"
+        b.Size = UDim2.new(0, 200, 0, 40)
+        b.AlwaysOnTop = true
+        b.ResetOnSpawn = false
 
-								b.Parent = Runtime.ESP.container
-								entry.Billboard = b
-								entry.Label = l
-							end
+        local l = Instance.new("TextLabel")
+        l.Name = "Tag"
+        l.Size = UDim2.fromScale(1, 1)
+        l.BackgroundTransparency = 1
+        l.Font = FONT_BOLD
+        l.TextStrokeTransparency = 0.3
+        l.TextStrokeColor3 = Color3.new(0, 0, 0)
+        l.Parent = b
 
-							entry.Billboard.Adornee = root
-							entry.Billboard.StudsOffset = Vector3.new(espCfg.OffsetX, 2.5 + espCfg.OffsetY, 0)
-							entry.Billboard.Enabled = true
-							entry.Label.TextSize = espCfg.TextSize
-							entry.Label.TextColor3 = color
+        b.Parent = Runtime.ESP.container
+        entry.Billboard = b
+        entry.Label = l
+    end
 
-							if espCfg.Details then
-								local dist = math.floor((cam.CFrame.Position - root.Position).Magnitude)
-								local hp = math.floor(hum.Health)
-								entry.Label.Text = string.format("%s\n[%d HP] [%d studs]", p.DisplayName, hp, dist)
-							else
-								entry.Label.Text = p.DisplayName
-							end
-						elseif entry.Billboard then
-							entry.Billboard.Enabled = false
-						end
+    entry.Billboard.Adornee = root
+    entry.Billboard.StudsOffset = Vector3.new(espCfg.OffsetX, 2.5 + espCfg.OffsetY, 0)
+    entry.Billboard.Enabled = true
+    entry.Label.TextSize = espCfg.TextSize
+    entry.Label.TextColor3 = color
 
-						-- 3. Tracers
-						-- 3. Tracers
-if espCfg.TracersEnabled and espCfg.Tracers and valid and hum and hum.Health > 0 and root and Drawing then
-							if not entry.Tracer then
-								local line = Drawing.new("Line")
-								line.Thickness = 1.5
-								line.Transparency = 1
-								entry.Tracer = line
-							end
-
-							local rootPos, onScreen = cam:WorldToViewportPoint(root.Position)
-							if onScreen then
-								local originPos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y)
-								if espCfg.TracerOrigin == "Center" then
-									originPos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
-								elseif espCfg.TracerOrigin == "Mouse" then
-									originPos = UserInputService:GetMouseLocation()
-								end
-
-								entry.Tracer.From = originPos
-								entry.Tracer.To = Vector2.new(rootPos.X, rootPos.Y)
-								entry.Tracer.Color = tracerColor
-								entry.Tracer.Visible = true
-							else
-								entry.Tracer.Visible = false
-							end
-						elseif entry.Tracer then
-							entry.Tracer.Visible = false
-						end
-					else
-						local entry = Runtime.ESP.objects[p]
-						if entry then
-							if entry.Highlight then entry.Highlight.Enabled = false end
-							if entry.Billboard then entry.Billboard.Enabled = false end
-							if entry.Tracer then entry.Tracer.Visible = false end
-						end
-					end
-				end
-			end)
-		end
-	end
+    if espCfg.Details then
+        local dist = math.floor((cam.CFrame.Position - root.Position).Magnitude)
+        local hp = math.floor(hum.Health)
+        entry.Label.Text = string.format("%s\n[%d HP] [%d studs]", p.DisplayName, hp, dist)
+    else
+        entry.Label.Text = p.DisplayName
+    end
+elseif entry.Billboard then
+    entry.Billboard.Enabled = false
+end
 
 	------------------------------------------------------------- AIMLOCK MODULE (RAYFIELD LOGIC)
 	function Features.GetAimPart(char)
