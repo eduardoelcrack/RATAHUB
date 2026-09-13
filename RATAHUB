@@ -5215,14 +5215,35 @@ end
 				local cam = workspace.CurrentCamera
 				if not cam then return end
 
-				local screenPos, onScreen = cam:WorldToViewportPoint(part.Position)
-				local worldDist = (part.Position - cam.CFrame.Position).Magnitude
+local screenPos, onScreen = cam:WorldToViewportPoint(part.Position)
+local worldDist = (part.Position - cam.CFrame.Position).Magnitude
 
-				if not onScreen or (Config.Aimlock.UseMaxDistance and worldDist > Config.Aimlock.MaxDistance) then
-					Features.UnlockAimlock()
-					RATAHUB:Notify({ Title = "Aimlock", Content = "Objetivo fuera de rango", Duration = 1.5 })
-					return
-				end
+local smoothness = tonumber(Config.Aimlock.Smoothness) or 100
+
+-- Con Smoothness 100 toleramos pequeños instantes en los que
+-- el objetivo sale del viewport por movimiento extremadamente rápido.
+-- El límite de distancia real sigue siendo respetado.
+local allowOffscreenGrace = smoothness >= 100
+
+if Config.Aimlock.UseMaxDistance and worldDist > Config.Aimlock.MaxDistance then
+    Features.UnlockAimlock()
+    RATAHUB:Notify({
+        Title = "Aimlock",
+        Content = "Objetivo fuera de rango",
+        Duration = 1.5
+    })
+    return
+end
+
+if not onScreen and not allowOffscreenGrace then
+    Features.UnlockAimlock()
+    RATAHUB:Notify({
+        Title = "Aimlock",
+        Content = "Objetivo fuera de rango",
+        Duration = 1.5
+    })
+    return
+end
 
 				-- Prediction
 				local targetPos = part.Position
