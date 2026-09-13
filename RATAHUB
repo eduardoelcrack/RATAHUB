@@ -1938,6 +1938,9 @@ local tab = setmetatable({
 
     -- Estado de los minitabs de esta pestaña
     _minitabs = {},
+
+    -- Modo visual actual
+    _uiMode = UIMode,
 }, Tab)
 
 		self.tabs[id] = tab
@@ -1989,9 +1992,10 @@ local tab = setmetatable({
 	end
 
 function Tab:CreateSection(text)
-	local title = tostring(text or "Section")
+    local title = tostring(text or "Section")
 
-	self._minitabs = self._minitabs or {}
+    self._minitabs = self._minitabs or {}
+    self._uiMode = self._uiMode or UIMode
 
 	local order = self:_next()
 	local HEADER_H = 42
