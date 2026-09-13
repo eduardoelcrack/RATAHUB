@@ -2084,61 +2084,69 @@ function Tab:CreateSection(text)
 	-- ============================================================
 	-- ANIMACIÓN
 	-- ============================================================
-	local function openSection()
-		if entry.open then
-			return
-		end
+local function openSection()
+    if entry.open then
+        return
+    end
 
-		entry.open = true
-		body.Visible = true
+    entry.open = true
+    body.Visible = true
 
-		-- Esperamos un frame para que Roblox calcule AbsoluteSize
-		task.defer(function()
-			if not entry.open then
-				return
-			end
+    task.defer(function()
+        if not entry.open then
+            return
+        end
 
-			local contentHeight = body.AbsoluteSize.Y
-			entry.expandedHeight = HEADER_H + contentHeight
+        -- Esperar a que Roblox termine de calcular el contenido.
+        task.wait()
 
-			section.Size = UDim2.new(1, 0, 0, HEADER_H)
+        if not entry.open then
+            return
+        end
 
-local extraHeight = math.max(0, entry.expandedHeight - HEADER_H)
+        local contentHeight = body.AbsoluteSize.Y
+        local targetHeight = HEADER_H + contentHeight
 
--- Las secciones grandes necesitan un poco más de tiempo
--- para que la expansión siga siendo perceptiblemente suave.
-local duration = math.clamp(
-    0.22 + (extraHeight / 1400) * 0.18,
-    0.22,
-    0.40
-)
+        entry.expandedHeight = targetHeight
 
-tween(
-    section,
-    TweenInfo.new(
-        duration,
-        Enum.EasingStyle.Quint,
-        Enum.EasingDirection.Out
-    ),
-    {
-        Size = UDim2.new(1, 0, 0, entry.expandedHeight)
-    }
-)
+        -- Siempre comenzamos desde la altura del header.
+        section.Size = UDim2.new(1, 0, 0, HEADER_H)
 
-			tween(
-				arrow,
-				TweenInfo.new(
-					0.18,
-					Enum.EasingStyle.Quad,
-					Enum.EasingDirection.Out
-				),
-				{
-					Rotation = 90,
-					TextColor3 = THEME.Primary
-				}
-			)
-		end)
-	end
+        local extraHeight = math.max(0, targetHeight - HEADER_H)
+
+        -- Secciones grandes reciben un poco más de tiempo.
+        local duration = math.clamp(
+            0.22 + (extraHeight / 1400) * 0.18,
+            0.22,
+            0.40
+        )
+
+        tween(
+            section,
+            TweenInfo.new(
+                duration,
+                Enum.EasingStyle.Quint,
+                Enum.EasingDirection.Out
+            ),
+            {
+                Size = UDim2.new(1, 0, 0, targetHeight)
+            }
+        )
+
+        tween(
+            arrow,
+            TweenInfo.new(
+                0.18,
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.Out
+            ),
+            {
+                Rotation = 90,
+                TextColor3 = THEME.Primary
+            }
+        )
+    end)
+end
 
 	local function closeSection()
 		if not entry.open then
@@ -2230,6 +2238,42 @@ tween(
 	-- Métodos internos para el sistema de Remember Open Minitabs
 	entry.Open = openSection
 	entry.Close = closeSection
+
+    entry.Refresh = function()
+    if not entry.open then
+        return
+    end
+
+    task.defer(function()
+        if not entry.open then
+            return
+        end
+
+        task.wait()
+
+        local contentHeight = body.AbsoluteSize.Y
+        local targetHeight = HEADER_H + contentHeight
+
+        if math.abs(section.AbsoluteSize.Y - targetHeight) < 1 then
+            entry.expandedHeight = targetHeight
+            return
+        end
+
+        entry.expandedHeight = targetHeight
+
+        tween(
+            section,
+            TweenInfo.new(
+                0.16,
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.Out
+            ),
+            {
+                Size = UDim2.new(1, 0, 0, targetHeight)
+            }
+        )
+    end)
+end
 
 	return body
 end
