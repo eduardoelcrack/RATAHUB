@@ -1088,6 +1088,11 @@ function RATAHUB:CreateWindow(cfg)
 					end
 				end)
 				pcall(function()
+					if watermark then watermark:Destroy() watermark = nil end
+					if overlayGui and overlayGui.Parent then
+						overlayGui:Destroy()
+						overlayGui = nil
+					end
 					if screenGui and screenGui.Parent then
 						screenGui:Destroy()
 					end
@@ -2946,6 +2951,15 @@ local Config = {
 		HitShootSound = "Skeet / Gamesense",
 		PreviewSound = "Neverlose Hit",
 	},
+	Settings = {
+		Watermark = {
+			Enabled = true,
+			FPS = true,
+			Ping = true,
+			Time = true,
+			Players = true,
+		},
+	},
 }
 
 function RATAHUB:GetConfig() return Config end
@@ -2958,7 +2972,9 @@ local Controls = {
 	Extras = {},
 	Troll = {},
 	Sounds = {},
-	Settings = {},
+	Settings = {
+		Watermark = {},
+	},
 }
 function RATAHUB:GetControls() return Controls end
 
@@ -2994,7 +3010,7 @@ local watermark = create("Frame", {
     Name = "RATAHUBWatermark",
     AnchorPoint = Vector2.new(1, 0),
     Position = UDim2.new(1, -18, 0, 18),
-    Size = UDim2.fromOffset(210, 62),
+    Size = UDim2.fromOffset(210, 64),
     BackgroundColor3 = THEME.Panel,
     BackgroundTransparency = 0.08,
     BorderSizePixel = 0,
@@ -3006,31 +3022,170 @@ stroke(watermark, 0.72, THEME.Primary, 1)
 
 create("TextLabel", {
     Name = "Title",
-    Position = UDim2.fromOffset(11, 6),
-    Size = UDim2.new(1, -22, 0, 17),
+    Position = UDim2.fromOffset(10, 6),
+    Size = UDim2.new(1, -20, 0, 16),
     BackgroundTransparency = 1,
     Text = "RATAHUB V5",
     TextColor3 = THEME.Foreground,
-    TextXAlignment = Enum.TextXAlignment.Left,
+    TextXAlignment = Enum.TextXAlignment.Center,
     Font = FONT_BOLD,
     TextSize = 13,
     ZIndex = 101,
     Parent = watermark,
 })
 
-local watermarkStats = create("TextLabel", {
-    Name = "Stats",
-    Position = UDim2.fromOffset(11, 24),
-    Size = UDim2.new(1, -22, 0, 32),
+local watermarkStatsContainer = create("Frame", {
+    Name = "StatsContainer",
+    Position = UDim2.fromOffset(10, 24),
+    Size = UDim2.new(1, -20, 0, 32),
     BackgroundTransparency = 1,
-    Text = "FPS: --  •  Ping: -- ms\nTime: --:--  •  Players: --/--",
-    TextColor3 = THEME.Muted,
-    TextXAlignment = Enum.TextXAlignment.Left,
-    Font = FONT_MONO,
-    TextSize = 10,
+    BorderSizePixel = 0,
     ZIndex = 101,
     Parent = watermark,
 })
+
+local statLabels = {
+    FPS = create("TextLabel", {
+        Name = "FPS",
+        BackgroundTransparency = 1,
+        TextColor3 = THEME.Muted,
+        Font = FONT_MONO,
+        TextSize = 10,
+        ZIndex = 101,
+        Parent = watermarkStatsContainer,
+    }),
+    Ping = create("TextLabel", {
+        Name = "Ping",
+        BackgroundTransparency = 1,
+        TextColor3 = THEME.Muted,
+        Font = FONT_MONO,
+        TextSize = 10,
+        ZIndex = 101,
+        Parent = watermarkStatsContainer,
+    }),
+    Time = create("TextLabel", {
+        Name = "Time",
+        BackgroundTransparency = 1,
+        TextColor3 = THEME.Muted,
+        Font = FONT_MONO,
+        TextSize = 10,
+        ZIndex = 101,
+        Parent = watermarkStatsContainer,
+    }),
+    Players = create("TextLabel", {
+        Name = "Players",
+        BackgroundTransparency = 1,
+        TextColor3 = THEME.Muted,
+        Font = FONT_MONO,
+        TextSize = 10,
+        ZIndex = 101,
+        Parent = watermarkStatsContainer,
+    }),
+}
+
+function Features.UpdateWatermarkLayout()
+    if not watermark or not watermark.Parent then return end
+    local cfg = Config.Settings and Config.Settings.Watermark
+    if not cfg or not cfg.Enabled then
+        watermark.Visible = false
+        for _, lbl in pairs(statLabels) do
+            lbl.Visible = false
+        end
+        return
+    end
+
+    watermark.Visible = true
+
+    local active = {}
+    if cfg.FPS then table.insert(active, "FPS") end
+    if cfg.Ping then table.insert(active, "Ping") end
+    if cfg.Time then table.insert(active, "Time") end
+    if cfg.Players then table.insert(active, "Players") end
+
+    for _, lbl in pairs(statLabels) do
+        lbl.Visible = false
+    end
+
+    local count = #active
+    if count == 0 then
+        watermark.Size = UDim2.fromOffset(180, 28)
+        watermarkStatsContainer.Visible = false
+    elseif count == 1 then
+        watermark.Size = UDim2.fromOffset(190, 48)
+        watermarkStatsContainer.Visible = true
+        watermarkStatsContainer.Size = UDim2.new(1, -20, 0, 18)
+        local lbl = statLabels[active[1]]
+        lbl.Visible = true
+        lbl.Position = UDim2.new(0, 0, 0, 0)
+        lbl.Size = UDim2.new(1, 0, 1, 0)
+        lbl.TextXAlignment = Enum.TextXAlignment.Center
+    elseif count == 2 then
+        watermark.Size = UDim2.fromOffset(210, 48)
+        watermarkStatsContainer.Visible = true
+        watermarkStatsContainer.Size = UDim2.new(1, -20, 0, 18)
+        local l1 = statLabels[active[1]]
+        l1.Visible = true
+        l1.Position = UDim2.new(0, 0, 0, 0)
+        l1.Size = UDim2.new(0.5, 0, 1, 0)
+        l1.TextXAlignment = Enum.TextXAlignment.Center
+
+        local l2 = statLabels[active[2]]
+        l2.Visible = true
+        l2.Position = UDim2.new(0.5, 0, 0, 0)
+        l2.Size = UDim2.new(0.5, 0, 1, 0)
+        l2.TextXAlignment = Enum.TextXAlignment.Center
+    elseif count == 3 then
+        watermark.Size = UDim2.fromOffset(210, 64)
+        watermarkStatsContainer.Visible = true
+        watermarkStatsContainer.Size = UDim2.new(1, -20, 0, 32)
+        local l1 = statLabels[active[1]]
+        l1.Visible = true
+        l1.Position = UDim2.new(0, 0, 0, 0)
+        l1.Size = UDim2.new(0.5, 0, 0.5, 0)
+        l1.TextXAlignment = Enum.TextXAlignment.Center
+
+        local l2 = statLabels[active[2]]
+        l2.Visible = true
+        l2.Position = UDim2.new(0.5, 0, 0, 0)
+        l2.Size = UDim2.new(0.5, 0, 0.5, 0)
+        l2.TextXAlignment = Enum.TextXAlignment.Center
+
+        local l3 = statLabels[active[3]]
+        l3.Visible = true
+        l3.Position = UDim2.new(0, 0, 0.5, 0)
+        l3.Size = UDim2.new(1, 0, 0.5, 0)
+        l3.TextXAlignment = Enum.TextXAlignment.Center
+    elseif count == 4 then
+        watermark.Size = UDim2.fromOffset(210, 64)
+        watermarkStatsContainer.Visible = true
+        watermarkStatsContainer.Size = UDim2.new(1, -20, 0, 32)
+        local l1 = statLabels[active[1]]
+        l1.Visible = true
+        l1.Position = UDim2.new(0, 0, 0, 0)
+        l1.Size = UDim2.new(0.5, 0, 0.5, 0)
+        l1.TextXAlignment = Enum.TextXAlignment.Center
+
+        local l2 = statLabels[active[2]]
+        l2.Visible = true
+        l2.Position = UDim2.new(0.5, 0, 0, 0)
+        l2.Size = UDim2.new(0.5, 0, 0.5, 0)
+        l2.TextXAlignment = Enum.TextXAlignment.Center
+
+        local l3 = statLabels[active[3]]
+        l3.Visible = true
+        l3.Position = UDim2.new(0, 0, 0.5, 0)
+        l3.Size = UDim2.new(0.5, 0, 0.5, 0)
+        l3.TextXAlignment = Enum.TextXAlignment.Center
+
+        local l4 = statLabels[active[4]]
+        l4.Visible = true
+        l4.Position = UDim2.new(0.5, 0, 0.5, 0)
+        l4.Size = UDim2.new(0.5, 0, 0.5, 0)
+        l4.TextXAlignment = Enum.TextXAlignment.Center
+    end
+end
+
+Features.UpdateWatermarkLayout()
 
 local targetInfo = create("Frame", {
     Name = "TargetInfo",
@@ -3229,14 +3384,18 @@ Runtime.HUD.loop = RunService.RenderStepped:Connect(function(dt)
     if not maxPlrs or maxPlrs <= 0 then maxPlrs = 20 end
     local currPlrs = #Players:GetPlayers()
 
-    watermarkStats.Text = string.format(
-        "FPS: %d  •  Ping: %d ms\nTime: %s  •  Players: %d/%d",
-        hudFPS,
-        ping,
-        formatServerTime(),
-        currPlrs,
-        maxPlrs
-    )
+    if statLabels.FPS and statLabels.FPS.Visible then
+        statLabels.FPS.Text = string.format("FPS: %d", hudFPS)
+    end
+    if statLabels.Ping and statLabels.Ping.Visible then
+        statLabels.Ping.Text = string.format("Ping: %d ms", ping)
+    end
+    if statLabels.Time and statLabels.Time.Visible then
+        statLabels.Time.Text = string.format("Time: %s", formatServerTime())
+    end
+    if statLabels.Players and statLabels.Players.Visible then
+        statLabels.Players.Text = string.format("Players: %d/%d", currPlrs, maxPlrs)
+    end
 
     -- Target Info
     local target = Runtime.Aimlock.currentTarget
@@ -3521,25 +3680,21 @@ end
 
 function Features.SetFlyMaster(enabled)
 	Config.Main.Movement.Fly = enabled
-	Config.Main.Movement.FlyActive = false
-	Features.StopFly()
-	RATAHUB:Notify({
-		Title = "Fly",
-		Content = enabled and ("Permitido (" .. tostring(Config.Main.Movement.FlyKeybind or "V") .. " para activar)") or "Deshabilitado",
-		Duration = 1.2
-	})
+	Config.Main.Movement.FlyActive = enabled
+	if enabled then
+		Features.StartFly()
+		RATAHUB:Notify({ Title = "Fly", Content = "Activado", Duration = 1.2 })
+	else
+		Features.StopFly()
+		RATAHUB:Notify({ Title = "Fly", Content = "Desactivado", Duration = 1.2 })
+	end
+	if Controls.Main and Controls.Main.Fly and Controls.Main.Fly.CurrentValue ~= enabled then
+		Controls.Main.Fly:Set(enabled)
+	end
 end
 
 function Features.ToggleFlyActive()
-	if not Config.Main.Movement.Fly then return end
-	Config.Main.Movement.FlyActive = not Config.Main.Movement.FlyActive
-	if Config.Main.Movement.FlyActive then
-		Features.StartFly()
-		RATAHUB:Notify({ Title = "Fly", Content = "Activo", Duration = 1.2 })
-	else
-		Features.StopFly()
-		RATAHUB:Notify({ Title = "Fly", Content = "En pausa", Duration = 1.2 })
-	end
+	Features.SetFlyMaster(not Config.Main.Movement.Fly)
 end
 
 ------------------------------------------------------------- Movement: WalkSpeed (Restored Keybind C)
@@ -3643,6 +3798,20 @@ function Features.StopJumpPower()
 	end
 end
 
+function Features.SetJumpPower(enabled)
+	Config.Main.Movement.JumpPowerEnabled = enabled
+	if enabled then
+		Features.StartJumpPower()
+		RATAHUB:Notify({ Title = "JumpPower", Content = "Activado", Duration = 1.2 })
+	else
+		Features.StopJumpPower()
+		RATAHUB:Notify({ Title = "JumpPower", Content = "Desactivado", Duration = 1.2 })
+	end
+	if Controls.Main and Controls.Main.JumpPower and Controls.Main.JumpPower.CurrentValue ~= enabled then
+		Controls.Main.JumpPower:Set(enabled)
+	end
+end
+
 ------------------------------------------------------------- Movement: Gravity
 function Features.StartGravity()
 	if Runtime.Gravity.loop then return end
@@ -3661,6 +3830,20 @@ function Features.StopGravity()
 		Runtime.Gravity.loop = nil
 	end
 	workspace.Gravity = 196.2
+end
+
+function Features.SetGravity(enabled)
+	Config.Main.Movement.GravityEnabled = enabled
+	if enabled then
+		Features.StartGravity()
+		RATAHUB:Notify({ Title = "Gravity", Content = "Activado", Duration = 1.2 })
+	else
+		Features.StopGravity()
+		RATAHUB:Notify({ Title = "Gravity", Content = "Desactivado", Duration = 1.2 })
+	end
+	if Controls.Main and Controls.Main.Gravity and Controls.Main.Gravity.CurrentValue ~= enabled then
+		Controls.Main.Gravity:Set(enabled)
+	end
 end
 
 ------------------------------------------------------------- Movement: Infinite Jump
@@ -3919,16 +4102,36 @@ end
 
 ------------------------------------------------------------- DESTROY HUB (Idempotent & Safe)
 function Features.DestroyHub()
-		Features.StopFly()
-		Features.StopWalkSpeed()
-		Features.StopJumpPower()
-		Features.StopGravity()
-		Features.SetInfiniteJumpMaster(false)
-		Features.StopNoclip()
-		Features.SetAntiAFK(false)
-		Features.ToggleHitboxLoop(false)
-		Features.SetTriggerbotActive(false)
-		Config.Triggerbot.Enabled = false
+		if Config.Main.Movement.Fly or Runtime.Fly.active then
+			Features.SetFlyMaster(false)
+		end
+		if Config.Main.Movement.WalkSpeedEnabled or Runtime.WalkSpeed.active then
+			Features.SetWalkSpeedMaster(false)
+		end
+		if Config.Main.Movement.JumpPowerEnabled then
+			Features.SetJumpPower(false)
+		end
+		if Config.Main.Movement.GravityEnabled then
+			Features.SetGravity(false)
+		else
+			workspace.Gravity = 196.2
+		end
+		if Config.Main.Movement.InfiniteJump or Runtime.InfiniteJump.active or Runtime.InfiniteJump.conn then
+			Features.SetInfiniteJumpMaster(false)
+		end
+		if Config.Main.Movement.Noclip or Runtime.Noclip.active or Runtime.Noclip.stepConn then
+			Features.SetNoclipMaster(false)
+		end
+		if Config.Main.Utility.AntiAFK or Runtime.AntiAFK.conn then
+			Features.SetAntiAFK(false)
+		end
+		if Config.Main.Player.HitboxExpander or Runtime.Hitbox.loop then
+			Features.ToggleHitboxLoop(false)
+		end
+		if Config.Triggerbot.Enabled or Runtime.Triggerbot.active then
+			Features.SetTriggerbotActive(false)
+			Config.Triggerbot.Enabled = false
+		end
 		Features.SetClickTP(false)
 		Features.SetBTools(false)
 		Features.SetXRay(false)
@@ -3974,6 +4177,15 @@ function Features.DestroyHub()
 		end
 		Features.UnlockAimlock()
 
+		if watermark then
+			pcall(function() watermark:Destroy() end)
+			watermark = nil
+		end
+		if targetInfo then
+			pcall(function() targetInfo:Destroy() end)
+			targetInfo = nil
+		end
+
 		for _, gui in ipairs(playerGui:GetChildren()) do
 			if gui:IsA("ScreenGui") then
 				local name = string.lower(gui.Name)
@@ -3986,10 +4198,9 @@ function Features.DestroyHub()
 		pcall(function()
 			if overlayGui and overlayGui.Parent then
 				overlayGui:Destroy()
+				overlayGui = nil
 			end
 		end)
-
-		RATAHUB:Notify({ Title = "Destroy Hub", Content = "RATAHUB V5 apagado y limpiado completamente.", Duration = 2 })
 end
 
 ------------------------------------------------------------- Dynamic Helpers: Whitelist & Teams
@@ -5363,8 +5574,7 @@ do
 		Name = "JumpPower",
 		CurrentValue = M.Movement.JumpPowerEnabled,
 		Callback = function(Value)
-			M.Movement.JumpPowerEnabled = Value
-			if Value then Features.StartJumpPower() else Features.StopJumpPower() end
+			Features.SetJumpPower(Value)
 		end,
 	})
 	Controls.Main.JumpPowerValue = main:CreateSlider({
@@ -5381,8 +5591,7 @@ do
 		Name = "Gravity",
 		CurrentValue = M.Movement.GravityEnabled,
 		Callback = function(Value)
-			M.Movement.GravityEnabled = Value
-			if Value then Features.StartGravity() else Features.StopGravity() end
+			Features.SetGravity(Value)
 		end,
 	})
 	Controls.Main.GravityValue = main:CreateSlider({
@@ -6192,9 +6401,52 @@ end
 --------------------------------------------------------------
 do
 	local settings = win:CreateTab({ Name = "Settings", Icon = "⚙", SubTitle = "Hub preferences and configuration" })
+	local W = Config.Settings.Watermark
 
 	settings:CreateSection("Target Info")
+
 	settings:CreateSection("Watermark")
+	Controls.Settings.Watermark.Enabled = settings:CreateToggle({
+		Name = "Watermark",
+		CurrentValue = W.Enabled,
+		Callback = function(Value)
+			W.Enabled = Value
+			Features.UpdateWatermarkLayout()
+		end,
+	})
+	Controls.Settings.Watermark.FPS = settings:CreateToggle({
+		Name = "FPS",
+		CurrentValue = W.FPS,
+		Callback = function(Value)
+			W.FPS = Value
+			Features.UpdateWatermarkLayout()
+		end,
+	})
+	Controls.Settings.Watermark.Ping = settings:CreateToggle({
+		Name = "Ping",
+		CurrentValue = W.Ping,
+		Callback = function(Value)
+			W.Ping = Value
+			Features.UpdateWatermarkLayout()
+		end,
+	})
+	Controls.Settings.Watermark.Time = settings:CreateToggle({
+		Name = "Time",
+		CurrentValue = W.Time,
+		Callback = function(Value)
+			W.Time = Value
+			Features.UpdateWatermarkLayout()
+		end,
+	})
+	Controls.Settings.Watermark.Players = settings:CreateToggle({
+		Name = "Players",
+		CurrentValue = W.Players,
+		Callback = function(Value)
+			W.Players = Value
+			Features.UpdateWatermarkLayout()
+		end,
+	})
+
 	settings:CreateSection("Menu")
 end
 
