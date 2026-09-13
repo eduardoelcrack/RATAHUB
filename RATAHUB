@@ -1541,8 +1541,8 @@ end)
 		create("Frame", {
 			Name = "Divider",
 			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, 0, 0, 0),
-			Size = UDim2.new(0, 1, 1, 0),
+			Position = UDim2.new(1.089, 0, -0.039, 0),
+			Size = UDim2.new(0, 2, 1.075, 0),
 			BackgroundColor3 = THEME.Stroke,
 			BackgroundTransparency = 0.9,
 			BorderSizePixel = 0,
@@ -1571,7 +1571,7 @@ end)
 			ScrollBarImageTransparency = 0.6,
 			CanvasSize = UDim2.new(),
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
-			ClipsDescendants = true,
+			ClipsDescendants = false,
 			Parent = sidebar,
 		})
 		local highlight = create("Frame", {
