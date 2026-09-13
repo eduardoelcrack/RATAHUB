@@ -5149,8 +5149,6 @@ end
 						entry.WeaponBillboard.Enabled = false
 					end
 
-					-- 5. Weapon
-					-- Se implementará aquí sin mezclarla con Names/Distance.
 
 				else
 					local entry = Runtime.ESP.objects[p]
