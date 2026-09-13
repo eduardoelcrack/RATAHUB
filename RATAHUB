@@ -7115,16 +7115,6 @@ do
 
     Controls.UISettings = Controls.UISettings or {}
 
-    Controls.UISettings.Transparency = uiSettings:CreateSlider({
-        Name = "Transparency",
-        Range = { 0, 45 },
-        Increment = 1,
-        CurrentValue = U.Transparency,
-        Suffix = "%",
-        Callback = function(Value)
-            U.Transparency = Value
-        end,
-    })
 
     uiSettings:CreateSection("Minitabs")
 
