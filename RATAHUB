@@ -1056,14 +1056,17 @@ tween(
         Size = UDim2.fromOffset(originalW, originalH)
     }
 )
-		local self = setmetatable({
-			gui = window,
-			tabs = {},
-			navButtons = {},
-			_activeTab = nil,
-			_currentDropdownClose = nil,
-			_currentDropdownReposition = nil,
-		}, Window)
+local self = setmetatable({
+    gui = window,
+    tabs = {},
+    navButtons = {},
+    _activeTab = nil,
+    _currentDropdownClose = nil,
+    _currentDropdownReposition = nil,
+
+    -- Recordar minitabs activados
+    rememberOpenMinitabs = true,
+}, Window)
 
 		--------------------------------------------------------------
 		-- TOP BAR (Header & Drag Handle)
@@ -1777,17 +1780,32 @@ end)
 		return self
 	end
 
-	function Window:_select(id)
-		if self._currentDropdownClose then
-			self._currentDropdownClose()
-		end
-		if self._activeTab == id then return end
-		self._activeTab = id
-		self.gui:SetAttribute("ActiveTab", id)
+function Window:_select(id)
+    if self._currentDropdownClose then
+        self._currentDropdownClose()
+    end
 
-		for tid, tab in pairs(self.tabs) do
-			tab.page.Visible = (tid == id)
-		end
+    if self._activeTab == id then
+        return
+    end
+
+    self._activeTab = id
+    self.gui:SetAttribute("ActiveTab", id)
+
+    -- Si "Recordar Open Minitabs" está desactivado,
+    -- cada vez que entramos a una pestaña sus minitabs
+    -- vuelven a estar cerrados.
+if self.rememberOpenMinitabs == false then
+    local selectedTab = self.tabs[id]
+
+    if selectedTab then
+        selectedTab:CloseAllMinitabs(false)
+    end
+end
+
+    for tid, tab in pairs(self.tabs) do
+        tab.page.Visible = (tid == id)
+    end
 
 		for tid, nb in pairs(self.navButtons) do
 			local active = (tid == id)
@@ -1891,15 +1909,18 @@ end)
 			Parent = page,
 		})
 
-		local tab = setmetatable({
-			window = self,
-			id = id,
-			page = page,
-			title = cfg.Name or "Tab",
-			subtitle = cfg.SubTitle or "",
-			_order = 0,
-			_currentCard = nil,
-		}, Tab)
+local tab = setmetatable({
+    window = self,
+    id = id,
+    page = page,
+    title = cfg.Name or "Tab",
+    subtitle = cfg.SubTitle or "",
+    _order = 0,
+    _currentCard = nil,
+
+    -- Estado de los minitabs de esta pestaña
+    _minitabs = {},
+}, Tab)
 
 		self.tabs[id] = tab
 
@@ -1949,20 +1970,273 @@ end)
 		return o
 	end
 
-	function Tab:CreateSection(text)
-		local card = self:_card()
-		create("TextLabel", {
-			LayoutOrder = self:_cardOrder(card),
-			Size = UDim2.new(1, 0, 0, 14),
-			BackgroundTransparency = 1,
-			Text = tostring(text or "Section"),
-			TextColor3 = THEME.Muted,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			Font = FONT_BOLD, TextSize = 11,
-			Parent = card,
-		})
-		return card
+function Tab:CreateSection(text)
+	local title = tostring(text or "Section")
+
+	self._minitabs = self._minitabs or {}
+
+	local order = self:_next()
+	local HEADER_H = 42
+
+	-- ============================================================
+	-- MINITAB PRINCIPAL
+	-- ============================================================
+	local section = create("Frame", {
+		Name = "Minitab_" .. tostring(order),
+		LayoutOrder = order,
+		Size = UDim2.new(1, 0, 0, HEADER_H),
+		BackgroundColor3 = THEME.Card,
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
+		Parent = self.page,
+	})
+
+	corner(14, section)
+	stroke(section, 0.9)
+
+	-- ============================================================
+	-- HEADER
+	-- ============================================================
+	local header = create("TextButton", {
+		Name = "Header",
+		Size = UDim2.new(1, 0, 0, HEADER_H),
+		BackgroundTransparency = 1,
+		Text = "",
+		AutoButtonColor = false,
+		ZIndex = 2,
+		Parent = section,
+	})
+
+	local headerTitle = create("TextLabel", {
+		Position = UDim2.fromOffset(16, 0),
+		Size = UDim2.new(1, -58, 1, 0),
+		BackgroundTransparency = 1,
+		Text = title,
+		TextColor3 = THEME.Foreground,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Center,
+		Font = FONT_BOLD,
+		TextSize = 13,
+		ZIndex = 3,
+		Parent = header,
+	})
+
+	local arrow = create("TextLabel", {
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -16, 0.5, 0),
+		Size = UDim2.fromOffset(24, 24),
+		BackgroundTransparency = 1,
+		Text = "›",
+		TextColor3 = THEME.Muted,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextYAlignment = Enum.TextYAlignment.Center,
+		Font = FONT_BOLD,
+		TextSize = 20,
+		Rotation = 0,
+		ZIndex = 3,
+		Parent = header,
+	})
+
+	-- ============================================================
+	-- BODY
+	-- ============================================================
+	local body = create("Frame", {
+		Name = "Body",
+		Position = UDim2.fromOffset(0, HEADER_H),
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ClipsDescendants = false,
+		Visible = false,
+		Parent = section,
+	})
+
+    body:SetAttribute("Order", 0)
+
+	padding(body, nil, 16, 16, 10, 14)
+
+	create("UIListLayout", {
+		Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Left,
+		Parent = body,
+	})
+
+	-- ============================================================
+	-- ESTADO
+	-- ============================================================
+	local entry = {
+		section = section,
+		header = header,
+		body = body,
+		arrow = arrow,
+		headerHeight = HEADER_H,
+		expandedHeight = 0,
+		open = false,
+	}
+
+	table.insert(self._minitabs, entry)
+
+	-- Este será el padre de los controles que vienen después
+	self._currentCard = body
+
+	-- ============================================================
+	-- ANIMACIÓN
+	-- ============================================================
+	local function openSection()
+		if entry.open then
+			return
+		end
+
+		entry.open = true
+		body.Visible = true
+
+		-- Esperamos un frame para que Roblox calcule AbsoluteSize
+		task.defer(function()
+			if not entry.open then
+				return
+			end
+
+			local contentHeight = body.AbsoluteSize.Y
+			entry.expandedHeight = HEADER_H + contentHeight
+
+			section.Size = UDim2.new(1, 0, 0, HEADER_H)
+
+			tween(
+				section,
+				TweenInfo.new(
+					0.22,
+					Enum.EasingStyle.Quint,
+					Enum.EasingDirection.Out
+				),
+				{
+					Size = UDim2.new(1, 0, 0, entry.expandedHeight)
+				}
+			)
+
+			tween(
+				arrow,
+				TweenInfo.new(
+					0.18,
+					Enum.EasingStyle.Quad,
+					Enum.EasingDirection.Out
+				),
+				{
+					Rotation = 90,
+					TextColor3 = THEME.Primary
+				}
+			)
+		end)
 	end
+
+	local function closeSection()
+		if not entry.open then
+			return
+		end
+
+		entry.open = false
+
+		tween(
+			section,
+			TweenInfo.new(
+				0.18,
+				Enum.EasingStyle.Quad,
+				Enum.EasingDirection.In
+			),
+			{
+				Size = UDim2.new(1, 0, 0, HEADER_H)
+			}
+		)
+
+		tween(
+			arrow,
+			TweenInfo.new(
+				0.18,
+				Enum.EasingStyle.Quad,
+				Enum.EasingDirection.Out
+			),
+			{
+				Rotation = 0,
+				TextColor3 = THEME.Muted
+			}
+		)
+
+		task.delay(0.19, function()
+			if not entry.open then
+				body.Visible = false
+			end
+		end)
+	end
+
+	header.MouseButton1Click:Connect(function()
+		if entry.open then
+			closeSection()
+		else
+			openSection()
+		end
+	end)
+
+	header.MouseEnter:Connect(function()
+		if not entry.open then
+			tween(
+				headerTitle,
+				HOVER,
+				{
+					TextColor3 = THEME.Foreground
+				}
+			)
+
+			tween(
+				arrow,
+				HOVER,
+				{
+					TextColor3 = THEME.Foreground
+				}
+			)
+		end
+	end)
+
+	header.MouseLeave:Connect(function()
+		if not entry.open then
+			tween(
+				headerTitle,
+				HOVER,
+				{
+					TextColor3 = THEME.Foreground
+				}
+			)
+
+			tween(
+				arrow,
+				HOVER,
+				{
+					TextColor3 = THEME.Muted
+				}
+			)
+		end
+	end)
+
+	-- Métodos internos para el sistema de Remember Open Minitabs
+	entry.Open = openSection
+	entry.Close = closeSection
+
+	return body
+end
+
+function Tab:CloseAllMinitabs(animated)
+    if not self._minitabs then
+        return
+    end
+
+    for _, minitab in ipairs(self._minitabs) do
+        if minitab.open then
+            if minitab.Close then
+                minitab.Close()
+            end
+        end
+    end
+end
 
 	--=====================================================================
 	-- CONTROLS
