@@ -6542,7 +6542,7 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.
 		-- ESP - ELEMENTS
 		-- ============================================================
 
-		local ElementsTab = esp:CreateSection("Elements")
+		esp:CreateSection("Elements")
 
 		Controls.ESP.Highlight = esp:CreateToggle({
 			Name = "ESP Highlight",
@@ -6585,7 +6585,13 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.
 			CurrentValue = E.TracersEnabled,
 			Callback = function(Value)
 				E.TracersEnabled = Value
-				E.Tracers = Value
+
+				if not Value then
+					E.Tracers = false
+				else
+					E.Tracers = true
+				end
+
 				Features.UpdateESP()
 			end,
 		})
@@ -6625,48 +6631,37 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.
 			end,
 		})
 
-		esp:CreateSection("Tracers")
-Controls.ESP.Tracers = esp:CreateToggle({
-    Name = "Tracers",
-    CurrentValue = E.TracersEnabled,
-    Callback = function(Value)
-        E.TracersEnabled = Value
+		-- ============================================================
+		-- ESP - FUNCTIONS
+		-- ============================================================
 
-        if not Value then
-            E.Tracers = false
-        end
+		esp:CreateSection("Functions")
 
-        Features.UpdateESP()
-    end,
-})
-
-        Controls.ESP.TracersKeybind = esp:CreateKeybind({
-    Name = "Tracers Keybind",
-    CurrentKeybind = E.TracersKeybind,
-    Callback = function(Key)
-        E.TracersKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
-    end,
-})
-
-		Controls.ESP.TracerOrigin = esp:CreateDropdown({
-			Name = "Origen de Tracers",
-			Options = { "Bottom", "Center", "Mouse" },
-			CurrentOption = E.TracerOrigin,
+		Controls.ESP.IgnoreTeams = esp:CreateDropdown({
+			Name = "Team Check",
+			Options = IGNORE_TEAMS,
+			CurrentOption = E.IgnoreTeams,
+			MultipleOptions = true,
 			Callback = function(Value)
-				E.TracerOrigin = Value
-				Features.UpdateESP()
-			end,
-		})
-		Controls.ESP.TeamColorTracers = esp:CreateToggle({
-			Name = "Team Color Tracers",
-			CurrentValue = E.TeamColorTracers,
-			Callback = function(Value)
-				E.TeamColorTracers = Value
+				E.IgnoreTeams = Value
+				Features.SyncManager.SyncProperty("ESP", "IgnoreTeams", Value)
 				Features.UpdateESP()
 			end,
 		})
 
-		esp:CreateSection("Whitelist")
+		Controls.ESP.FriendCheck = esp:CreateToggle({
+			Name = "Friend Check",
+			CurrentValue = E.FriendCheck,
+			Callback = function(Value)
+				E.FriendCheck = Value
+				if Value then
+					Features.RefreshAllFriends()
+				end
+				Features.SyncManager.SyncProperty("ESP", "FriendCheck", Value)
+				Features.UpdateESP()
+			end,
+		})
+
 		Controls.ESP.WhitelistMode = esp:CreateDropdown({
 			Name = "ESP Whitelist Mode",
 			Options = { "Disabled", "Ignore Whitelist", "Only Whitelist" },
@@ -6677,6 +6672,7 @@ Controls.ESP.Tracers = esp:CreateToggle({
 				Features.UpdateESP()
 			end,
 		})
+
 		Controls.ESP.WhitelistTarget = esp:CreateDropdown({
 			Name = "Seleccionar Objetivo Whitelist",
 			Options = WHITELIST_TARGETS,
@@ -6687,24 +6683,13 @@ Controls.ESP.Tracers = esp:CreateToggle({
 				Features.UpdateESP()
 			end,
 		})
-		Controls.ESP.SyncAimlock = esp:CreateToggle({
-			Name = "Sincronizar con Aimlock",
-			CurrentValue = E.SyncAimlock,
-			Callback = function(Value)
-				E.SyncAimlock = Value
-				Features.SyncManager.OnSyncToggled("ESP", "Aimlock", Value)
-			end,
-		})
-		Controls.ESP.SyncTriggerbot = esp:CreateToggle({
-			Name = "Sincronizar con Triggerbot",
-			CurrentValue = E.SyncTriggerbot,
-			Callback = function(Value)
-				E.SyncTriggerbot = Value
-				Features.SyncManager.OnSyncToggled("ESP", "Triggerbot", Value)
-			end,
-		})
+
+		-- ============================================================
+		-- ESP - VISUAL
+		-- ============================================================
 
 		esp:CreateSection("Visual")
+
 		Controls.ESP.HighlightColor = esp:CreateDropdown({
 			Name = "Color Highlight",
 			Options = { "Morado", "Rojo", "Azul", "Verde Neon", "Cyan", "Blanco" },
@@ -6714,6 +6699,7 @@ Controls.ESP.Tracers = esp:CreateToggle({
 				Features.UpdateESP()
 			end,
 		})
+
 		Controls.ESP.TeamColorHighlight = esp:CreateToggle({
 			Name = "Team Color Highlight",
 			CurrentValue = E.TeamColorHighlight,
@@ -6722,39 +6708,57 @@ Controls.ESP.Tracers = esp:CreateToggle({
 				Features.UpdateESP()
 			end,
 		})
-		Controls.ESP.RainbowESP = esp:CreateToggle({
-			Name = "Rainbow ESP",
-			CurrentValue = E.RainbowESP,
+
+		Controls.ESP.TeamColorTracers = esp:CreateToggle({
+			Name = "Team Color Tracers",
+			CurrentValue = E.TeamColorTracers,
 			Callback = function(Value)
-				E.RainbowESP = Value
+				E.TeamColorTracers = Value
 				Features.UpdateESP()
 			end,
 		})
 
-		esp:CreateSection("Team Check")
-		Controls.ESP.IgnoreTeams = esp:CreateDropdown({
-			Name = "Equipos a Ignorar",
-			Options = IGNORE_TEAMS,
-			CurrentOption = E.IgnoreTeams,
-			MultipleOptions = true,
+		Controls.ESP.TracerOrigin = esp:CreateDropdown({
+			Name = "Origen de Tracers",
+			Options = { "Bottom", "Center", "Mouse" },
+			CurrentOption = E.TracerOrigin,
 			Callback = function(Value)
-				E.IgnoreTeams = Value
-				Features.SyncManager.SyncProperty("ESP", "IgnoreTeams", Value)
+				E.TracerOrigin = Value
 				Features.UpdateESP()
 			end,
 		})
-		Controls.ESP.FriendCheck = esp:CreateToggle({
-			Name = "Friend Check (Resaltar Amigos en Verde)",
-			CurrentValue = E.FriendCheck,
-			Callback = function(Value)
-				E.FriendCheck = Value
-				if Value then Features.RefreshAllFriends() end
-				Features.SyncManager.SyncProperty("ESP", "FriendCheck", Value)
-				Features.UpdateESP()
-			end,
-		})
-	end
 
+		-- ============================================================
+		-- ESP - SYNCHRONIZATION
+		-- ============================================================
+
+		esp:CreateSection("Synchronization")
+
+		Controls.ESP.SyncAimlock = esp:CreateToggle({
+			Name = "Sincronizar con Aimlock",
+			CurrentValue = E.SyncAimlock,
+			Callback = function(Value)
+				E.SyncAimlock = Value
+				Features.SyncManager.OnSyncToggled("ESP", "Aimlock", Value)
+			end,
+		})
+
+		Controls.ESP.SyncTriggerbot = esp:CreateToggle({
+			Name = "Sincronizar con Triggerbot",
+			CurrentValue = E.SyncTriggerbot,
+			Callback = function(Value)
+				E.SyncTriggerbot = Value
+				Features.SyncManager.OnSyncToggled("ESP", "Triggerbot", Value)
+			end,
+		})
+
+		-- ============================================================
+		-- ESP - PREVIEW
+		-- ============================================================
+
+		esp:CreateSection("Preview")
+
+		-- Preview controls go here
 	--------------------------------------------------------------
 	-- 3. AIMLOCK TAB (Restored from RATAHUBB)
 	--------------------------------------------------------------
