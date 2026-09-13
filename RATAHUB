@@ -6538,7 +6538,11 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.
 			end,
 		})
 
-		esp:CreateSection("Elements")
+		-- ============================================================
+		-- ESP - ELEMENTS
+		-- ============================================================
+
+		local ElementsTab = esp:CreateSection("Elements")
 
 		Controls.ESP.Highlight = esp:CreateToggle({
 			Name = "ESP Highlight",
@@ -6576,6 +6580,24 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.
 			end,
 		})
 
+		Controls.ESP.Tracers = esp:CreateToggle({
+			Name = "Tracers",
+			CurrentValue = E.TracersEnabled,
+			Callback = function(Value)
+				E.TracersEnabled = Value
+				E.Tracers = Value
+				Features.UpdateESP()
+			end,
+		})
+
+		Controls.ESP.TracersKeybind = esp:CreateKeybind({
+			Name = "Tracers Keybind",
+			CurrentKeybind = E.TracersKeybind,
+			Callback = function(Key)
+				E.TracersKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
+			end,
+		})
+
 		Controls.ESP.Distance = esp:CreateToggle({
 			Name = "Distance",
 			CurrentValue = E.Distance,
@@ -6599,57 +6621,6 @@ elseif matchesKey(Config.Extras.Camera.FreecamKeybind) and Config.Extras.Camera.
 			CurrentValue = E.Weapon,
 			Callback = function(Value)
 				E.Weapon = Value
-				Features.UpdateESP()
-			end,
-		})
-
-		Controls.ESP.Tracers = esp:CreateToggle({
-			Name = "Tracers",
-			CurrentValue = E.TracersEnabled,
-			Callback = function(Value)
-				E.TracersEnabled = Value
-				E.Tracers = Value
-				Features.UpdateESP()
-			end,
-		})
-
-		Controls.ESP.TracersKeybind = esp:CreateKeybind({
-			Name = "Tracers Keybind",
-			CurrentKeybind = E.TracersKeybind,
-			Callback = function(Key)
-				E.TracersKeybind = (typeof(Key) == "EnumItem") and Key.Name or tostring(Key)
-			end,
-		})
-
-		Controls.ESP.OffsetX = esp:CreateSlider({
-			Name = "Posicion Offset X (Lados)",
-			Range = { -10, 10 },
-			Increment = 0.5,
-			CurrentValue = E.OffsetX,
-			Callback = function(Value)
-				E.OffsetX = Value
-				Features.UpdateESP()
-			end,
-		})
-
-		Controls.ESP.OffsetY = esp:CreateSlider({
-			Name = "Posicion Offset Y (Altura)",
-			Range = { -10, 10 },
-			Increment = 0.5,
-			CurrentValue = E.OffsetY,
-			Callback = function(Value)
-				E.OffsetY = Value
-				Features.UpdateESP()
-			end,
-		})
-
-		Controls.ESP.TextSize = esp:CreateSlider({
-			Name = "Tamaño de Texto ESP",
-			Range = { 8, 32 },
-			Increment = 1,
-			CurrentValue = E.TextSize,
-			Callback = function(Value)
-				E.TextSize = Value
 				Features.UpdateESP()
 			end,
 		})
