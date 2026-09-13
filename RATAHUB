@@ -7362,3 +7362,4 @@ Features.StartHotkeys()
 Loader:SetProgress(1)
 Loader:SetStatus("Ready!")
 Loader:Finish()
+end
