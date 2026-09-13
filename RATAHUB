@@ -5199,7 +5199,6 @@ if espCfg.HealthBar
         math.floor(50 * scale)
     )
 
-    -- Siempre a un lado del jugador, separado del texto.
     entry.HealthBarGui.StudsOffset = Vector3.new(
         -3.5 * scale + espCfg.OffsetX,
         2.5 * scale + espCfg.OffsetY,
@@ -5220,14 +5219,12 @@ if espCfg.HealthBar
         healthPercent
     )
 
-    -- Verde = vida actual
     entry.HealthBarFill.BackgroundColor3 = Color3.fromRGB(
         50,
         220,
         90
     )
 
-    -- Rojo = vida faltante
     entry.HealthBarBackground.BackgroundColor3 = Color3.fromRGB(
         190,
         45,
@@ -5237,75 +5234,33 @@ if espCfg.HealthBar
 elseif entry.HealthBarGui then
     entry.HealthBarGui.Enabled = false
 end
-					-- 5. Weapon
-					if espCfg.Weapon
-						and valid
-						and hum
-						and hum.Health > 0
-						and root then
-
-						if not entry.WeaponBillboard then
-							local gui = Instance.new("BillboardGui")
-							gui.Name = "ESP_Weapon"
-							gui.Size = UDim2.new(0, 200, 0, 25)
-							gui.AlwaysOnTop = true
-							gui.ResetOnSpawn = false
-							gui.Parent = Runtime.ESP.container
-
-							local label = Instance.new("TextLabel")
-							label.Name = "Weapon"
-							label.Size = UDim2.fromScale(1, 1)
-							label.BackgroundTransparency = 1
-							label.Font = FONT_BOLD
-							label.TextStrokeTransparency = 0.3
-							label.TextStrokeColor3 = Color3.new(0, 0, 0)
-							label.TextSize = espCfg.TextSize
-							label.Parent = gui
-
-							entry.WeaponBillboard = gui
-							entry.WeaponLabel = label
-						end
-
-						local tool = char:FindFirstChildOfClass("Tool")
-						local weaponName = tool and tool.Name or "None"
-
-						entry.WeaponBillboard.Adornee = root
-						entry.WeaponBillboard.StudsOffset = Vector3.new(
-							espCfg.OffsetX,
-							1.1 + espCfg.OffsetY,
-							0
-						)
-						entry.WeaponBillboard.Enabled = true
-
-						entry.WeaponLabel.TextSize = espCfg.TextSize
-						entry.WeaponLabel.TextColor3 = color
-						entry.WeaponLabel.Text = "[ " .. weaponName .. " ]"
-					elseif entry.WeaponBillboard then
-						entry.WeaponBillboard.Enabled = false
-					end
 
 
-				else
-					local entry = Runtime.ESP.objects[p]
+else
+    local entry = Runtime.ESP.objects[p]
 
-					if entry then
-						if entry.Highlight then
-							entry.Highlight.Enabled = false
-						end
-						if entry.Billboard then
-							entry.Billboard.Enabled = false
-						end
-						if entry.Tracer then
-							entry.Tracer.Visible = false
-						end
-                        if entry.HealthBarGui then
-	entry.HealthBarGui.Enabled = false
+    if entry then
+        if entry.Highlight then
+            entry.Highlight.Enabled = false
+        end
+
+        if entry.Billboard then
+            entry.Billboard.Enabled = false
+        end
+
+        if entry.Tracer then
+            entry.Tracer.Visible = false
+        end
+
+        if entry.HealthBarGui then
+            entry.HealthBarGui.Enabled = false
+        end
+
+        if entry.WeaponBillboard then
+            entry.WeaponBillboard.Enabled = false
+        end
+    end
 end
-if entry.WeaponBillboard then
-	entry.WeaponBillboard.Enabled = false
-end
-					end
-				end
 			end
 		end)
 	end
