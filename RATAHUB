@@ -7095,6 +7095,46 @@ Loader:SetStatus("Extras: Tools...")
 		})
 	end
 
+--------------------------------------------------------------
+-- UI SETTINGS TAB
+--------------------------------------------------------------
+do
+    local uiSettings = win:CreateTab({
+        Name = "UI Settings",
+        Icon = "⚙",
+        SubTitle = "Interface and visual settings"
+    })
+
+    local U = Config.UISettings
+
+    uiSettings:CreateSection("Appearance")
+
+    Controls.UISettings = Controls.UISettings or {}
+
+    Controls.UISettings.Transparency = uiSettings:CreateSlider({
+        Name = "Transparency",
+        Range = { 0, 45 },
+        Increment = 1,
+        CurrentValue = U.Transparency,
+        Suffix = "%",
+        Callback = function(Value)
+            U.Transparency = Value
+        end,
+    })
+
+    uiSettings:CreateSection("Minitabs")
+
+    Controls.UISettings.RememberOpenMinitabs = uiSettings:CreateToggle({
+        Name = "Remember Open Minitabs",
+        Description = "Remember which minitabs are open when switching tabs",
+        CurrentValue = U.RememberOpenMinitabs,
+        Callback = function(Value)
+            U.RememberOpenMinitabs = Value
+            win.rememberOpenMinitabs = Value
+        end,
+    })
+end
+
 	--=====================================================================
 	-- PLAYER & TEAM DYNAMIC CONNECTIONS
 	--=====================================================================
