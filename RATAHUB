@@ -1198,7 +1198,7 @@ local self = setmetatable({
 		local minimizeBtn = controlButton("Minimize", "−", -34, THEME.Secondary, THEME.Foreground)
 		local closeBtn = controlButton("Close", "✕", 0, THEME.Destructive, THEME.Foreground)
 
-        local confirmOverlay = create("Frame", {
+    local confirmOverlay = create("Frame", {
     Name = "CloseConfirmation",
     Size = UDim2.fromScale(1, 1),
     BackgroundColor3 = Color3.fromRGB(0, 0, 0),
@@ -1333,22 +1333,13 @@ local function hideConfirmation()
         }
     )
 
-out.Completed:Connect(function()
-    confirmOverlay.Visible = false
-
-    for _, handle in ipairs(resizeHandles) do
-        handle.Visible = true
-    end
-end)
+    out.Completed:Connect(function()
+        confirmOverlay.Visible = false
+    end)
 end
 
 closeBtn.MouseButton1Click:Connect(function()
     confirmOverlay.Visible = true
-
-    for _, handle in ipairs(resizeHandles) do
-        handle.Visible = false
-    end
-
     confirmOverlay.BackgroundTransparency = 1
     confirmPanel.Size = UDim2.fromOffset(330, 135)
 
