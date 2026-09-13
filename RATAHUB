@@ -3469,13 +3469,13 @@ ESP = {
     HighlightEnabled = false,
     HighlightKeybind = "None",
 
-    Names = false,
-    NamesEnabled = false,
-    NamesKeybind = "None",
+Distance = false,
+HealthBar = false,
+Weapon = false,
 
-    Details = false,
-    DetailsEnabled = false,
-    DetailsKeybind = "None",
+OffsetX = 0,
+OffsetY = 0,
+TextSize = 14,
          
             OffsetX = 0,
              OffsetY = 0,
@@ -4844,10 +4844,12 @@ end
 	------------------------------------------------------------- ESP MODULE
 	function Features.UpdateESP()
 		local espCfg = Config.ESP
-		local anyEnabled =
+local anyEnabled =
     (espCfg.HighlightEnabled and espCfg.Highlight)
     or (espCfg.NamesEnabled and espCfg.Names)
-    or (espCfg.DetailsEnabled and espCfg.Details)
+    or espCfg.Distance
+    or espCfg.HealthBar
+    or espCfg.Weapon
     or (espCfg.TracersEnabled and espCfg.Tracers)
 
 		if not anyEnabled then
