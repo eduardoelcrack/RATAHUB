@@ -1106,16 +1106,38 @@ function RATAHUB:CreateWindow(cfg)
 		end
 
 		closeBtn.MouseButton1Click:Connect(function()
-			if Features and Features.ToggleGUI then
-				Features.ToggleGUI()
-			else
-				local originalW = window:GetAttribute("RATAHUBOriginalWidth") or window.AbsoluteSize.X
-				window.ClipsDescendants = true
-				local t = tween(window, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = UDim2.fromOffset(originalW, 0) })
-				t.Completed:Connect(function()
-					screenGui.Enabled = false
+			confirmOverlay.Visible = true
+			confirmOverlay.BackgroundTransparency = 1
+			confirmPanel.Size = UDim2.fromOffset(330, 135)
+			tween(confirmOverlay, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 0.35 })
+			tween(confirmPanel, TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(330, 150) })
+		end)
+
+		noBtn.MouseButton1Click:Connect(function()
+			hideConfirmation()
+		end)
+
+		yesBtn.MouseButton1Click:Connect(function()
+			hideConfirmation()
+			task.delay(0.12, function()
+				pcall(function()
+					if Features and Features.DestroyHub then
+						Features.DestroyHub()
+					elseif RATAHUB.Features and RATAHUB.Features.DestroyHub then
+						RATAHUB.Features.DestroyHub()
+					end
 				end)
-			end
+				pcall(function()
+					if watermark then watermark:Destroy() watermark = nil end
+					if overlayGui and overlayGui.Parent then
+						overlayGui:Destroy()
+						overlayGui = nil
+					end
+					if screenGui and screenGui.Parent then
+						screenGui:Destroy()
+					end
+				end)
+			end)
 		end)
 
 		--------------------------------------------------------------
@@ -3723,13 +3745,15 @@ function Features.SetFlyMaster(enabled)
 		Features.StopFly()
 		RATAHUB:Notify({ Title = "Fly", Content = "Desactivado", Duration = 1.2 })
 	end
-	if Controls.Main and Controls.Main.Fly and Controls.Main.Fly.CurrentValue ~= enabled then
-		Controls.Main.Fly:Set(enabled)
-	end
 end
 
 function Features.ToggleFlyActive()
-	Features.SetFlyMaster(not Config.Main.Movement.Fly)
+	local newState = not Config.Main.Movement.Fly
+	if Controls.Main and Controls.Main.Fly then
+		Controls.Main.Fly:Set(newState)
+	else
+		Features.SetFlyMaster(newState)
+	end
 end
 
 ------------------------------------------------------------- Movement: WalkSpeed (Restored Keybind C)
