@@ -3003,6 +3003,13 @@ local Config = {
 		PreviewSound = "Neverlose Hit",
 	},
 	Settings = {
+		TargetInfo = {
+			Enabled = true,
+			Distance = true,
+			Weapon = true,
+			Target = true,
+			Team = true,
+		},
 		Watermark = {
 			Enabled = true,
 			FPS = true,
@@ -3027,6 +3034,7 @@ local Controls = {
 	Troll = {},
 	Sounds = {},
 	Settings = {
+		TargetInfo = {},
 		Watermark = {},
 		Menu = {},
 	},
@@ -3456,8 +3464,9 @@ Runtime.HUD.loop = RunService.RenderStepped:Connect(function(dt)
 
     -- Target Info
     local target = Runtime.Aimlock.currentTarget
+    local targetCfg = Config.Settings and Config.Settings.TargetInfo
 
-    if not Runtime.Aimlock.locked or not target or not target.Parent then
+    if not targetCfg or not targetCfg.Enabled or not Runtime.Aimlock.locked or not target or not target.Parent then
         HideTargetInfo()
         return
     end
@@ -3488,12 +3497,57 @@ Runtime.HUD.loop = RunService.RenderStepped:Connect(function(dt)
     end
 
     local equippedWep = getEquippedWeapon(target) or "Ninguno"
+    local aimPart = tostring(Config.Aimlock.AimPart or "Head")
 
     targetName.Text = "TARGET  •  " .. target.DisplayName
-    targetStats.Text = string.format("Dist: %d studs\nWeapon: %s", distance, equippedWep)
-    targetTeam.Text = "Team: " .. teamName
-    targetTeam.TextColor3 = teamColor
-    teamBar.BackgroundColor3 = teamColor
+
+    -- Dynamic stats layout in order: Distance -> Weapon -> Target
+    local statsLines = {}
+    if targetCfg.Distance then
+        table.insert(statsLines, "Dist: " .. distance .. " studs")
+    end
+    if targetCfg.Weapon then
+        table.insert(statsLines, "Weapon: " .. equippedWep)
+    end
+    if targetCfg.Target then
+        table.insert(statsLines, "Target: " .. aimPart)
+    end
+
+    local currentY = 28
+    if #statsLines > 0 then
+        targetStats.Visible = true
+        targetStats.Text = table.concat(statsLines, "\n")
+        local statsHeight = #statsLines * 15
+        targetStats.Position = UDim2.fromOffset(12, currentY)
+        targetStats.Size = UDim2.new(1, -24, 0, statsHeight)
+        currentY = currentY + statsHeight + 6
+    else
+        targetStats.Visible = false
+        targetStats.Text = ""
+    end
+
+    if targetCfg.Team then
+        targetTeam.Visible = true
+        teamBar.Visible = true
+        targetTeam.Text = "Team: " .. teamName
+        targetTeam.TextColor3 = teamColor
+        teamBar.BackgroundColor3 = teamColor
+
+        targetTeam.Position = UDim2.fromOffset(12, currentY)
+        targetTeam.Size = UDim2.new(1, -24, 0, 16)
+        teamBar.Position = UDim2.fromOffset(12, currentY + 18)
+        teamBar.Size = UDim2.fromOffset(105, 5)
+        currentY = currentY + 18 + 5 + 8
+    else
+        targetTeam.Visible = false
+        teamBar.Visible = false
+    end
+
+    hpBackground.Position = UDim2.fromOffset(12, currentY)
+    hpBackground.Size = UDim2.new(1, -24, 0, 20)
+    currentY = currentY + 20 + 12
+
+    targetInfo.Size = UDim2.fromOffset(230, currentY)
 
     hpText.Text = string.format(
         "%d / %d  •  %d%%",
@@ -6505,6 +6559,45 @@ do
 	local W = Config.Settings.Watermark
 
 	settings:CreateSection("Target Info")
+	local TI = Config.Settings.TargetInfo
+	Controls.Settings.TargetInfo.Enabled = settings:CreateToggle({
+		Name = "Target Info",
+		CurrentValue = TI.Enabled,
+		Callback = function(Value)
+			TI.Enabled = Value
+			if not Value then
+				HideTargetInfo()
+			end
+		end,
+	})
+	Controls.Settings.TargetInfo.Distance = settings:CreateToggle({
+		Name = "Distance",
+		CurrentValue = TI.Distance,
+		Callback = function(Value)
+			TI.Distance = Value
+		end,
+	})
+	Controls.Settings.TargetInfo.Weapon = settings:CreateToggle({
+		Name = "Weapon",
+		CurrentValue = TI.Weapon,
+		Callback = function(Value)
+			TI.Weapon = Value
+		end,
+	})
+	Controls.Settings.TargetInfo.Target = settings:CreateToggle({
+		Name = "Target",
+		CurrentValue = TI.Target,
+		Callback = function(Value)
+			TI.Target = Value
+		end,
+	})
+	Controls.Settings.TargetInfo.Team = settings:CreateToggle({
+		Name = "Team",
+		CurrentValue = TI.Team,
+		Callback = function(Value)
+			TI.Team = Value
+		end,
+	})
 
 	settings:CreateSection("Watermark")
 	Controls.Settings.Watermark.Enabled = settings:CreateToggle({
