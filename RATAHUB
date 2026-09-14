@@ -3723,7 +3723,7 @@ local function getRoot()
 	return c and c:FindFirstChild("HumanoidRootPart")
 end
 
-------------------------------------------------------------- Movement: Fly (Restored from RATAHUBB)
+------------------------------------------------------------- Movement: Fly
 function Features.StopFly()
 	Runtime.Fly.active = false
 	if Runtime.Fly.loop then
@@ -3819,7 +3819,7 @@ function Features.ToggleFlyActive()
 	end
 end
 
-------------------------------------------------------------- Movement: WalkSpeed (Restored Keybind C)
+------------------------------------------------------------- Movement: WalkSpeed 
 function Features.StartWalkSpeed()
 	if Runtime.WalkSpeed.loop then return end
 	local hum = getHumanoid()
@@ -4120,7 +4120,7 @@ function Features.ResetCharacter()
 	end
 end
 
-------------------------------------------------------------- Player: Reset & Hitbox (Robust Continuous Loop)
+------------------------------------------------------------- Player: Reset & Hitbox
 function Features.RestoreHitbox(plr)
 	if not plr then return end
 	local data = Runtime.Hitbox.origs[plr]
@@ -4214,7 +4214,7 @@ function Features.ToggleHitboxLoop(enable)
 	end)
 end
 
-------------------------------------------------------------- DESTROY HUB (Idempotent & Safe)
+------------------------------------------------------------- DESTROY HUB 
 function Features.DestroyHub()
 		if Config.Main.Movement.Fly or Runtime.Fly.active then
 			Features.SetFlyMaster(false)
@@ -4786,7 +4786,7 @@ function Features.GetESPColor(targetPlayer)
 		end
 	end
 
-	------------------------------------------------------------- AIMLOCK MODULE (RAYFIELD LOGIC)
+	------------------------------------------------------------- AIMLOCK MODULE
 function Features.GetAimPart(char)
 	if not char then return nil end
 	local aimPart = Config.Aimlock.AimPart or "Head"
@@ -5021,12 +5021,20 @@ function Features.UpdateAimlock()
 			local screenPos, onScreen = cam:WorldToViewportPoint(part.Position)
 			local worldDist = (part.Position - cam.CFrame.Position).Magnitude
 
-			if not onScreen or (Config.Aimlock.UseMaxDistance and worldDist > Config.Aimlock.MaxDistance) then
-				Features.UnlockAimlock()
-				RATAHUB:Notify({ Title = "Aimlock", Content = "Objetivo fuera de rango", Duration = 1.5 })
-				return
-			end
+local smoothness = tonumber(Config.Aimlock.Smoothness) or 100
+local isMaxSmooth = smoothness >= 100
 
+if Config.Aimlock.UseMaxDistance and worldDist > Config.Aimlock.MaxDistance then
+    Features.UnlockAimlock()
+    RATAHUB:Notify({ Title = "Aimlock", Content = "Objetivo fuera de rango", Duration = 1.5 })
+    return
+end
+
+if not onScreen and not isMaxSmooth then
+    Features.UnlockAimlock()
+    RATAHUB:Notify({ Title = "Aimlock", Content = "Objetivo fuera de rango", Duration = 1.5 })
+    return
+end
 			-- Prediction
 			local targetPos = part.Position
 			if Config.Aimlock.Prediction and root then
@@ -5060,7 +5068,7 @@ function Features.UpdateAimlock()
 	end
 end
 
---------------------------------------------------------------- TRIGGERBOT MODULE (LAG-FREE OPTIMIZED)
+--------------------------------------------------------------- TRIGGERBOT MODULE
 local TriggerRayParams = RaycastParams.new()
 TriggerRayParams.FilterType = Enum.RaycastFilterType.Exclude
 
