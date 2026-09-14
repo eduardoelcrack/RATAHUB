@@ -2938,6 +2938,7 @@ local Config = {
 	},
 	Aimlock = {
 		Enabled = false,
+		LockType = "Camera Lock",
 		Keybind = "RightShift",
 		Smoothness = 25,
 		Prediction = false,
@@ -3061,7 +3062,7 @@ local Runtime = {
 	XRay         = { parts = {} },
 	AntiFling    = { conn = nil },
 	ESP          = { loop = nil, container = nil, objects = {}, highlightActive = true, namesActive = true, tracersActive = true },
-	Aimlock      = { loop = nil, locked = false, currentTarget = nil, tracer = nil, fovCircle = nil },
+	Aimlock      = { loop = nil, locked = false, currentTarget = nil, tracer = nil },
 	Triggerbot   = { active = false, loop = nil, isShooting = false },
 	Hitbox       = { loop = nil, origs = {} },
 	Hotkeys      = { conn = nil },
@@ -3723,7 +3724,7 @@ local function getRoot()
 	return c and c:FindFirstChild("HumanoidRootPart")
 end
 
-------------------------------------------------------------- Movement: Fly
+------------------------------------------------------------- Movement: Fly (Restored from RATAHUBB)
 function Features.StopFly()
 	Runtime.Fly.active = false
 	if Runtime.Fly.loop then
@@ -3819,7 +3820,7 @@ function Features.ToggleFlyActive()
 	end
 end
 
-------------------------------------------------------------- Movement: WalkSpeed 
+------------------------------------------------------------- Movement: WalkSpeed (Restored Keybind C)
 function Features.StartWalkSpeed()
 	if Runtime.WalkSpeed.loop then return end
 	local hum = getHumanoid()
@@ -4120,7 +4121,7 @@ function Features.ResetCharacter()
 	end
 end
 
-------------------------------------------------------------- Player: Reset & Hitbox
+------------------------------------------------------------- Player: Reset & Hitbox (Robust Continuous Loop)
 function Features.RestoreHitbox(plr)
 	if not plr then return end
 	local data = Runtime.Hitbox.origs[plr]
@@ -4214,7 +4215,7 @@ function Features.ToggleHitboxLoop(enable)
 	end)
 end
 
-------------------------------------------------------------- DESTROY HUB 
+------------------------------------------------------------- DESTROY HUB (Idempotent & Safe)
 function Features.DestroyHub()
 		if Config.Main.Movement.Fly or Runtime.Fly.active then
 			Features.SetFlyMaster(false)
@@ -4280,10 +4281,6 @@ function Features.DestroyHub()
 		if Runtime.Aimlock.tracer then
 			pcall(function() Runtime.Aimlock.tracer:Remove() end)
 			Runtime.Aimlock.tracer = nil
-		end
-		if Runtime.Aimlock.fovCircle then
-			pcall(function() Runtime.Aimlock.fovCircle:Destroy() end)
-			Runtime.Aimlock.fovCircle = nil
 		end
 		if Runtime.HUD and Runtime.HUD.loop then
 			pcall(function() Runtime.HUD.loop:Disconnect() end)
@@ -4786,7 +4783,7 @@ function Features.GetESPColor(targetPlayer)
 		end
 	end
 
-	------------------------------------------------------------- AIMLOCK MODULE
+	------------------------------------------------------------- AIMLOCK MODULE (RAYFIELD LOGIC)
 function Features.GetAimPart(char)
 	if not char then return nil end
 	local aimPart = Config.Aimlock.AimPart or "Head"
@@ -4948,33 +4945,11 @@ function Features.UpdateAimlock()
 			Runtime.Aimlock.loop = nil
 		end
 		Features.UnlockAimlock()
-		if Runtime.Aimlock.fovCircle then Runtime.Aimlock.fovCircle.Visible = false end
 		return
 	end
 
 	if not Runtime.Aimlock.loop then
 		Runtime.Aimlock.loop = RunService.RenderStepped:Connect(function()
-			-- FOV Circle
-			if Config.Aimlock.Enabled and Config.Aimlock.UseFOV then
-				if not Runtime.Aimlock.fovCircle then
-					Runtime.Aimlock.fovCircle = create("Frame", {
-						Name = "FOVCircle",
-						AnchorPoint = Vector2.new(0.5, 0.5),
-						BackgroundTransparency = 1,
-						ZIndex = 2,
-						Parent = screenGui,
-					})
-					corner(999, Runtime.Aimlock.fovCircle)
-					stroke(Runtime.Aimlock.fovCircle, 0.5, THEME.Primary, 1.5)
-				end
-				local mPos = UserInputService:GetMouseLocation()
-				Runtime.Aimlock.fovCircle.Position = UDim2.fromOffset(mPos.X, mPos.Y)
-				Runtime.Aimlock.fovCircle.Size = UDim2.fromOffset(Config.Aimlock.FOVSize * 2, Config.Aimlock.FOVSize * 2)
-				Runtime.Aimlock.fovCircle.Visible = true
-			else
-				if Runtime.Aimlock.fovCircle then Runtime.Aimlock.fovCircle.Visible = false end
-			end
-
 			if not Config.Aimlock.Enabled or not Runtime.Aimlock.locked or not Runtime.Aimlock.currentTarget then
 				if Runtime.Aimlock.tracer then Runtime.Aimlock.tracer.Visible = false end
 				return
@@ -5021,20 +4996,30 @@ function Features.UpdateAimlock()
 			local screenPos, onScreen = cam:WorldToViewportPoint(part.Position)
 			local worldDist = (part.Position - cam.CFrame.Position).Magnitude
 
-local smoothness = tonumber(Config.Aimlock.Smoothness) or 100
-local isMaxSmooth = smoothness >= 100
+			local smoothness = tonumber(Config.Aimlock.Smoothness) or 100
+			local isMaxSmooth = smoothness >= 100
 
-if Config.Aimlock.UseMaxDistance and worldDist > Config.Aimlock.MaxDistance then
-    Features.UnlockAimlock()
-    RATAHUB:Notify({ Title = "Aimlock", Content = "Objetivo fuera de rango", Duration = 1.5 })
-    return
-end
+			if Config.Aimlock.UseMaxDistance and worldDist > Config.Aimlock.MaxDistance then
+				Features.UnlockAimlock()
+				RATAHUB:Notify({ Title = "Aimlock", Content = "Objetivo fuera de rango", Duration = 1.5 })
+				return
+			end
 
-if not onScreen and not isMaxSmooth then
-    Features.UnlockAimlock()
-    RATAHUB:Notify({ Title = "Aimlock", Content = "Objetivo fuera de rango", Duration = 1.5 })
-    return
-end
+			local isMouseLock = (Config.Aimlock.LockType or "Camera Lock") == "Mouse Lock"
+			if isMouseLock then
+				if not onScreen or screenPos.Z <= 0 then
+					Features.UnlockAimlock()
+					RATAHUB:Notify({ Title = "Aimlock", Content = "Objetivo fuera de rango", Duration = 1.5 })
+					return
+				end
+			else
+				if not onScreen and not isMaxSmooth then
+					Features.UnlockAimlock()
+					RATAHUB:Notify({ Title = "Aimlock", Content = "Objetivo fuera de rango", Duration = 1.5 })
+					return
+				end
+			end
+
 			-- Prediction
 			local targetPos = part.Position
 			if Config.Aimlock.Prediction and root then
@@ -5042,19 +5027,51 @@ end
 				targetPos = targetPos + (vel * Config.Aimlock.PredictionTime)
 			end
 
-			-- Camera Lerp (Rayfield logic)
-			local targetCF = CFrame.lookAt(cam.CFrame.Position, targetPos)
-			local smoothVal = Config.Aimlock.Smoothness
-			if type(smoothVal) == "number" then
-				if smoothVal > 1 then
-					smoothVal = math.clamp(smoothVal / 100, 0.01, 1)
+			if isMouseLock then
+				local screenTarget, onScreenTarget = cam:WorldToViewportPoint(targetPos)
+				if onScreenTarget and screenTarget.Z > 0 then
+					local mPos = UserInputService:GetMouseLocation()
+					local deltaX = screenTarget.X - mPos.X
+					local deltaY = screenTarget.Y - mPos.Y
+
+					local factor = (smoothness >= 100) and 1 or math.clamp(smoothness / 100, 0.05, 1)
+					local moveX = deltaX * factor
+					local moveY = deltaY * factor
+
+					local maxStep = 150
+					moveX = math.clamp(moveX, -maxStep, maxStep)
+					moveY = math.clamp(moveY, -maxStep, maxStep)
+
+					if math.abs(deltaX) < 1 then moveX = 0 end
+					if math.abs(deltaY) < 1 then moveY = 0 end
+
+					if moveX ~= 0 or moveY ~= 0 then
+						if mousemoverel then
+							mousemoverel(moveX, moveY)
+						elseif mousemoveabs then
+							mousemoveabs(mPos.X + moveX, mPos.Y + moveY)
+						end
+					end
 				else
-					smoothVal = math.clamp(smoothVal, 0.01, 1)
+					Features.UnlockAimlock()
+					RATAHUB:Notify({ Title = "Aimlock", Content = "Objetivo fuera de rango", Duration = 1.5 })
+					return
 				end
 			else
-				smoothVal = 1
+				-- Camera Lock (Rayfield logic)
+				local targetCF = CFrame.lookAt(cam.CFrame.Position, targetPos)
+				local smoothVal = Config.Aimlock.Smoothness
+				if type(smoothVal) == "number" then
+					if smoothVal > 1 then
+						smoothVal = math.clamp(smoothVal / 100, 0.01, 1)
+					else
+						smoothVal = math.clamp(smoothVal, 0.01, 1)
+					end
+				else
+					smoothVal = 1
+				end
+				cam.CFrame = cam.CFrame:Lerp(targetCF, smoothVal)
 			end
-			cam.CFrame = cam.CFrame:Lerp(targetCF, smoothVal)
 
 			-- Maintain highlight
 			if Runtime.Aimlock.highlight and Runtime.Aimlock.highlight.Adornee ~= char then
@@ -5068,7 +5085,7 @@ end
 	end
 end
 
---------------------------------------------------------------- TRIGGERBOT MODULE
+--------------------------------------------------------------- TRIGGERBOT MODULE (LAG-FREE OPTIMIZED)
 local TriggerRayParams = RaycastParams.new()
 TriggerRayParams.FilterType = Enum.RaycastFilterType.Exclude
 
@@ -6150,6 +6167,10 @@ do
 
 	-- 4. Preview
 	esp:CreateSection("Preview")
+	esp:CreateParagraph({
+		Title = "Preview",
+		Content = "In Development",
+	})
 end
 
 --------------------------------------------------------------
@@ -6176,6 +6197,14 @@ do
 				RATAHUB:Notify({ Title = "Aimlock", Content = "Deshabilitado", Duration = 1.2 })
 			end
 			Features.UpdateAimlock()
+		end,
+	})
+	Controls.Aimlock.LockType = aim:CreateDropdown({
+		Name = "Lock Type",
+		Options = { "Camera Lock", "Mouse Lock" },
+		CurrentOption = A.LockType or "Camera Lock",
+		Callback = function(Value)
+			A.LockType = Value
 		end,
 	})
 	Controls.Aimlock.Keybind = aim:CreateKeybind({
@@ -6235,6 +6264,13 @@ do
 		CurrentValue = A.UseFOV,
 		Callback = function(Value)
 			A.UseFOV = Value
+			if Value then
+				RATAHUB:Notify({
+					Title = "Aimlock",
+					Content = "FOV in development",
+					Duration = 1.5,
+				})
+			end
 		end,
 	})
 	Controls.Aimlock.FOVSize = aim:CreateSlider({
@@ -6336,6 +6372,13 @@ do
 		Callback = function(Value)
 			A.MaxDistance = Value
 		end,
+	})
+
+	-- Preview
+	aim:CreateSection("Preview")
+	aim:CreateParagraph({
+		Title = "Preview",
+		Content = "In Development",
 	})
 end
 
