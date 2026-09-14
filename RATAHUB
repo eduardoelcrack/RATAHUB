@@ -4380,15 +4380,6 @@ Players.PlayerRemoving:Connect(function(p)
 	FriendsCache[p.Name] = nil
 end)
 
-pcall(function()
-	player.FriendStatusChanged:Connect(function(otherPlayer, friendStatus)
-		local isF = (friendStatus == Enum.FriendStatus.Friend or friendStatus == Enum.FriendStatus.FriendRequestSent)
-		FriendsCache[otherPlayer] = isF
-		FriendsCache[otherPlayer.UserId] = isF
-		FriendsCache[otherPlayer.Name] = isF
-	end)
-end)
-
 -- Event-driven friend status tracking (Zero lag, zero background polling)
 pcall(function()
 	player.FriendStatusChanged:Connect(function(otherPlayer, friendStatus)
