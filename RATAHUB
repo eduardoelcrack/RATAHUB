@@ -601,7 +601,9 @@ local COLOR_MAP = {
 	["Morado"]     = Color3.fromRGB(168, 85, 247),
 	["Rojo"]       = Color3.fromRGB(255, 0, 0),
 	["Azul"]       = Color3.fromRGB(59, 130, 246),
+	["Verde"]      = Color3.fromRGB(0, 255, 120),
 	["Verde Neon"] = Color3.fromRGB(0, 255, 120),
+	["Neon Cyan"]  = Color3.fromRGB(6, 182, 212),
 	["Cyan"]       = Color3.fromRGB(6, 182, 212),
 	["Blanco"]     = Color3.fromRGB(255, 255, 255),
 }
@@ -2942,6 +2944,7 @@ local Config = {
 		PredictionTime = 0.13,
 		TeamCheck = false,
 		AimPart = "Head",
+		TargetPriority = "Closest to Mouse",
 		UseMaxDistance = false,
 		MaxDistance = 1000,
 		UseFOV = false,
@@ -3057,7 +3060,7 @@ local Runtime = {
 	},
 	XRay         = { parts = {} },
 	AntiFling    = { conn = nil },
-	ESP          = { loop = nil, container = nil, objects = {} },
+	ESP          = { loop = nil, container = nil, objects = {}, highlightActive = true, namesActive = true, tracersActive = true },
 	Aimlock      = { loop = nil, locked = false, currentTarget = nil, tracer = nil, fovCircle = nil },
 	Triggerbot   = { active = false, loop = nil, isShooting = false },
 	Hitbox       = { loop = nil, origs = {} },
@@ -3791,41 +3794,47 @@ end
 
 function Features.SetFlyMaster(enabled)
 	Config.Main.Movement.Fly = enabled
-	Config.Main.Movement.FlyActive = enabled
+	Runtime.Fly.active = false
 	if enabled then
-		Features.StartFly()
-		RATAHUB:Notify({ Title = "Fly", Content = "Activado", Duration = 1.2 })
+		RATAHUB:Notify({
+			Title = "Fly",
+			Content = "Permitido (" .. tostring(Config.Main.Movement.FlyKeybind or "V") .. " para activar)",
+			Duration = 1.2
+		})
 	else
 		Features.StopFly()
-		RATAHUB:Notify({ Title = "Fly", Content = "Desactivado", Duration = 1.2 })
+		RATAHUB:Notify({ Title = "Fly", Content = "Deshabilitado", Duration = 1.2 })
 	end
 end
 
 function Features.ToggleFlyActive()
-	local newState = not Config.Main.Movement.Fly
-	if Controls.Main and Controls.Main.Fly then
-		Controls.Main.Fly:Set(newState)
+	if not Config.Main.Movement.Fly then return end
+	Runtime.Fly.active = not Runtime.Fly.active
+	if Runtime.Fly.active then
+		Features.StartFly()
+		RATAHUB:Notify({ Title = "Fly", Content = "Activo", Duration = 1.2 })
 	else
-		Features.SetFlyMaster(newState)
+		Features.StopFly()
+		RATAHUB:Notify({ Title = "Fly", Content = "En pausa", Duration = 1.2 })
 	end
 end
 
 ------------------------------------------------------------- Movement: WalkSpeed (Restored Keybind C)
 function Features.StartWalkSpeed()
 	if Runtime.WalkSpeed.loop then return end
+	local hum = getHumanoid()
+	if hum and not Runtime.WalkSpeed.original then
+		Runtime.WalkSpeed.original = hum.WalkSpeed
+	end
 	Runtime.WalkSpeed.loop = RunService.Heartbeat:Connect(function()
-		local hum = getHumanoid()
-		if not hum then return end
-		if not Runtime.WalkSpeed.original then
-			Runtime.WalkSpeed.original = hum.WalkSpeed
+		if not Config.Main.Movement.WalkSpeedEnabled or not Runtime.WalkSpeed.active then
+			Features.StopWalkSpeed()
+			return
 		end
-		if Config.Main.Movement.WalkSpeedEnabled and Runtime.WalkSpeed.active then
+		local hum = getHumanoid()
+		if hum then
 			local desired = Config.Main.Movement.WalkSpeed or 16
 			if hum.WalkSpeed ~= desired then hum.WalkSpeed = desired end
-		else
-			if Runtime.WalkSpeed.original and hum.WalkSpeed ~= Runtime.WalkSpeed.original then
-				hum.WalkSpeed = Runtime.WalkSpeed.original
-			end
 		end
 	end)
 end
@@ -3839,21 +3848,20 @@ function Features.StopWalkSpeed()
 	local hum = getHumanoid()
 	if hum and Runtime.WalkSpeed.original then
 		hum.WalkSpeed = Runtime.WalkSpeed.original
+		Runtime.WalkSpeed.original = nil
 	end
 end
 
 function Features.SetWalkSpeedMaster(enabled)
 	Config.Main.Movement.WalkSpeedEnabled = enabled
-	Runtime.WalkSpeed.active = false
+	Features.StopWalkSpeed()
 	if enabled then
-		Features.StartWalkSpeed()
 		RATAHUB:Notify({
 			Title = "WalkSpeed",
 			Content = "Permitido (" .. tostring(Config.Main.Movement.WalkSpeedKeybind or "C") .. " para activar)",
 			Duration = 1.2
 		})
 	else
-		Features.StopWalkSpeed()
 		RATAHUB:Notify({ Title = "WalkSpeed", Content = "Deshabilitado", Duration = 1.2 })
 	end
 end
@@ -3865,8 +3873,7 @@ function Features.ToggleWalkSpeed()
 		Features.StartWalkSpeed()
 		RATAHUB:Notify({ Title = "WalkSpeed", Content = "Activo (" .. tostring(Config.Main.Movement.WalkSpeed) .. ")", Duration = 1.2 })
 	else
-		local hum = getHumanoid()
-		if hum and Runtime.WalkSpeed.original then hum.WalkSpeed = Runtime.WalkSpeed.original end
+		Features.StopWalkSpeed()
 		RATAHUB:Notify({ Title = "WalkSpeed", Content = "En pausa", Duration = 1.2 })
 	end
 end
@@ -4556,12 +4563,12 @@ function Features.GetESPColor(targetPlayer)
 			return
 		end
 
-		local anyEnabled = (espCfg.Highlight)
-			or (espCfg.Names)
+		local anyEnabled = (espCfg.Highlight and Runtime.ESP.highlightActive)
+			or (espCfg.Names and Runtime.ESP.namesActive)
 			or (espCfg.Distance)
 			or (espCfg.HealthBar)
 			or (espCfg.Weapon)
-			or (espCfg.Tracers)
+			or (espCfg.Tracers and Runtime.ESP.tracersActive)
 
 		if not anyEnabled then
 			if Runtime.ESP.loop then
@@ -4606,7 +4613,7 @@ function Features.GetESPColor(targetPlayer)
 						local tracerColor = Features.GetTracerColor(p)
 
 						-- 1. Highlight
-						if espCfg.Highlight and valid and hum and hum.Health > 0 then
+						if espCfg.Highlight and Runtime.ESP.highlightActive and valid and hum and hum.Health > 0 then
 							if not entry.Highlight or entry.Highlight.Parent ~= char then
 								if entry.Highlight then entry.Highlight:Destroy() end
 								local h = Instance.new("Highlight")
@@ -4626,7 +4633,7 @@ function Features.GetESPColor(targetPlayer)
 						end
 
 						-- 2. Billboard (Names, Distance, Weapon, Health Bar)
-						local showTextOrBar = (espCfg.Names or espCfg.Distance or espCfg.Weapon or espCfg.HealthBar)
+						local showTextOrBar = ((espCfg.Names and Runtime.ESP.namesActive) or espCfg.Distance or espCfg.Weapon or espCfg.HealthBar)
 							and valid
 							and hum
 							and hum.Health > 0
@@ -4693,7 +4700,7 @@ function Features.GetESPColor(targetPlayer)
 
 							-- Build multiline text (Name -> Distance -> Weapon)
 							local textLines = {}
-							if espCfg.Names then
+							if espCfg.Names and Runtime.ESP.namesActive then
 								table.insert(textLines, p.DisplayName)
 							end
 							if espCfg.Distance then
@@ -4739,7 +4746,7 @@ function Features.GetESPColor(targetPlayer)
 						end
 
 						-- 3. Tracers
-						if espCfg.Tracers and valid and hum and hum.Health > 0 and root and Drawing then
+						if espCfg.Tracers and Runtime.ESP.tracersActive and valid and hum and hum.Health > 0 and root and Drawing then
 							if not entry.Tracer then
 								local line = Drawing.new("Line")
 								line.Thickness = 1.5
@@ -4873,8 +4880,19 @@ function Features.FindBestAimlockTarget()
 				continue
 			end
 
-			if dist < shortest then
-				shortest = dist
+			local priority = aimCfg.TargetPriority or "Closest to Mouse"
+			local score = dist
+			if priority == "Distance" then
+				score = worldDist
+			elseif priority == "Low Health" then
+				local hum = char:FindFirstChildOfClass("Humanoid")
+				score = hum and hum.Health or 100
+			else
+				score = dist
+			end
+
+			if score < shortest then
+				shortest = score
 				closestPlayer = plr
 			end
 		end
@@ -4900,18 +4918,11 @@ function Features.UnlockAimlock(reason, targetName)
 end
 
 function Features.ToggleAimlockLock()
-	-- If master toggle is OFF, auto-enable module on keybind press
-	if not Config.Aimlock.Enabled then
-		Config.Aimlock.Enabled = true
-		if Controls.Aimlock and Controls.Aimlock.Toggle then
-			Controls.Aimlock.Toggle:SetSilent(true)
-		end
-		Features.UpdateAimlock()
-	end
+	if not Config.Aimlock.Enabled then return end
 
 	if Runtime.Aimlock.locked then
 		Features.UnlockAimlock()
-		RATAHUB:Notify({ Title = "Aimlock", Content = "Desactivado", Duration = 1.2 })
+		RATAHUB:Notify({ Title = "Aimlock", Content = "En pausa", Duration = 1.2 })
 	else
 		local candidate = Features.FindBestAimlockTarget()
 		if candidate then
@@ -5613,17 +5624,32 @@ function Features.StartHotkeys()
 		elseif matchesKey(Config.Triggerbot.Keybind) then
 			Features.ToggleTriggerbotActive()
 		elseif matchesKey(Config.ESP.HighlightKeybind) then
-			Config.ESP.Highlight = not Config.ESP.Highlight
-			if Controls.ESP and Controls.ESP.Highlight then Controls.ESP.Highlight:Set(Config.ESP.Highlight) end
+			if not Config.ESP.Highlight then return end
+			Runtime.ESP.highlightActive = not Runtime.ESP.highlightActive
 			Features.UpdateESP()
+			if Runtime.ESP.highlightActive then
+				RATAHUB:Notify({ Title = "ESP Highlight", Content = "Activo", Duration = 1.2 })
+			else
+				RATAHUB:Notify({ Title = "ESP Highlight", Content = "En pausa", Duration = 1.2 })
+			end
 		elseif matchesKey(Config.ESP.NamesKeybind) then
-			Config.ESP.Names = not Config.ESP.Names
-			if Controls.ESP and Controls.ESP.Names then Controls.ESP.Names:Set(Config.ESP.Names) end
+			if not Config.ESP.Names then return end
+			Runtime.ESP.namesActive = not Runtime.ESP.namesActive
 			Features.UpdateESP()
+			if Runtime.ESP.namesActive then
+				RATAHUB:Notify({ Title = "ESP Names", Content = "Activo", Duration = 1.2 })
+			else
+				RATAHUB:Notify({ Title = "ESP Names", Content = "En pausa", Duration = 1.2 })
+			end
 		elseif matchesKey(Config.ESP.TracersKeybind) then
-			Config.ESP.Tracers = not Config.ESP.Tracers
-			if Controls.ESP and Controls.ESP.Tracers then Controls.ESP.Tracers:Set(Config.ESP.Tracers) end
+			if not Config.ESP.Tracers then return end
+			Runtime.ESP.tracersActive = not Runtime.ESP.tracersActive
 			Features.UpdateESP()
+			if Runtime.ESP.tracersActive then
+				RATAHUB:Notify({ Title = "ESP Tracers", Content = "Activo", Duration = 1.2 })
+			else
+				RATAHUB:Notify({ Title = "ESP Tracers", Content = "En pausa", Duration = 1.2 })
+			end
 		end
 	end)
 end
@@ -5884,6 +5910,16 @@ do
 		CurrentValue = E.Highlight,
 		Callback = function(Value)
 			E.Highlight = Value
+			Runtime.ESP.highlightActive = Value
+			if Value then
+				RATAHUB:Notify({
+					Title = "ESP Highlight",
+					Content = "Permitido (" .. tostring(E.HighlightKeybind or "H") .. " para activar)",
+					Duration = 1.2
+				})
+			else
+				RATAHUB:Notify({ Title = "ESP Highlight", Content = "Deshabilitado", Duration = 1.2 })
+			end
 			Features.UpdateESP()
 		end,
 	})
@@ -5899,6 +5935,16 @@ do
 		CurrentValue = E.Names,
 		Callback = function(Value)
 			E.Names = Value
+			Runtime.ESP.namesActive = Value
+			if Value then
+				RATAHUB:Notify({
+					Title = "ESP Names",
+					Content = "Permitido (" .. tostring(E.NamesKeybind or "N") .. " para activar)",
+					Duration = 1.2
+				})
+			else
+				RATAHUB:Notify({ Title = "ESP Names", Content = "Deshabilitado", Duration = 1.2 })
+			end
 			Features.UpdateESP()
 		end,
 	})
@@ -5971,6 +6017,16 @@ do
 		CurrentValue = E.Tracers,
 		Callback = function(Value)
 			E.Tracers = Value
+			Runtime.ESP.tracersActive = Value
+			if Value then
+				RATAHUB:Notify({
+					Title = "ESP Tracers",
+					Content = "Permitido (" .. tostring(E.TracersKeybind or "T") .. " para activar)",
+					Duration = 1.2
+				})
+			else
+				RATAHUB:Notify({ Title = "ESP Tracers", Content = "Deshabilitado", Duration = 1.2 })
+			end
 			Features.UpdateESP()
 		end,
 	})
@@ -6021,15 +6077,6 @@ do
 			Features.UpdateESP()
 		end,
 	})
-	Controls.ESP.TeamCheck = esp:CreateToggle({
-		Name = "Team Check",
-		CurrentValue = E.TeamCheck,
-		Callback = function(Value)
-			E.TeamCheck = Value
-			Features.SyncManager.SyncProperty("ESP", "TeamCheck", Value)
-			Features.UpdateESP()
-		end,
-	})
 	Controls.ESP.SyncAimlock = esp:CreateToggle({
 		Name = "Sincronizar con Aimlock",
 		CurrentValue = E.SyncAimlock,
@@ -6046,6 +6093,15 @@ do
 			Features.SyncManager.OnSyncToggled("ESP", "Triggerbot", Value)
 		end,
 	})
+	Controls.ESP.TeamCheck = esp:CreateToggle({
+		Name = "Team Check",
+		CurrentValue = E.TeamCheck,
+		Callback = function(Value)
+			E.TeamCheck = Value
+			Features.SyncManager.SyncProperty("ESP", "TeamCheck", Value)
+			Features.UpdateESP()
+		end,
+	})
 	Controls.ESP.IgnoreTeams = esp:CreateDropdown({
 		Name = "Ignore Teams",
 		Options = IGNORE_TEAMS,
@@ -6054,6 +6110,32 @@ do
 		Callback = function(Value)
 			E.IgnoreTeams = Value
 			Features.SyncManager.SyncProperty("ESP", "IgnoreTeams", Value)
+			Features.UpdateESP()
+		end,
+	})
+	Controls.ESP.TeamColorHighlight = esp:CreateToggle({
+		Name = "Team Color Highlight",
+		CurrentValue = E.TeamColorHighlight,
+		Callback = function(Value)
+			E.TeamColorHighlight = Value
+			Features.UpdateESP()
+		end,
+	})
+	Controls.ESP.RainbowESP = esp:CreateToggle({
+		Name = "Rainbow ESP/Tracer",
+		CurrentValue = E.RainbowESP,
+		Callback = function(Value)
+			E.RainbowESP = Value
+			E.Rainbow = Value
+			Features.UpdateESP()
+		end,
+	})
+	Controls.ESP.HighlightColor = esp:CreateDropdown({
+		Name = "Highlight Color",
+		Options = { "Morado", "Rojo", "Azul", "Verde", "Neon Cyan", "Blanco" },
+		CurrentOption = E.HighlightColor or "Morado",
+		Callback = function(Value)
+			E.HighlightColor = Value
 			Features.UpdateESP()
 		end,
 	})
@@ -6075,6 +6157,16 @@ do
 		CurrentValue = A.Enabled,
 		Callback = function(Value)
 			A.Enabled = Value
+			if Value then
+				RATAHUB:Notify({
+					Title = "Aimlock",
+					Content = "Permitido (" .. tostring(A.Keybind or "RightShift") .. " para activar)",
+					Duration = 1.2
+				})
+			else
+				Features.UnlockAimlock()
+				RATAHUB:Notify({ Title = "Aimlock", Content = "Deshabilitado", Duration = 1.2 })
+			end
 			Features.UpdateAimlock()
 		end,
 	})
@@ -6110,14 +6202,6 @@ do
 			A.PredictionTime = Value
 		end,
 	})
-	Controls.Aimlock.TeamCheck = aim:CreateToggle({
-		Name = "Team Check (No lockear equipo)",
-		CurrentValue = A.TeamCheck,
-		Callback = function(Value)
-			A.TeamCheck = Value
-			Features.SyncManager.SyncProperty("Aimlock", "TeamCheck", Value)
-		end,
-	})
 
 	aim:CreateSection("Target")
 	Controls.Aimlock.AimPart = aim:CreateDropdown({
@@ -6128,29 +6212,12 @@ do
 			A.AimPart = Value
 		end,
 	})
-	Controls.Aimlock.FriendCheck = aim:CreateToggle({
-		Name = "Friend Check (No lockear amigos)",
-		CurrentValue = A.FriendCheck,
+	Controls.Aimlock.TargetPriority = aim:CreateDropdown({
+		Name = "Target Priority",
+		Options = { "Distance", "Low Health", "Closest to Mouse" },
+		CurrentOption = A.TargetPriority or "Closest to Mouse",
 		Callback = function(Value)
-			A.FriendCheck = Value
-			if Value then Features.RefreshAllFriends() end
-			Features.SyncManager.SyncProperty("Aimlock", "FriendCheck", Value)
-		end,
-	})
-	Controls.Aimlock.UseMaxDistance = aim:CreateToggle({
-		Name = "Use Max Distance",
-		CurrentValue = A.UseMaxDistance,
-		Callback = function(Value)
-			A.UseMaxDistance = Value
-		end,
-	})
-	Controls.Aimlock.MaxDistance = aim:CreateSlider({
-		Name = "Max Distance",
-		Range = { 100, 5000 },
-		Increment = 50,
-		CurrentValue = A.MaxDistance,
-		Callback = function(Value)
-			A.MaxDistance = Value
+			A.TargetPriority = Value
 		end,
 	})
 
@@ -6171,8 +6238,6 @@ do
 			A.FOVSize = Value
 		end,
 	})
-
-
 
 	aim:CreateSection("Whitelist")
 	Controls.Aimlock.WhitelistMode = aim:CreateDropdown({
@@ -6220,15 +6285,48 @@ do
 		end,
 	})
 
-	aim:CreateSection("Team Check")
+	aim:CreateSection("Configuration")
 	Controls.Aimlock.IgnoreTeams = aim:CreateDropdown({
-		Name = "Equipos a Ignorar",
+		Name = "Team Ignore",
 		Options = IGNORE_TEAMS,
 		CurrentOption = A.IgnoreTeams,
 		MultipleOptions = true,
 		Callback = function(Value)
 			A.IgnoreTeams = Value
 			Features.SyncManager.SyncProperty("Aimlock", "IgnoreTeams", Value)
+		end,
+	})
+	Controls.Aimlock.TeamCheck = aim:CreateToggle({
+		Name = "Team Check",
+		CurrentValue = A.TeamCheck,
+		Callback = function(Value)
+			A.TeamCheck = Value
+			Features.SyncManager.SyncProperty("Aimlock", "TeamCheck", Value)
+		end,
+	})
+	Controls.Aimlock.FriendCheck = aim:CreateToggle({
+		Name = "Friend Check",
+		CurrentValue = A.FriendCheck,
+		Callback = function(Value)
+			A.FriendCheck = Value
+			if Value then Features.RefreshAllFriends() end
+			Features.SyncManager.SyncProperty("Aimlock", "FriendCheck", Value)
+		end,
+	})
+	Controls.Aimlock.UseMaxDistance = aim:CreateToggle({
+		Name = "Use Max Distance",
+		CurrentValue = A.UseMaxDistance,
+		Callback = function(Value)
+			A.UseMaxDistance = Value
+		end,
+	})
+	Controls.Aimlock.MaxDistance = aim:CreateSlider({
+		Name = "Max Distance",
+		Range = { 100, 5000 },
+		Increment = 50,
+		CurrentValue = A.MaxDistance,
+		Callback = function(Value)
+			A.MaxDistance = Value
 		end,
 	})
 end
