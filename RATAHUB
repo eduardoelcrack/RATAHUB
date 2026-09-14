@@ -6110,18 +6110,18 @@ do
 		end,
 	})
 -- Team Check
-Controls.ESP.TeamCheck = E:CreateToggle({
+Controls.ESP.TeamCheck = esp:CreateToggle({
     Name = "Team Check",
     CurrentValue = E.TeamCheck,
     Callback = function(Value)
         E.TeamCheck = Value
         Features.SyncManager.SyncProperty("ESP", "TeamCheck", Value)
         Features.UpdateESP()
-    end
+    end,
 })
 
 -- Friend Check
-Controls.ESP.FriendCheck = E:CreateToggle({
+Controls.ESP.FriendCheck = esp:CreateToggle({
     Name = "Friend Check",
     CurrentValue = E.FriendCheck,
     Callback = function(Value)
@@ -6133,7 +6133,7 @@ Controls.ESP.FriendCheck = E:CreateToggle({
 
         Features.SyncManager.SyncProperty("ESP", "FriendCheck", Value)
         Features.UpdateESP()
-    end
+    end,
 })
 
 	Controls.ESP.IgnoreTeams = esp:CreateDropdown({
