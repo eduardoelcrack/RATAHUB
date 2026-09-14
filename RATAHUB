@@ -6109,15 +6109,33 @@ do
 			Features.SyncManager.OnSyncToggled("ESP", "Triggerbot", Value)
 		end,
 	})
-	Controls.ESP.TeamCheck = esp:CreateToggle({
-		Name = "Team Check",
-		CurrentValue = E.TeamCheck,
-		Callback = function(Value)
-			E.TeamCheck = Value
-			Features.SyncManager.SyncProperty("ESP", "TeamCheck", Value)
-			Features.UpdateESP()
-		end,
-	})
+-- Team Check
+Controls.ESP.TeamCheck = E:CreateToggle({
+    Name = "Team Check",
+    CurrentValue = E.TeamCheck,
+    Callback = function(Value)
+        E.TeamCheck = Value
+        Features.SyncManager.SyncProperty("ESP", "TeamCheck", Value)
+        Features.UpdateESP()
+    end
+})
+
+-- Friend Check
+Controls.ESP.FriendCheck = E:CreateToggle({
+    Name = "Friend Check",
+    CurrentValue = E.FriendCheck,
+    Callback = function(Value)
+        E.FriendCheck = Value
+
+        if Value then
+            Features.RefreshAllFriends()
+        end
+
+        Features.SyncManager.SyncProperty("ESP", "FriendCheck", Value)
+        Features.UpdateESP()
+    end
+})
+
 	Controls.ESP.IgnoreTeams = esp:CreateDropdown({
 		Name = "Ignore Teams",
 		Options = IGNORE_TEAMS,
