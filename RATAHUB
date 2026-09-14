@@ -6355,8 +6355,8 @@ do
 	})
 	Controls.Triggerbot.Delay = trig:CreateSlider({
 		Name = "Trigger Delay",
-		Range = { 0, 500 },
-		Increment = 5,
+		Range = { 1, 250 },
+		Increment = 1,
 		CurrentValue = T.Delay,
 		Suffix = " ms",
 		Callback = function(Value)
