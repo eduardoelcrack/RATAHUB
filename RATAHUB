@@ -3106,6 +3106,8 @@ local Runtime = {
 	LastTarget   = { player = nil, source = nil },
 }
 
+Runtime._GlobalConnections = Runtime._GlobalConnections or {}
+
 SilentAim = SilentAim or {}
 Features = Features or {}
 
@@ -4268,141 +4270,315 @@ end
 
 ------------------------------------------------------------- DESTROY HUB (Idempotent & Safe)
 function Features.DestroyHub()
-		if Config.Main.Movement.Fly or Runtime.Fly.active then
-			Features.SetFlyMaster(false)
-		end
-		if Config.Main.Movement.WalkSpeedEnabled or Runtime.WalkSpeed.active then
-			Features.SetWalkSpeedMaster(false)
-		end
-		if Config.Main.Movement.JumpPowerEnabled then
-			Features.SetJumpPower(false)
-		end
-		if Config.Main.Movement.GravityEnabled then
-			Features.SetGravity(false)
-		else
-			workspace.Gravity = 196.2
-		end
-		if Config.Main.Movement.InfiniteJump or Runtime.InfiniteJump.active or Runtime.InfiniteJump.conn then
-			Features.SetInfiniteJumpMaster(false)
-		end
-		if Config.Main.Movement.Noclip or Runtime.Noclip.active or Runtime.Noclip.stepConn then
-			Features.SetNoclipMaster(false)
-		end
-		if Config.Main.Utility.AntiAFK or Runtime.AntiAFK.conn then
-			Features.SetAntiAFK(false)
-		end
-		if Config.Main.Player.HitboxExpander or Runtime.Hitbox.loop then
-			Features.ToggleHitboxLoop(false)
-		end
-		if Config.Triggerbot.Enabled or Runtime.Triggerbot.active then
-			Features.SetTriggerbotActive(false)
-			Config.Triggerbot.Enabled = false
-		end
-		Features.SetClickTP(false)
-		Features.SetBTools(false)
-		Features.SetXRay(false)
-		Features.SetFreecam(false)
-		Features.SetFOVChanger(false)
-		Features.SetUnlockMaxDistance(false)
-		Features.SetAntiFling(false)
+    -- ============================================================
+    -- 0. FLAG GLOBAL PARA DETENER TODO
+    -- ============================================================
+    _G.RATAHUB_ShuttingDown = true
 
-		if Runtime.Hotkeys.conn then
-			pcall(function() Runtime.Hotkeys.conn:Disconnect() end)
-			Runtime.Hotkeys.conn = nil
-		end
-		if Runtime.ESP.loop then
-			pcall(function() Runtime.ESP.loop:Disconnect() end)
-			Runtime.ESP.loop = nil
-		end
-		if Runtime.ESP.container then
-			pcall(function() Runtime.ESP.container:Destroy() end)
-			Runtime.ESP.container = nil
-		end
-		for _, entry in pairs(Runtime.ESP.objects) do
-			if entry.Highlight then pcall(function() entry.Highlight:Destroy() end) end
-			if entry.Billboard then pcall(function() entry.Billboard:Destroy() end) end
-			if entry.Tracer then pcall(function() entry.Tracer:Remove() end) end
-		end
-		table.clear(Runtime.ESP.objects)
+    -- ============================================================
+    -- RESTAURAR HOOK DE ViewportPointToRay (SILENT AIM)
+    -- ============================================================
+    pcall(function()
+        if _G.RATAHUB_SilentHook then
+            local Metatable = getrawmetatable(game)
+            if Metatable then
+                setreadonly(Metatable, false)
+                Metatable.__namecall = _G.RATAHUB_SilentHook.Original
+                setreadonly(Metatable, true)
+            end
+            _G.RATAHUB_SilentHook = nil
+        end
+    end)
 
-		if Runtime.Aimlock.loop then
-			pcall(function() Runtime.Aimlock.loop:Disconnect() end)
-			Runtime.Aimlock.loop = nil
-		end
-		if Runtime.Aimlock.tracer then
-			pcall(function() Runtime.Aimlock.tracer:Remove() end)
-			Runtime.Aimlock.tracer = nil
-		end
-		if Runtime.HUD and Runtime.HUD.loop then
-			pcall(function() Runtime.HUD.loop:Disconnect() end)
-			Runtime.HUD.loop = nil
-		end
-		Features.UnlockAimlock()
+    -- ============================================================
+    -- MOVEMENT
+    -- ============================================================
+    if Config.Main.Movement.Fly or Runtime.Fly.active then
+        Features.SetFlyMaster(false)
+    end
+    if Config.Main.Movement.WalkSpeedEnabled or Runtime.WalkSpeed.active then
+        Features.SetWalkSpeedMaster(false)
+    end
+    if Config.Main.Movement.JumpPowerEnabled then
+        Features.SetJumpPower(false)
+    end
+    if Config.Main.Movement.GravityEnabled then
+        Features.SetGravity(false)
+    else
+        workspace.Gravity = 196.2
+    end
+    if Config.Main.Movement.InfiniteJump or Runtime.InfiniteJump.active or Runtime.InfiniteJump.conn then
+        Features.SetInfiniteJumpMaster(false)
+    end
+    if Config.Main.Movement.Noclip or Runtime.Noclip.active or Runtime.Noclip.stepConn then
+        Features.SetNoclipMaster(false)
+    end
+    if Config.Main.Utility.AntiAFK or Runtime.AntiAFK.conn then
+        Features.SetAntiAFK(false)
+    end
+    if Config.Main.Player.HitboxExpander or Runtime.Hitbox.loop then
+        Features.ToggleHitboxLoop(false)
+    end
+    if Config.Triggerbot.Enabled or Runtime.Triggerbot.active then
+        Features.SetTriggerbotActive(false)
+        Config.Triggerbot.Enabled = false
+    end
+    Features.SetClickTP(false)
+    Features.SetBTools(false)
+    Features.SetXRay(false)
+    Features.SetFreecam(false)
+    Features.SetFOVChanger(false)
+    Features.SetUnlockMaxDistance(false)
+    Features.SetAntiFling(false)
 
-		-- ⬇️ AGREGA ESTO AQUÍ ⬇️
-		-- LIMPIEZA DEL SILENT AIM
-		if Config.Silent.Enabled then
-			Config.Silent.Enabled = false
-			if Controls.Silent and Controls.Silent.Enabled then
-				Controls.Silent.Enabled:SetSilent(false)
-			end
-		end
-		
-		if SilentAim then
-			if SilentAim.LockedHighlight then
-				pcall(function() SilentAim.LockedHighlight:Destroy() end)
-				SilentAim.LockedHighlight = nil
-			end
-			SilentAim.LockedTarget = nil
-		
-			if SilentAim.FOVCircle then
-				pcall(function() SilentAim.FOVCircle:Remove() end)
-				SilentAim.FOVCircle = nil
-			end
-		end
-		
-		if Runtime.Aimlock.fovCircle then
-			pcall(function() Runtime.Aimlock.fovCircle:Remove() end)
-			Runtime.Aimlock.fovCircle = nil
-		end
-		
-		if Runtime.LastTarget then
-			Runtime.LastTarget.player = nil
-			Runtime.LastTarget.source = nil
-		end
-		-- ⬆️ FIN DEL AGREGADO ⬆️
+    -- ============================================================
+    -- HOTKEYS / ESP LOOP
+    -- ============================================================
+    if Runtime.Hotkeys.conn then
+        pcall(function() Runtime.Hotkeys.conn:Disconnect() end)
+        Runtime.Hotkeys.conn = nil
+    end
 
-		if watermark then
-			pcall(function() watermark:Destroy() end)
-			watermark = nil
-		end
+    -- ============================================================
+    -- DRAWINGS: TRACERS, FOV CIRCLES (Silent + Aimlock) y SILENT LOCK
+    -- ============================================================
+    -- FOV Circle del Silent
+    pcall(function()
+        if SilentAim and SilentAim.FOVCircle then
+            SilentAim.FOVCircle.Visible = false
+            SilentAim.FOVCircle:Remove()
+            SilentAim.FOVCircle = nil
+        end
+        if SilentAim and SilentAim.LockedHighlight then
+            SilentAim.LockedHighlight:Destroy()
+            SilentAim.LockedHighlight = nil
+        end
+        if SilentAim then SilentAim.LockedTarget = nil end
+    end)
 
-		if watermark then
-			pcall(function() watermark:Destroy() end)
-			watermark = nil
-		end
-		if targetInfo then
-			pcall(function() targetInfo:Destroy() end)
-			targetInfo = nil
-		end
+    -- FOV Circle del Aimlock + tracer del Aimlock
+    pcall(function()
+        if Runtime.Aimlock.fovCircle then
+            Runtime.Aimlock.fovCircle.Visible = false
+            Runtime.Aimlock.fovCircle:Remove()
+            Runtime.Aimlock.fovCircle = nil
+        end
+        if Runtime.Aimlock.tracer then
+            Runtime.Aimlock.tracer.Visible = false
+            Runtime.Aimlock.tracer:Remove()
+            Runtime.Aimlock.tracer = nil
+        end
+    end)
 
-		for _, gui in ipairs(playerGui:GetChildren()) do
-			if gui:IsA("ScreenGui") then
-				local name = string.lower(gui.Name)
-				if string.find(name, "ratahub") then
-					pcall(function() gui:Destroy() end)
-				end
-			end
-		end
+    -- ============================================================
+    -- ESP (loop, container, objetos colgados + tracers Drawing)
+    -- ============================================================
+    if Runtime.ESP.loop then
+        pcall(function() Runtime.ESP.loop:Disconnect() end)
+        Runtime.ESP.loop = nil
+    end
+    if Runtime.ESP.container then
+        pcall(function() Runtime.ESP.container:Destroy() end)
+        Runtime.ESP.container = nil
+    end
+    for _, entry in pairs(Runtime.ESP.objects) do
+        if entry.Highlight then pcall(function() entry.Highlight:Destroy() end) end
+        if entry.Billboard then pcall(function() entry.Billboard:Destroy() end) end
+        if entry.Tracer then
+            pcall(function() entry.Tracer.Visible = false end)
+            pcall(function() entry.Tracer:Remove() end)
+        end
+    end
+    table.clear(Runtime.ESP.objects)
 
-		pcall(function()
-			if overlayGui and overlayGui.Parent then
-				overlayGui:Destroy()
-				overlayGui = nil
-			end
-		end)
+    -- LIMPIEZA DIRECTA DE HIGHLIGHTS EN WORKSPACE
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= player and plr.Character then
+            for _, h in ipairs(plr.Character:GetChildren()) do
+                if h:IsA("Highlight") then
+                    pcall(function() h:Destroy() end)
+                end
+            end
+        end
+    end
+
+    -- LIMPIEZA DIRECTA DE BILLBOARDS EN WORKSPACE
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BillboardGui") and (obj.Name == "ESP_Billboard" or obj.Name:Find("ESP")) then
+            pcall(function() obj:Destroy() end)
+        end
+    end
+
+    -- Apagar el master del ESP
+    pcall(function()
+        Config.ESP.Master = false
+        if Controls.ESP and Controls.ESP.Master then
+            Controls.ESP.Master:SetSilent(false)
+        end
+    end)
+
+    -- ============================================================
+    -- AIMLOCK (loop, tracer, highlight)
+    -- ============================================================
+    if Runtime.Aimlock.loop then
+        pcall(function() Runtime.Aimlock.loop:Disconnect() end)
+        Runtime.Aimlock.loop = nil
+    end
+    if Runtime.Aimlock.highlight then
+        pcall(function() Runtime.Aimlock.highlight:Destroy() end)
+        Runtime.Aimlock.highlight = nil
+    end
+    Runtime.Aimlock.locked = false
+    Runtime.Aimlock.currentTarget = nil
+
+    -- ============================================================
+    -- TRIGGERBOT LOOP
+    -- ============================================================
+    if Runtime.Triggerbot.loop then
+        pcall(function() Runtime.Triggerbot.loop:Disconnect() end)
+        Runtime.Triggerbot.loop = nil
+    end
+    Runtime.Triggerbot.active = false
+    Runtime.Triggerbot.isShooting = false
+
+    -- ============================================================
+    -- HUD
+    -- ============================================================
+    if Runtime.HUD and Runtime.HUD.loop then
+        pcall(function() Runtime.HUD.loop:Disconnect() end)
+        Runtime.HUD.loop = nil
+    end
+
+    Features.UnlockAimlock()
+
+    -- ============================================================
+    -- SILENT AIM (target, highlight, drawing) - refuerzo
+    -- ============================================================
+    pcall(function()
+        if Config.Silent then
+            Config.Silent.Enabled = false
+            Config.Silent.FOV = false
+            Config.Silent.LockTarget = false
+        end
+        if Controls.Silent then
+            if Controls.Silent.Enabled then Controls.Silent.Enabled:SetSilent(false) end
+            if Controls.Silent.FOV then Controls.Silent.FOV:SetSilent(false) end
+            if Controls.Silent.LockTarget then Controls.Silent.LockTarget:SetSilent(false) end
+        end
+    end)
+
+    -- ============================================================
+    -- LAST TARGET COMPARTIDO
+    -- ============================================================
+    pcall(function()
+        if Runtime.LastTarget then
+            Runtime.LastTarget.player = nil
+            Runtime.LastTarget.source = nil
+        end
+    end)
+
+    -- ============================================================
+    -- CONEXIONES GLOBALES (PlayerAdded / PlayerRemoving / FriendStatusChanged)
+    -- ============================================================
+    if Runtime._GlobalConnections then
+        for _, conn in ipairs(Runtime._GlobalConnections) do
+            pcall(function() if conn.Connected then conn:Disconnect() end end)
+        end
+        table.clear(Runtime._GlobalConnections)
+    end
+
+    -- ============================================================
+    -- TARGET INFO / WATERMARK
+    -- ============================================================
+    if targetInfo then
+        pcall(function() targetInfo:Destroy() end)
+        targetInfo = nil
+    end
+    if watermark then
+        pcall(function() watermark:Destroy() end)
+        watermark = nil
+    end
+
+    -- ============================================================
+    -- GUI RESTANTE
+    -- ============================================================
+    for _, gui in ipairs(playerGui:GetChildren()) do
+        if gui:IsA("ScreenGui") then
+            local name = string.lower(gui.Name)
+            if string.find(name, "ratahub") then
+                pcall(function() gui:Destroy() end)
+            end
+        end
+    end
+
+    pcall(function()
+        if overlayGui and overlayGui.Parent then
+            overlayGui:Destroy()
+            overlayGui = nil
+        end
+    end)
+
+        -- ============================================================
+    -- LIMPIEZA DE LOOPS DE FOV CIRCLES Y SILENT LOCK (agregado)
+    -- ============================================================
+    pcall(function()
+        if Runtime.SilentFOVLoop then
+            Runtime.SilentFOVLoop:Disconnect()
+            Runtime.SilentFOVLoop = nil
+        end
+        if Runtime.AimlockFOVLoop then
+            Runtime.AimlockFOVLoop:Disconnect()
+            Runtime.AimlockFOVLoop = nil
+        end
+        if Runtime.SilentLockKeybindConn then
+            Runtime.SilentLockKeybindConn:Disconnect()
+            Runtime.SilentLockKeybindConn = nil
+        end
+    end)
+
+    -- ============================================================
+    -- LIMPIEZA EXTRA DE DRAWINGS HUÉRFANOS
+    -- ============================================================
+     -- ============================================================
+    -- LIMPIEZA DE DRAWINGS HUÉRFANOS
+    -- ============================================================
+    pcall(function()
+        if SilentAim and SilentAim.FOVCircle then
+            SilentAim.FOVCircle.Visible = false
+            SilentAim.FOVCircle:Remove()
+            SilentAim.FOVCircle = nil
+        end
+        if Runtime.Aimlock.fovCircle then
+            Runtime.Aimlock.fovCircle.Visible = false
+            Runtime.Aimlock.fovCircle:Remove()
+            Runtime.Aimlock.fovCircle = nil
+        end
+    end)
+
+    -- ============================================================
+    -- LIMPIEZA DE LOOPS DE FOV CIRCLES Y SILENT LOCK
+    -- ============================================================
+    pcall(function()
+        if Runtime.SilentFOVLoop then
+            Runtime.SilentFOVLoop:Disconnect()
+            Runtime.SilentFOVLoop = nil
+        end
+        if Runtime.AimlockFOVLoop then
+            Runtime.AimlockFOVLoop:Disconnect()
+            Runtime.AimlockFOVLoop = nil
+        end
+        if Runtime.SilentLockKeybindConn then
+            Runtime.SilentLockKeybindConn:Disconnect()
+            Runtime.SilentLockKeybindConn = nil
+        end
+        if Runtime.SilentLockCleanupLoop then
+            Runtime.SilentLockCleanupLoop:Disconnect()
+            Runtime.SilentLockCleanupLoop = nil
+        end
+    end)
+
+    print("[RATAHUB] DestroyHub completado.")
 end
-
 ------------------------------------------------------------- Dynamic Helpers: Whitelist & Teams
 function Features.IsAlive(plr)
 	if not plr or not plr.Character then return false end
@@ -4459,24 +4635,24 @@ for _, p in ipairs(Players:GetPlayers()) do
 	CacheFriendStatus(p)
 end
 
-Players.PlayerAdded:Connect(function(p)
+table.insert(Runtime._GlobalConnections, Players.PlayerAdded:Connect(function(p)
 	CacheFriendStatus(p)
-end)
+end))
 
-Players.PlayerRemoving:Connect(function(p)
+table.insert(Runtime._GlobalConnections, Players.PlayerRemoving:Connect(function(p)
 	FriendsCache[p] = nil
 	FriendsCache[p.UserId] = nil
 	FriendsCache[p.Name] = nil
-end)
+end))
 
 -- Event-driven friend status tracking (Zero lag, zero background polling)
 pcall(function()
-	player.FriendStatusChanged:Connect(function(otherPlayer, friendStatus)
+	table.insert(Runtime._GlobalConnections, player.FriendStatusChanged:Connect(function(otherPlayer, friendStatus)
 		local isF = (friendStatus == Enum.FriendStatus.Friend or friendStatus == Enum.FriendStatus.FriendRequestSent)
 		FriendsCache[otherPlayer] = isF
 		FriendsCache[otherPlayer.UserId] = isF
 		FriendsCache[otherPlayer.Name] = isF
-	end)
+	end))
 end)
 
 function Features.IsFriend(targetPlayer)
@@ -6607,6 +6783,7 @@ end
 -- Con filtros completos, Target Info compartido y sonidos
 -- ============================================================
 -- FOV Circle del Silent (color fijo)
+
 task.spawn(function()
     SilentAim.FOVCircle = Drawing.new("Circle")
     SilentAim.FOVCircle.Thickness = 2
@@ -6616,7 +6793,7 @@ task.spawn(function()
     SilentAim.FOVCircle.NumSides = 60
     SilentAim.FOVCircle.Visible = false
 
-    RunService.RenderStepped:Connect(function()
+        Runtime.SilentFOVLoop = RunService.RenderStepped:Connect(function()
         local S = Config.Silent
         if not S or not SilentAim.FOVCircle then return end
         SilentAim.FOVCircle.Visible = S.Enabled and S.FOV
@@ -6689,7 +6866,7 @@ function Features.ClearLastTarget(source)
 end
 
 -- Lock Target con keybind + sonido compartido
-UserInputService.InputBegan:Connect(function(input, gp)
+Runtime.SilentLockKeybindConn = UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     local S = Config.Silent
     if not S or not S.LockTarget then return end
@@ -6728,7 +6905,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 -- Limpieza si el lock muere
-RunService.Heartbeat:Connect(function()
+Runtime.SilentLockCleanupLoop = RunService.Heartbeat:Connect(function()
     local p = SilentAim.LockedTarget
     if not p then return end
     local char = p.Character
@@ -6756,7 +6933,7 @@ task.spawn(function()
     Runtime.Aimlock.fovCircle.NumSides = 60
     Runtime.Aimlock.fovCircle.Visible = false
 
-    RunService.RenderStepped:Connect(function()
+        Runtime.AimlockFOVLoop = RunService.RenderStepped:Connect(function()
         local A = Config.Aimlock
         if not A or not Runtime.Aimlock.fovCircle then return end
         Runtime.Aimlock.fovCircle.Visible = A.Enabled and A.UseFOV
@@ -6765,6 +6942,8 @@ task.spawn(function()
         Runtime.Aimlock.fovCircle.Position = Vector2.new(Mouse.X, Mouse.Y + 60)
     end)
 end)
+
+
 
 -- ====================================================================
 -- HOOK ViewportPointToRay
@@ -6776,6 +6955,11 @@ do
     local Metatable = getrawmetatable(game)
     local OldNamecall = Metatable.__namecall
     setreadonly(Metatable, false)
+
+    _G.RATAHUB_SilentHook = {
+        Original = OldNamecall,
+        Camera = Camera,
+    }
 
     Metatable.__namecall = newcclosure(function(Self, ...)
         local Args = {...}
@@ -7160,13 +7344,29 @@ do
 			})
 		end,
 	})
-	Controls.Sounds.DestroyHub = sounds:CreateButton({
-		Name = "🚨 Destroy Hub (Apagar Todo)",
-		Destructive = true,
-		Callback = function()
-			Features.DestroyHub()
-		end,
-	})
+Controls.Sounds.DestroyHub = sounds:CreateButton({
+    Name = "🚨 Destroy Hub (Apagar Todo)",
+    Destructive = true,
+    Callback = function()
+        pcall(function()
+            if Features and Features.DestroyHub then
+                Features.DestroyHub()
+            elseif RATAHUB.Features and RATAHUB.Features.DestroyHub then
+                RATAHUB.Features.DestroyHub()
+            end
+        end)
+        pcall(function()
+            if watermark then watermark:Destroy() watermark = nil end
+            if overlayGui and overlayGui.Parent then
+                overlayGui:Destroy()
+                overlayGui = nil
+            end
+            if screenGui and screenGui.Parent then
+                screenGui:Destroy()
+            end
+        end)
+    end,
+})
 end
 
 --------------------------------------------------------------
