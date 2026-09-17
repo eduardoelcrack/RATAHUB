@@ -590,6 +590,21 @@ local VirtualUser = nil
 pcall(function() VirtualUser = game:GetService("VirtualUser") end)
 
 local player = Players.LocalPlayer
+-- DEBUG: Descubrir remotas de armas
+task.spawn(function()
+    task.wait(3)  -- Esperar que cargue todo
+    local RS = game:GetService("ReplicatedStorage")
+    print("========== DEBUG REMOTES ==========")
+    for _, child in ipairs(RS:GetChildren()) do
+        print("RS:", child.Name, child.ClassName)
+        if child:IsA("Folder") or child:IsA("RemoteFunction") or child:IsA("RemoteEvent") then
+            for _, sub in ipairs(child:GetChildren()) do
+                print("  └", sub.Name, sub.ClassName)
+            end
+        end
+    end
+    print("====================================")
+end)
 local coreGui = game:GetService("CoreGui")
 local playerGui = (gethui and gethui()) or (pcall(function() return coreGui end) and (coreGui:FindFirstChild("RobloxGui") or coreGui)) or player:WaitForChild("PlayerGui")
 
@@ -796,8 +811,8 @@ create("UIListLayout", {
 	--=====================================================================
 	-- RATAHUB FRAMEWORK TABLE
 	--=====================================================================
-	local Features = {}
-	local RATAHUB = {}
+Features = Features or {}
+local RATAHUB = {}
 RATAHUB.__index = RATAHUB
 
 function RATAHUB:Notify(cfg)
@@ -2929,6 +2944,7 @@ local Config = {
 		TeamCheck = false,
 		SyncAimlock = false,
 		SyncTriggerbot = false,
+		SyncSilent = false,
 		HighlightColor = "Morado",
 		TeamColorHighlight = false,
 		RainbowESP = false,
@@ -2978,13 +2994,21 @@ local Config = {
 
  Silent = {
     Enabled = false,
-    Keybind = "Q",
 
     FOV = false,
     FOVSize = 100,
 
     LockTarget = false,
     LockTargetKeybind = "E",
+
+    WhitelistMode = "Disabled",
+    WhitelistTarget = "Nadie",
+    IgnoreTeams = "Ninguno",
+    TeamCheck = false,
+    FriendCheck = false,
+
+    SyncESP = false,
+    
 },
 
 	Extras = {
@@ -3075,17 +3099,21 @@ local Runtime = {
 	XRay         = { parts = {} },
 	AntiFling    = { conn = nil },
 	ESP          = { loop = nil, container = nil, objects = {}, highlightActive = true, namesActive = true, tracersActive = true },
-	Aimlock      = { loop = nil, locked = false, currentTarget = nil, tracer = nil },
+	Aimlock      = { loop = nil, locked = false, currentTarget = nil, tracer = nil, fovCircle = nil },
 	Triggerbot   = { active = false, loop = nil, isShooting = false },
 	Hitbox       = { loop = nil, origs = {} },
 	Hotkeys      = { conn = nil },
+	LastTarget   = { player = nil, source = nil },
 }
 
+SilentAim = SilentAim or {}
 Features = Features or {}
 
 -------------------------------------------------------------
 -- RATAHUB V5 HUD / TARGET INFO & WATERMARK
 -------------------------------------------------------------
+-- Declaramos SilentAim como global para que el HUD lo vea
+SilentAim = SilentAim or { LockedTarget = nil, LockedHighlight = nil, FOVCircle = nil }
 local watermark = create("Frame", {
     Name = "RATAHUBWatermark",
     AnchorPoint = Vector2.new(1, 0),
@@ -3479,11 +3507,18 @@ Runtime.HUD.loop = RunService.RenderStepped:Connect(function(dt)
         statLabels.Players.Text = string.format("Players: %d/%d", currPlrs, maxPlrs)
     end
 
-    -- Target Info
-    local target = Runtime.Aimlock.currentTarget
+    -- Target Info compartido (Aimlock + Silent)
+    local target = nil
+    local src = Runtime.LastTarget.source
+    if src == "aimlock" then
+        target = Runtime.Aimlock.currentTarget
+    elseif src == "silent" then
+        target = SilentAim and SilentAim.LockedTarget
+    end
+
     local targetCfg = Config.Settings and Config.Settings.TargetInfo
 
-    if not targetCfg or not targetCfg.Enabled or not Runtime.Aimlock.locked or not target or not target.Parent then
+    if not targetCfg or not targetCfg.Enabled or not target or not target.Parent then
         HideTargetInfo()
         return
     end
@@ -3626,12 +3661,15 @@ function SyncManager.SyncProperty(sourceModule, propName, value)
 	if sourceModule == "ESP" then
 		if Config.ESP.SyncAimlock then table.insert(targets, "Aimlock") end
 		if Config.ESP.SyncTriggerbot then table.insert(targets, "Triggerbot") end
+		if Config.ESP.SyncSilent then table.insert(targets, "Silent") end
 	elseif sourceModule == "Aimlock" then
 		if Config.Aimlock.SyncESP then table.insert(targets, "ESP") end
 		if Config.Aimlock.SyncTriggerbot then table.insert(targets, "Triggerbot") end
 	elseif sourceModule == "Triggerbot" then
 		if Config.Triggerbot.SyncESP then table.insert(targets, "ESP") end
 		if Config.Triggerbot.SyncAimlock then table.insert(targets, "Aimlock") end
+	elseif sourceModule == "Silent" then
+		if Config.Silent.SyncESP then table.insert(targets, "ESP") end
 	end
 
 	for _, targetMod in ipairs(targets) do
@@ -4301,6 +4339,44 @@ function Features.DestroyHub()
 		end
 		Features.UnlockAimlock()
 
+		-- ⬇️ AGREGA ESTO AQUÍ ⬇️
+		-- LIMPIEZA DEL SILENT AIM
+		if Config.Silent.Enabled then
+			Config.Silent.Enabled = false
+			if Controls.Silent and Controls.Silent.Enabled then
+				Controls.Silent.Enabled:SetSilent(false)
+			end
+		end
+		
+		if SilentAim then
+			if SilentAim.LockedHighlight then
+				pcall(function() SilentAim.LockedHighlight:Destroy() end)
+				SilentAim.LockedHighlight = nil
+			end
+			SilentAim.LockedTarget = nil
+		
+			if SilentAim.FOVCircle then
+				pcall(function() SilentAim.FOVCircle:Remove() end)
+				SilentAim.FOVCircle = nil
+			end
+		end
+		
+		if Runtime.Aimlock.fovCircle then
+			pcall(function() Runtime.Aimlock.fovCircle:Remove() end)
+			Runtime.Aimlock.fovCircle = nil
+		end
+		
+		if Runtime.LastTarget then
+			Runtime.LastTarget.player = nil
+			Runtime.LastTarget.source = nil
+		end
+		-- ⬆️ FIN DEL AGREGADO ⬆️
+
+		if watermark then
+			pcall(function() watermark:Destroy() end)
+			watermark = nil
+		end
+
 		if watermark then
 			pcall(function() watermark:Destroy() end)
 			watermark = nil
@@ -4838,7 +4914,8 @@ function Features.FindBestAimlockTarget()
 
 	local closestPlayer = nil
 	local shortest = math.huge
-	local mousePos = UserInputService:GetMouseLocation()
+	local rawMouse = UserInputService:GetMouseLocation()
+	local mousePos = Vector2.new(rawMouse.X, rawMouse.Y)
 
 	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr ~= player
@@ -4877,9 +4954,10 @@ function Features.FindBestAimlockTarget()
 
 			local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
 
-			if aimCfg.UseFOV and dist > aimCfg.FOVSize then
-				continue
-			end
+			-- Solo filtra si UseFOV está activo
+if aimCfg.UseFOV and aimCfg.FOVSize and dist > aimCfg.FOVSize then
+    continue
+end
 
 			local priority = aimCfg.TargetPriority or "Closest to Mouse"
 			local score = dist
@@ -4923,6 +5001,7 @@ function Features.ToggleAimlockLock()
 
 	if Runtime.Aimlock.locked then
 		Features.UnlockAimlock()
+		Features.ClearLastTarget("aimlock")
 		RATAHUB:Notify({ Title = "Aimlock", Content = "En pausa", Duration = 1.2 })
 	else
 		local candidate = Features.FindBestAimlockTarget()
@@ -4930,6 +5009,7 @@ function Features.ToggleAimlockLock()
 			Runtime.Aimlock.currentTarget = candidate
 			Runtime.Aimlock.locked = true
 			CreateAimlockHighlight(candidate)
+			Features.SetLastTarget(candidate, "aimlock")
 
 			if Config.Sounds.LockSound and Config.Sounds.LockTargetSound then
 				Features.PlaySound(Config.Sounds.LockTargetSound)
@@ -5151,23 +5231,27 @@ function Features.SetTriggerbotActive(active)
 			end
 
 			-- Wall Check
-			if Config.Triggerbot.WallCheck then
-				local char = player.Character
-				if char then
-					TriggerRayParams.FilterDescendantsInstances = { char }
-					local cam = workspace.CurrentCamera
-					if cam then
-						local origin = cam.CFrame.Position
-						local dir = (mouse.Hit.Position - origin).Unit * 1500
-						local ray = workspace:Raycast(origin, dir, TriggerRayParams)
-						if ray and not ray.Instance:IsDescendantOf(model) then
-							if ray.Instance.Transparency < 1 and ray.Instance.CanCollide then
-								return
-							end
-						end
-					end
-				end
-			end
+if Config.Triggerbot.WallCheck then
+    local char = player.Character
+    if char then
+        TriggerRayParams.FilterDescendantsInstances = { char }
+        local cam = workspace.CurrentCamera
+        if cam then
+            local origin = cam.CFrame.Position
+            local targetHead = model:FindFirstChild("Head")
+            if targetHead then
+                local delta = targetHead.Position - origin
+                local dir = delta.Unit * delta.Magnitude
+                local ray = workspace:Raycast(origin, dir, TriggerRayParams)
+                if ray and not ray.Instance:IsDescendantOf(model) then
+                    if ray.Instance.Transparency < 1 and ray.Instance.CanCollide then
+                        return
+                    end
+                end
+            end
+        end
+    end
+end
 
 			isShooting = true
 			task.spawn(function()
@@ -6122,6 +6206,16 @@ do
 			Features.SyncManager.OnSyncToggled("ESP", "Triggerbot", Value)
 		end,
 	})
+
+	Controls.ESP.SyncSilent = esp:CreateToggle({
+		Name = "Sincronizar con Silent",
+		CurrentValue = E.SyncSilent,
+		Callback = function(Value)
+			E.SyncSilent = Value
+			Features.SyncManager.OnSyncToggled("ESP", "Silent", Value)
+		end,
+	})
+
 -- Team Check
 Controls.ESP.TeamCheck = esp:CreateToggle({
     Name = "Team Check",
@@ -6286,13 +6380,6 @@ do
 		CurrentValue = A.UseFOV,
 		Callback = function(Value)
 			A.UseFOV = Value
-			if Value then
-				RATAHUB:Notify({
-					Title = "Aimlock",
-					Content = "FOV in development",
-					Duration = 1.5,
-				})
-			end
 		end,
 	})
 	Controls.Aimlock.FOVSize = aim:CreateSlider({
@@ -6514,6 +6601,220 @@ do
 end
 
 
+
+-- ============================================================
+-- SILENT AIM ENGINE (Prison Life - ViewportPointToRay Hook)
+-- Con filtros completos, Target Info compartido y sonidos
+-- ============================================================
+-- FOV Circle del Silent (color fijo)
+task.spawn(function()
+    SilentAim.FOVCircle = Drawing.new("Circle")
+    SilentAim.FOVCircle.Thickness = 2
+    SilentAim.FOVCircle.Filled = false
+    SilentAim.FOVCircle.Transparency = 1
+    SilentAim.FOVCircle.Color = Color3.fromRGB(6, 182, 212)
+    SilentAim.FOVCircle.NumSides = 60
+    SilentAim.FOVCircle.Visible = false
+
+    RunService.RenderStepped:Connect(function()
+        local S = Config.Silent
+        if not S or not SilentAim.FOVCircle then return end
+        SilentAim.FOVCircle.Visible = S.Enabled and S.FOV
+        SilentAim.FOVCircle.Radius = S.FOVSize or 160
+        local Mouse = player:GetMouse()
+        SilentAim.FOVCircle.Position = Vector2.new(Mouse.X, Mouse.Y + 60)
+    end)
+end)
+
+-- Buscador del mejor objetivo (con filtros)
+local function GetSilentTarget()
+    local S = Config.Silent
+    if not S or not S.Enabled then return nil end
+
+    local Cam = workspace.CurrentCamera
+    local Mouse = player:GetMouse()
+local radius = (S.FOV and S.FOVSize) or 99999
+local closest, shortest = nil, radius
+    local mouseVec = Vector2.new(Mouse.X, Mouse.Y + 36)
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= player and p.Character then
+            local head = p.Character:FindFirstChild("Head")
+            local hum = p.Character:FindFirstChildOfClass("Humanoid")
+            if head and hum and hum.Health > 0 then
+                -- Filtros
+                if Features.IsWhitelisted(p, S.WhitelistMode, S.WhitelistTarget) then
+                    local skip = false
+
+                    if S.FriendCheck and Features.IsFriend(p) then
+                        skip = true
+                    end
+
+                    if not skip and S.WhitelistMode ~= "Only Whitelist" then
+                        if S.TeamCheck and Features.IsSameTeam(p) then
+                            skip = true
+                        end
+                        if not skip and Features.IsTeamIgnored(p, S.IgnoreTeams) then
+                            skip = true
+                        end
+                    end
+
+                    if not skip then
+                        local pos, onScreen = Cam:WorldToViewportPoint(head.Position)
+                        if onScreen then
+                            local d = (mouseVec - Vector2.new(pos.X, pos.Y)).Magnitude
+                            if d < shortest then
+                                shortest = d
+                                closest = p
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- Helpers compartidos para Target Info
+function Features.SetLastTarget(plr, source)
+    Runtime.LastTarget.player = plr
+    Runtime.LastTarget.source = source
+end
+
+function Features.ClearLastTarget(source)
+    if source and Runtime.LastTarget.source ~= source then return end
+    Runtime.LastTarget.player = nil
+    Runtime.LastTarget.source = nil
+end
+
+-- Lock Target con keybind + sonido compartido
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    local S = Config.Silent
+    if not S or not S.LockTarget then return end
+    if S.LockTargetKeybind == "None" then return end
+    if input.KeyCode ~= Enum.KeyCode[S.LockTargetKeybind] then return end
+
+    if SilentAim.LockedTarget then
+        if SilentAim.LockedHighlight then
+            pcall(function() SilentAim.LockedHighlight:Destroy() end)
+            SilentAim.LockedHighlight = nil
+        end
+        Features.ClearLastTarget("silent")
+        SilentAim.LockedTarget = nil
+    else
+        local target = GetSilentTarget()
+        if target and target.Character then
+            SilentAim.LockedTarget = target
+            local hl = Instance.new("Highlight")
+            hl.Name = "RATAHUB_SilentLock"
+            hl.Adornee = target.Character
+            hl.FillColor = Color3.fromRGB(255, 0, 0)
+            hl.OutlineColor = Color3.fromRGB(255, 80, 80)
+            hl.FillTransparency = 0.3
+            hl.OutlineTransparency = 0
+            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            hl.Parent = target.Character
+            SilentAim.LockedHighlight = hl
+
+            Features.SetLastTarget(target, "silent")
+
+            if Config.Sounds.LockSound and Config.Sounds.LockTargetSound then
+                Features.PlaySound(Config.Sounds.LockTargetSound)
+            end
+        end
+    end
+end)
+
+-- Limpieza si el lock muere
+RunService.Heartbeat:Connect(function()
+    local p = SilentAim.LockedTarget
+    if not p then return end
+    local char = p.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if not char or not hum or hum.Health <= 0 or not p.Parent then
+        SilentAim.LockedTarget = nil
+        if SilentAim.LockedHighlight then
+            pcall(function() SilentAim.LockedHighlight:Destroy() end)
+            SilentAim.LockedHighlight = nil
+        end
+        Features.ClearLastTarget("silent")
+        Features.PlaySound("CS:GO Headshot")
+    end
+end)
+
+-- ====================================================================
+-- AIMLOCK FOV CIRCLE (color fijo rojo)
+-- ====================================================================
+task.spawn(function()
+    Runtime.Aimlock.fovCircle = Drawing.new("Circle")
+    Runtime.Aimlock.fovCircle.Thickness = 2
+    Runtime.Aimlock.fovCircle.Filled = false
+    Runtime.Aimlock.fovCircle.Transparency = 1
+    Runtime.Aimlock.fovCircle.Color = Color3.fromRGB(255, 80, 80)
+    Runtime.Aimlock.fovCircle.NumSides = 60
+    Runtime.Aimlock.fovCircle.Visible = false
+
+    RunService.RenderStepped:Connect(function()
+        local A = Config.Aimlock
+        if not A or not Runtime.Aimlock.fovCircle then return end
+        Runtime.Aimlock.fovCircle.Visible = A.Enabled and A.UseFOV
+        Runtime.Aimlock.fovCircle.Radius = A.FOVSize or 120
+        local Mouse = player:GetMouse()
+        Runtime.Aimlock.fovCircle.Position = Vector2.new(Mouse.X, Mouse.Y + 60)
+    end)
+end)
+
+-- ====================================================================
+-- HOOK ViewportPointToRay
+-- ====================================================================
+do
+    local Camera = workspace.CurrentCamera
+    local Mouse = player:GetMouse()
+    local OldViewportPointToRay = Camera.ViewportPointToRay
+    local Metatable = getrawmetatable(game)
+    local OldNamecall = Metatable.__namecall
+    setreadonly(Metatable, false)
+
+    Metatable.__namecall = newcclosure(function(Self, ...)
+        local Args = {...}
+        local Method = getnamecallmethod()
+
+        if Method == "ViewportPointToRay" and Self == Camera and Config.Silent.Enabled then
+            local Arg1, Arg2 = Args[1], Args[2]
+
+            if type(Arg1) == "number" and type(Arg2) == "number" and math.abs(Arg1 - Mouse.X) < 10 then
+                local Target = SilentAim.LockedTarget or GetSilentTarget()
+
+                if Target and Target.Character then
+                    local Head = Target.Character:FindFirstChild("Head")
+                    local Hum = Target.Character:FindFirstChildOfClass("Humanoid")
+                    if Head and Hum and Hum.Health > 0 then
+                        local Origin = Camera.CFrame.Position
+                        local Direction = (Head.Position - Origin).Unit
+
+                        if Config.Sounds.HitSound and Config.Sounds.HitShootSound then
+                            Features.PlaySound(Config.Sounds.HitShootSound)
+                        end
+
+                        return Ray.new(Origin, Direction)
+                    else
+                        return OldViewportPointToRay(Self, table.unpack(Args))
+                    end
+                else
+                    return OldViewportPointToRay(Self, table.unpack(Args))
+                end
+            end
+        end
+
+        return OldNamecall(Self, ...)
+    end)
+
+    setreadonly(Metatable, true)
+    print("[RATAHUB Silent] Hook + filtros + TargetInfo compartido aplicado")
+end
+
 --------------------------------------------------------------
 -- 5. SILENT TAB
 --------------------------------------------------------------
@@ -6525,25 +6826,27 @@ local silent = win:CreateTab({ Name = "Silent", Icon = "⌁", SubTitle = "Silent
     ----------------------------------------------------------
     -- SILENT AIM
     ----------------------------------------------------------
-    silent:CreateSection("Silent Aim")
-
     Controls.Silent.Enabled = silent:CreateToggle({
         Name = "Silent Aim",
         CurrentValue = S.Enabled,
         Callback = function(Value)
             S.Enabled = Value
+            if Value then
+                RATAHUB:Notify({
+                    Title = "Silent Aim",
+                    Content = "Activado • Only works on Prison Life",
+                    Duration = 2.5
+                })
+            else
+                RATAHUB:Notify({
+                    Title = "Silent Aim",
+                    Content = "Desactivado",
+                    Duration = 1.5
+                })
+            end
         end,
     })
 
-    Controls.Silent.Keybind = silent:CreateKeybind({
-        Name = "Silent Aim Keybind",
-        CurrentKeybind = S.Keybind,
-        Callback = function(Key)
-            S.Keybind = (typeof(Key) == "EnumItem")
-                and Key.Name
-                or tostring(Key)
-        end,
-    })
 
     ----------------------------------------------------------
     -- CONFIGURATION
@@ -6585,8 +6888,77 @@ local silent = win:CreateTab({ Name = "Silent", Icon = "⌁", SubTitle = "Silent
                 or tostring(Key)
         end,
     })
-end
 
+    ----------------------------------------------------------
+    -- WHITELIST / FILTROS
+    ----------------------------------------------------------
+    silent:CreateSection("Whitelist")
+
+    Controls.Silent.WhitelistMode = silent:CreateDropdown({
+        Name = "Silent Whitelist Mode",
+        Options = { "Disabled", "Ignore Whitelist", "Only Whitelist" },
+        CurrentOption = S.WhitelistMode or "Disabled",
+        Callback = function(Value)
+            S.WhitelistMode = Value
+            Features.SyncManager.SyncProperty("Silent", "WhitelistMode", Value)
+        end,
+    })
+
+    Controls.Silent.WhitelistTarget = silent:CreateDropdown({
+        Name = "Seleccionar Objetivo Whitelist",
+        Options = WHITELIST_TARGETS,
+        CurrentOption = S.WhitelistTarget or "Nadie",
+        Callback = function(Value)
+            S.WhitelistTarget = Value
+            Features.SyncManager.SyncProperty("Silent", "WhitelistTarget", Value)
+        end,
+    })
+
+    Controls.Silent.TeamCheck = silent:CreateToggle({
+        Name = "Team Check",
+        CurrentValue = S.TeamCheck,
+        Callback = function(Value)
+            S.TeamCheck = Value
+            Features.SyncManager.SyncProperty("Silent", "TeamCheck", Value)
+        end,
+    })
+
+    Controls.Silent.FriendCheck = silent:CreateToggle({
+        Name = "Friend Check",
+        CurrentValue = S.FriendCheck,
+        Callback = function(Value)
+            S.FriendCheck = Value
+            if Value then Features.RefreshAllFriends() end
+            Features.SyncManager.SyncProperty("Silent", "FriendCheck", Value)
+        end,
+    })
+
+    Controls.Silent.IgnoreTeams = silent:CreateDropdown({
+        Name = "Ignore Teams",
+        Options = IGNORE_TEAMS,
+        CurrentOption = S.IgnoreTeams,
+        MultipleOptions = true,
+        Callback = function(Value)
+            S.IgnoreTeams = Value
+            Features.SyncManager.SyncProperty("Silent", "IgnoreTeams", Value)
+        end,
+    })
+
+    ----------------------------------------------------------
+    -- SINCRONIZACIÓN
+    ----------------------------------------------------------
+    silent:CreateSection("Sincronizar")
+
+    Controls.Silent.SyncESP = silent:CreateToggle({
+        Name = "Sincronizar con ESP",
+        CurrentValue = S.SyncESP,
+        Callback = function(Value)
+            S.SyncESP = Value
+            Features.SyncManager.OnSyncToggled("Silent", "ESP", Value)
+        end,
+    })
+
+end
 
 --------------------------------------------------------------
 -- 5. EXTRAS TAB
