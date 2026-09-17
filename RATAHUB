@@ -2975,6 +2975,18 @@ local Config = {
 		SyncTeamESP = false,
 		SyncTeamAimlock = false,
 	},
+
+ Silent = {
+    Enabled = false,
+    Keybind = "Q",
+
+    FOV = false,
+    FOVSize = 100,
+
+    LockTarget = false,
+    LockTargetKeybind = "E",
+},
+
 	Extras = {
 		Camera = {
 			UnlockMaxDistance = false,
@@ -3034,6 +3046,7 @@ local Controls = {
 	ESP = {},
 	Aimlock = {},
 	Triggerbot = {},
+    Silent = {},
 	Extras = {},
 	Troll = {},
 	Sounds = {},
@@ -6499,6 +6512,85 @@ do
 	})
 
 end
+
+
+--------------------------------------------------------------
+-- 5. SILENT TAB
+--------------------------------------------------------------
+do
+    local silent = win:CreateTab({
+        Name = "Silent",
+        Icon = "⌁",
+        SubTitle = "Silent configuration"
+    })
+
+    local S = Config.Silent
+
+    ----------------------------------------------------------
+    -- SILENT AIM
+    ----------------------------------------------------------
+    silent:CreateSection("Silent Aim")
+
+    Controls.Silent.Enabled = silent:CreateToggle({
+        Name = "Silent Aim",
+        CurrentValue = S.Enabled,
+        Callback = function(Value)
+            S.Enabled = Value
+        end,
+    })
+
+    Controls.Silent.Keybind = silent:CreateKeybind({
+        Name = "Silent Aim Keybind",
+        CurrentKeybind = S.Keybind,
+        Callback = function(Key)
+            S.Keybind = (typeof(Key) == "EnumItem")
+                and Key.Name
+                or tostring(Key)
+        end,
+    })
+
+    ----------------------------------------------------------
+    -- CONFIGURATION
+    ----------------------------------------------------------
+    silent:CreateSection("Configuration")
+
+    Controls.Silent.FOV = silent:CreateToggle({
+        Name = "FOV",
+        CurrentValue = S.FOV,
+        Callback = function(Value)
+            S.FOV = Value
+        end,
+    })
+
+    Controls.Silent.FOVSize = silent:CreateSlider({
+        Name = "FOV",
+        Range = { 20, 500 },
+        Increment = 5,
+        CurrentValue = S.FOVSize,
+        Callback = function(Value)
+            S.FOVSize = Value
+        end,
+    })
+
+    Controls.Silent.LockTarget = silent:CreateToggle({
+        Name = "Lock Target",
+        CurrentValue = S.LockTarget,
+        Callback = function(Value)
+            S.LockTarget = Value
+        end,
+    })
+
+    Controls.Silent.LockTargetKeybind = silent:CreateKeybind({
+        Name = "Lock Target Keybind",
+        CurrentKeybind = S.LockTargetKeybind,
+        Callback = function(Key)
+            S.LockTargetKeybind = (typeof(Key) == "EnumItem")
+                and Key.Name
+                or tostring(Key)
+        end,
+    })
+end
+
 
 --------------------------------------------------------------
 -- 5. EXTRAS TAB
