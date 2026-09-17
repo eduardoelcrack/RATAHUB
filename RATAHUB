@@ -6518,11 +6518,7 @@ end
 -- 5. SILENT TAB
 --------------------------------------------------------------
 do
-    local silent = win:CreateTab({
-        Name = "Silent",
-        Icon = "⌁",
-        SubTitle = "Silent configuration"
-    })
+local silent = win:CreateTab({ Name = "Silent", Icon = "⌁", SubTitle = "Silent configuration" })
 
     local S = Config.Silent
 
