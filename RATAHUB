@@ -2886,14 +2886,16 @@ local DEFAULT_FOV     = 70
 
 local Config = {
 	Main = {
-		Movement = {
-			Fly = false,
-			FlyActive = false,
-			FlyKeybind = "V",
-			FlySpeed = 140,
-			WalkSpeedEnabled = false,
-			WalkSpeedKeybind = "C",
-			WalkSpeed = 16,
+  		    Movement = {
+  		      Fly = false,
+  		    FlyActive = false,
+  		     FlyKeybind = "V",
+  		    FlySpeed = 140,
+   		    FlyMethod = "BodyVelocity",
+   		    WalkSpeedEnabled = false,
+  		    WalkSpeedKeybind = "C",
+  		    WalkSpeed = 16,
+  		    WalkSpeedMethod = "Normal",
 			JumpPowerEnabled = false,
 			JumpPower = 50,
 			GravityEnabled = false,
@@ -3083,7 +3085,7 @@ local Controls = {
 function RATAHUB:GetControls() return Controls end
 
 local Runtime = {
-	Fly          = { active = false, bv = nil, bg = nil, loop = nil, animate = nil },
+	Fly          = { active = false, bv = nil, bg = nil, loop = nil, animate = nil, method = "BodyVelocity", instances = {}, attachments = {} },
 	WalkSpeed    = { active = false, loop = nil, original = nil },
 	JumpPower    = { loop = nil, original = nil },
 	Gravity      = { loop = nil },
@@ -3792,6 +3794,18 @@ function Features.StopFly()
 		Runtime.Fly.bg:Destroy()
 		Runtime.Fly.bg = nil
 	end
+	if Runtime.Fly.instances then
+		for _, inst in ipairs(Runtime.Fly.instances) do
+			pcall(function() inst:Destroy() end)
+		end
+		table.clear(Runtime.Fly.instances)
+	end
+	if Runtime.Fly.attachments then
+		for _, att in ipairs(Runtime.Fly.attachments) do
+			pcall(function() att:Destroy() end)
+		end
+		table.clear(Runtime.Fly.attachments)
+	end
 	local char = player.Character
 	if char then
 		local hum = char:FindFirstChildOfClass("Humanoid")
@@ -3813,16 +3827,85 @@ function Features.StartFly()
 		Runtime.Fly.animate = char.Animate:Clone()
 		char.Animate:Destroy()
 	end
-	Runtime.Fly.bv = Instance.new("BodyVelocity")
-	Runtime.Fly.bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-	Runtime.Fly.bv.Velocity = Vector3.zero
-	Runtime.Fly.bv.Parent = root
 
-	Runtime.Fly.bg = Instance.new("BodyGyro")
-	Runtime.Fly.bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-	Runtime.Fly.bg.P = 20000
-	Runtime.Fly.bg.D = 800
-	Runtime.Fly.bg.Parent = root
+	local method = Config.Main.Movement.FlyMethod or "BodyVelocity"
+	Runtime.Fly.method = method
+	Runtime.Fly.instances = {}
+	Runtime.Fly.attachments = {}
+
+	-- Crear las instancias según el método
+	if method == "BodyVelocity" then
+		Runtime.Fly.bv = Instance.new("BodyVelocity")
+		Runtime.Fly.bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+		Runtime.Fly.bv.Velocity = Vector3.zero
+		Runtime.Fly.bv.Parent = root
+		table.insert(Runtime.Fly.instances, Runtime.Fly.bv)
+
+		Runtime.Fly.bg = Instance.new("BodyGyro")
+		Runtime.Fly.bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+		Runtime.Fly.bg.P = 20000
+		Runtime.Fly.bg.D = 800
+		Runtime.Fly.bg.Parent = root
+		table.insert(Runtime.Fly.instances, Runtime.Fly.bg)
+
+	elseif method == "BodyPosition" then
+		Runtime.Fly.bp = Instance.new("BodyPosition")
+		Runtime.Fly.bp.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+		Runtime.Fly.bp.P = 20000
+		Runtime.Fly.bp.D = 800
+		Runtime.Fly.bp.Position = root.Position
+		Runtime.Fly.bp.Parent = root
+		table.insert(Runtime.Fly.instances, Runtime.Fly.bp)
+
+		Runtime.Fly.bg = Instance.new("BodyGyro")
+		Runtime.Fly.bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+		Runtime.Fly.bg.P = 20000
+		Runtime.Fly.bg.D = 800
+		Runtime.Fly.bg.Parent = root
+		table.insert(Runtime.Fly.instances, Runtime.Fly.bg)
+
+	elseif method == "LinearVelocity" then
+		local att = Instance.new("Attachment")
+		att.Name = "RATAHUB_FlyAtt"
+		att.Parent = root
+		table.insert(Runtime.Fly.attachments, att)
+
+		Runtime.Fly.lv = Instance.new("LinearVelocity")
+		Runtime.Fly.lv.MaxForce = 1e5
+		Runtime.Fly.lv.VectorVelocity = Vector3.zero
+		Runtime.Fly.lv.Attachment0 = att
+		Runtime.Fly.lv.Parent = root
+		table.insert(Runtime.Fly.instances, Runtime.Fly.lv)
+
+		Runtime.Fly.ao = Instance.new("AlignOrientation")
+		Runtime.Fly.ao.MaxTorque = 1e5
+		Runtime.Fly.ao.Responsiveness = 200
+		Runtime.Fly.ao.Attachment0 = att
+		Runtime.Fly.ao.Parent = root
+		table.insert(Runtime.Fly.instances, Runtime.Fly.ao)
+
+	elseif method == "AlignPosition" then
+		local att = Instance.new("Attachment")
+		att.Name = "RATAHUB_FlyAtt"
+		att.Parent = root
+		table.insert(Runtime.Fly.attachments, att)
+
+		Runtime.Fly.ap = Instance.new("AlignPosition")
+		Runtime.Fly.ap.MaxForce = 1e5
+		Runtime.Fly.ap.Responsiveness = 200
+		Runtime.Fly.ap.Position = root.Position
+		Runtime.Fly.ap.Attachment0 = att
+		Runtime.Fly.ap.Mode = Enum.PositionAlignmentMode.OneAttachment
+		Runtime.Fly.ap.Parent = root
+		table.insert(Runtime.Fly.instances, Runtime.Fly.ap)
+
+		Runtime.Fly.ao = Instance.new("AlignOrientation")
+		Runtime.Fly.ao.MaxTorque = 1e5
+		Runtime.Fly.ao.Responsiveness = 200
+		Runtime.Fly.ao.Attachment0 = att
+		Runtime.Fly.ao.Parent = root
+		table.insert(Runtime.Fly.instances, Runtime.Fly.ao)
+	end
 
 	Runtime.Fly.active = true
 	Runtime.Fly.loop = RunService.RenderStepped:Connect(function()
@@ -3841,8 +3924,32 @@ function Features.StartFly()
 		if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + right end
 		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then move = move + Vector3.new(0, 1, 0) end
 		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then move = move - Vector3.new(0, 1, 0) end
-		Runtime.Fly.bv.Velocity = move * Config.Main.Movement.FlySpeed
-		Runtime.Fly.bg.CFrame = cam.CFrame
+
+		local speed = Config.Main.Movement.FlySpeed
+		local velocity = move * speed
+
+		if method == "BodyVelocity" and Runtime.Fly.bv then
+			Runtime.Fly.bv.Velocity = velocity
+			if Runtime.Fly.bg then Runtime.Fly.bg.CFrame = cam.CFrame end
+
+		elseif method == "BodyPosition" and Runtime.Fly.bp then
+			local currentPos = Runtime.Fly.bp.Position
+			Runtime.Fly.bp.Position = currentPos + (velocity * (1/60))
+			if Runtime.Fly.bg then Runtime.Fly.bg.CFrame = cam.CFrame end
+
+		elseif method == "LinearVelocity" and Runtime.Fly.lv then
+			Runtime.Fly.lv.VectorVelocity = velocity
+			if Runtime.Fly.ao and Runtime.Fly.attachments[1] then
+				Runtime.Fly.ao.CFrame = cam.CFrame
+			end
+
+		elseif method == "AlignPosition" and Runtime.Fly.ap then
+			local currentPos = Runtime.Fly.ap.Position
+			Runtime.Fly.ap.Position = currentPos + (velocity * (1/60))
+			if Runtime.Fly.ao then
+				Runtime.Fly.ao.CFrame = cam.CFrame
+			end
+		end
 	end)
 end
 
@@ -3880,15 +3987,52 @@ function Features.StartWalkSpeed()
 	if hum and not Runtime.WalkSpeed.original then
 		Runtime.WalkSpeed.original = hum.WalkSpeed
 	end
+
+	local method = Config.Main.Movement.WalkSpeedMethod or "Normal"
+	Runtime.WalkSpeed.method = method
+	Runtime.WalkSpeed.pauseState = true
+	Runtime.WalkSpeed.lastPause = os.clock()
+
+    Runtime.WalkSpeed.active = true
 	Runtime.WalkSpeed.loop = RunService.Heartbeat:Connect(function()
 		if not Config.Main.Movement.WalkSpeedEnabled or not Runtime.WalkSpeed.active then
 			Features.StopWalkSpeed()
 			return
 		end
 		local hum = getHumanoid()
-		if hum then
-			local desired = Config.Main.Movement.WalkSpeed or 16
-			if hum.WalkSpeed ~= desired then hum.WalkSpeed = desired end
+		if not hum then return end
+
+		local desired = Config.Main.Movement.WalkSpeed or 16
+		local finalValue = desired
+
+		if method == "Normal" then
+			finalValue = desired
+
+		elseif method == "Randomizado" then
+			finalValue = desired + math.random(-3, 3)
+
+		elseif method == "Capeado" then
+			finalValue = math.min(desired, 30)
+
+		elseif method == "Con Pausas" then
+			local now = os.clock()
+			if Runtime.WalkSpeed.pauseState then
+				finalValue = desired
+				if now - Runtime.WalkSpeed.lastPause >= 3 then
+					Runtime.WalkSpeed.pauseState = false
+					Runtime.WalkSpeed.lastPause = now
+				end
+			else
+				finalValue = Runtime.WalkSpeed.original or 16
+				if now - Runtime.WalkSpeed.lastPause >= 2 then
+					Runtime.WalkSpeed.pauseState = true
+					Runtime.WalkSpeed.lastPause = now
+				end
+			end
+		end
+
+		if hum.WalkSpeed ~= finalValue then
+			hum.WalkSpeed = finalValue
 		end
 	end)
 end
@@ -4274,6 +4418,26 @@ function Features.DestroyHub()
     -- 0. FLAG GLOBAL PARA DETENER TODO
     -- ============================================================
     _G.RATAHUB_ShuttingDown = true
+
+        -- Limpieza extra de Fly (métodos nuevos)
+    pcall(function()
+        if Runtime.Fly.instances then
+            for _, inst in ipairs(Runtime.Fly.instances) do
+                pcall(function() inst:Destroy() end)
+            end
+            table.clear(Runtime.Fly.instances)
+        end
+        if Runtime.Fly.attachments then
+            for _, att in ipairs(Runtime.Fly.attachments) do
+                pcall(function() att:Destroy() end)
+            end
+            table.clear(Runtime.Fly.attachments)
+        end
+        Runtime.Fly.bp = nil
+        Runtime.Fly.lv = nil
+        Runtime.Fly.ap = nil
+        Runtime.Fly.ao = nil
+    end)
 
     -- ============================================================
     -- RESTAURAR HOOK DE ViewportPointToRay (SILENT AIM)
@@ -5999,6 +6163,23 @@ do
 			Features.SetFlyMaster(Value)
 		end,
 	})
+	Controls.Main.FlyMethod = main:CreateDropdown({
+		Name = "Fly Method",
+		Options = { "BodyVelocity", "BodyPosition", "LinearVelocity", "AlignPosition" },
+		CurrentOption = M.Movement.FlyMethod or "BodyVelocity",
+		Callback = function(Value)
+			M.Movement.FlyMethod = Value
+			Runtime.Fly.method = Value
+			if Runtime.Fly.active then
+				Features.StopFly()
+				task.spawn(function()
+					task.wait(0.05)
+					Runtime.Fly.active = true
+					Features.StartFly()
+				end)
+			end
+		end,
+	})
 	Controls.Main.FlyKeybind = main:CreateKeybind({
 		Name = "Fly Keybind",
 		CurrentKeybind = M.Movement.FlyKeybind,
@@ -6021,6 +6202,23 @@ do
 		CurrentValue = M.Movement.WalkSpeedEnabled,
 		Callback = function(Value)
 			Features.SetWalkSpeedMaster(Value)
+		end,
+	})
+	Controls.Main.WalkSpeedMethod = main:CreateDropdown({
+		Name = "WalkSpeed Method",
+		Options = { "Normal", "Randomizado", "Con Pausas", "Capeado" },
+		CurrentOption = M.Movement.WalkSpeedMethod or "Normal",
+		Callback = function(Value)
+			M.Movement.WalkSpeedMethod = Value
+			Runtime.WalkSpeed.method = Value
+			if Runtime.WalkSpeed.active then
+				Features.StopWalkSpeed()
+				task.spawn(function()
+					task.wait(0.05)
+					Runtime.WalkSpeed.active = true
+					Features.StartWalkSpeed()
+				end)
+			end
 		end,
 	})
 	Controls.Main.WalkSpeedKeybind = main:CreateKeybind({
