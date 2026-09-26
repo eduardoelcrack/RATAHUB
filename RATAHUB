@@ -1353,7 +1353,7 @@ function RATAHUB:CreateWindow(cfg)
 		ScrollBarImageTransparency = 0.6,
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ClipsDescendants = true,
+		ClipsDescendants = false,
 		Parent = sidebar,
 	})
 	local highlight = create("Frame", {
@@ -2886,16 +2886,16 @@ local DEFAULT_FOV     = 70
 
 local Config = {
 	Main = {
-  		    Movement = {
-  		      Fly = false,
-  		    FlyActive = false,
-  		     FlyKeybind = "V",
-  		    FlySpeed = 140,
-   		    FlyMethod = "BodyVelocity",
-   		    WalkSpeedEnabled = false,
-  		    WalkSpeedKeybind = "C",
-  		    WalkSpeed = 16,
-  		    WalkSpeedMethod = "Normal",
+Movement = {
+    Fly = false,
+    FlyActive = false,
+    FlyKeybind = "V",
+    FlySpeed = 140,
+    FlyMethod = "BodyVelocity",
+    WalkSpeedEnabled = false,
+    WalkSpeedKeybind = "C",
+    WalkSpeed = 16,
+    WalkSpeedMethod = "Normal",
 			JumpPowerEnabled = false,
 			JumpPower = 50,
 			GravityEnabled = false,
@@ -3992,8 +3992,7 @@ function Features.StartWalkSpeed()
 	Runtime.WalkSpeed.method = method
 	Runtime.WalkSpeed.pauseState = true
 	Runtime.WalkSpeed.lastPause = os.clock()
-
-    Runtime.WalkSpeed.active = true
+	Runtime.WalkSpeed.active = true
 	Runtime.WalkSpeed.loop = RunService.Heartbeat:Connect(function()
 		if not Config.Main.Movement.WalkSpeedEnabled or not Runtime.WalkSpeed.active then
 			Features.StopWalkSpeed()
@@ -4418,8 +4417,7 @@ function Features.DestroyHub()
     -- 0. FLAG GLOBAL PARA DETENER TODO
     -- ============================================================
     _G.RATAHUB_ShuttingDown = true
-
-        -- Limpieza extra de Fly (métodos nuevos)
+    -- Limpieza extra de Fly (métodos nuevos)
     pcall(function()
         if Runtime.Fly.instances then
             for _, inst in ipairs(Runtime.Fly.instances) do
@@ -4438,7 +4436,6 @@ function Features.DestroyHub()
         Runtime.Fly.ap = nil
         Runtime.Fly.ao = nil
     end)
-
     -- ============================================================
     -- RESTAURAR HOOK DE ViewportPointToRay (SILENT AIM)
     -- ============================================================
