@@ -4063,12 +4063,27 @@ task.spawn(function()
     local function RemoveESPForPlayer(plr)
         local data = ESPData[plr]
         if not data then return end
+        -- Ocultar primero
+        if data.Name then data.Name.Visible = false end
+        if data.Distance then data.Distance.Visible = false end
+        if data.Weapon then data.Weapon.Visible = false end
+        if data.Box then data.Box.Visible = false end
+        if data.FilledBox then data.FilledBox.Visible = false end
+        if data.Healthbar then data.Healthbar.Visible = false end
+        if data.BehindHealthbar then data.BehindHealthbar.Visible = false end
+        if data.Chams then data.Chams.Enabled = false end
+        if data.TracerLine then data.TracerLine.Visible = false end
+        if data.Corners then
+            for _, c in ipairs(data.Corners) do
+                if c then c.Visible = false end
+            end
+        end
+        -- Después destruir
         for _, obj in pairs(data) do
             if typeof(obj) == "Instance" then pcall(function() obj:Destroy() end) end
         end
         ESPData[plr] = nil
     end
-
     -- Crear para todos los jugadores actuales
     for _, p in ipairs(Services.Players:GetPlayers()) do
         if p ~= LocalPlayer then CreateESPForPlayer(p) end
@@ -4087,7 +4102,7 @@ task.spawn(function()
 
     -- ============ UN SOLO RenderStepped ============
     local espAccumulator = 0
-    local ESP_UPDATE_RATE = 1 / 30  -- 30 FPS para ESP
+    local ESP_UPDATE_RATE = 1 / 60  -- 60 FPS para que se vea fluido
 
     RunService.RenderStepped:Connect(function(dt)
         espAccumulator = espAccumulator + dt
@@ -4180,33 +4195,40 @@ task.spawn(function()
             end
 
             -- Highlight
-            if Config.ESP.Drawing.Chams.Enabled and Dist < 500 then
-                data.Chams.Adornee = c
+            if Config.ESP.Drawing.Chams.Enabled then
+                -- Solo actualizar el Adornee si cambió de personaje
+                if data.Chams.Adornee ~= c then
+                    data.Chams.Adornee = c
+                end
                 data.Chams.DepthMode = Config.ESP.Drawing.Chams.VisibleCheck
                     and Enum.HighlightDepthMode.Occluded
                     or Enum.HighlightDepthMode.AlwaysOnTop
 
-                local finalColor
-                local finalOutline
-                if Config.ESP.RainbowESP or Config.ESP.Drawing.Chams.Thermal then
-                    finalColor = Color3.fromHSV((tick() * 0.4) % 1, 1, 1)
-                    finalOutline = finalColor
-                elseif Config.ESP.TeamColorHighlight and plr.Team and plr.TeamColor then
-                    finalColor = plr.TeamColor.Color
-                    finalOutline = finalColor
-                elseif Config.ESP.FriendCheck and isFriend(plr) then
-                    finalColor = Color3.fromRGB(0, 255, 120)
-                    finalOutline = finalColor
-                else
-                    finalColor = Config.ESP.HighlightRGB or Config.ESP.Drawing.Chams.FillRGB
-                    local hh, ss, vv = finalColor:ToHSV()
-                    finalOutline = Color3.fromHSV(hh, math.min(ss + 0.3, 1), math.min(vv + 0.1, 1))
+                -- Actualizar color cada 15 frames en vez de cada frame
+                data._colorTick = (data._colorTick or 0) + 1
+                if data._colorTick >= 15 then
+                    data._colorTick = 0
+                    local finalColor
+                    local finalOutline
+                    if Config.ESP.RainbowESP or Config.ESP.Drawing.Chams.Thermal then
+                        finalColor = Color3.fromHSV((tick() * 0.4) % 1, 1, 1)
+                        finalOutline = finalColor
+                    elseif Config.ESP.TeamColorHighlight and plr.Team and plr.TeamColor then
+                        finalColor = plr.TeamColor.Color
+                        finalOutline = finalColor
+                    elseif Config.ESP.FriendCheck and isFriend(plr) then
+                        finalColor = Color3.fromRGB(0, 255, 120)
+                        finalOutline = finalColor
+                    else
+                        finalColor = Config.ESP.HighlightRGB or Config.ESP.Drawing.Chams.FillRGB
+                        local hh, ss, vv = finalColor:ToHSV()
+                        finalOutline = Color3.fromHSV(hh, math.min(ss + 0.3, 1), math.min(vv + 0.1, 1))
+                    end
+                    data.Chams.FillColor = finalColor
+                    data.Chams.OutlineColor = finalOutline
+                    data.Chams.FillTransparency = Config.ESP.Drawing.Chams.Fill_Transparency / 100
+                    data.Chams.OutlineTransparency = 0
                 end
-
-                data.Chams.FillColor = finalColor
-                data.Chams.OutlineColor = finalOutline
-                data.Chams.FillTransparency = Config.ESP.Drawing.Chams.Fill_Transparency / 100
-                data.Chams.OutlineTransparency = 0
                 data.Chams.Enabled = true
             else
                 data.Chams.Enabled = false
