@@ -409,19 +409,10 @@ if not Mobile then
 
                     local current_position = dim2(
                         0,
-                        clamp(
-                            start_size.X.Offset + (input.Position.X - start.X),
-                            0,
-                            viewport_x - frame.Size.X.Offset
-                        ),
+                        start_size.X.Offset + (input.Position.X - start.X),
                         0,
-                        math.clamp(
-                            start_size.Y.Offset + (input.Position.Y - start.Y),
-                            0,
-                            viewport_y - frame.Size.Y.Offset
-                        )
+                        start_size.Y.Offset + (input.Position.Y - start.Y)
                     )
-
                     library:tween(frame, {Position = current_position}, Enum.EasingStyle.Linear, 0.05)
                     library:close_element()
                 end
@@ -3758,6 +3749,25 @@ local Config = {
         MaxDistance = 1000,
         FontSize = 12,
         Font = Enum.Font.Code,
+                -- ===== PORT RATAHUB =====
+        FriendCheck       = true,
+        TeamColorHighlight = false,
+        TeamColorTracers  = false,
+        RainbowESP        = false,
+        IgnoreTeams       = {},
+        WhitelistMode     = "Disabled",
+        WhitelistTarget   = {},
+
+        HighlightRGB      = Color3.fromRGB(119, 120, 255),
+        NamesRGB          = Color3.fromRGB(255, 255, 255),
+        DistanceRGB       = Color3.fromRGB(255, 255, 255),
+        WeaponRGB         = Color3.fromRGB(119, 120, 255),
+        CornerBoxesRGB    = Color3.fromRGB(255, 255, 255),
+        FilledBoxesRGB    = Color3.fromRGB(0, 0, 0),
+        TracersRGB        = Color3.fromRGB(255, 0, 0),
+        TracerOrigin      = "Bottom",
+        TracersEnabled    = false,
+        RainbowTracer     = false,
         FadeOut = {
             OnDistance = false,
             OnDeath = true,
@@ -3773,9 +3783,9 @@ local Config = {
                 Enabled  = false,
                 Thermal = false,
                 FillRGB = Color3.fromRGB(119, 120, 255),
-                Fill_Transparency = 80,
-                OutlineRGB = Color3.fromRGB(0,0,0),
-                Outline_Transparency = 80,
+                Fill_Transparency = 40,
+                OutlineRGB = Color3.fromRGB(0, 162, 255),
+                Outline_Transparency = 0,
                 VisibleCheck = false,
             },
             Names = {
@@ -3839,6 +3849,10 @@ local Config = {
             },
         },
     },
+    Silent = {
+        Snapline = false,
+        SnaplineColor = Color3.fromRGB(255, 255, 255),
+    },
 }
 
 local Players_ESP = {}
@@ -3849,6 +3863,120 @@ local function RefreshAllElements()
             pcall(v.RefreshElements)
         end
     end 
+end
+
+-- =====================================================================
+--                 ESP CORE (PORTADO DE RATAHUB)
+-- =====================================================================
+GlobalWhitelistTable = GlobalWhitelistTable or {}
+
+local function isSameTeam(plr)
+    if not plr or not LocalPlayer then return false end
+    if plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then
+        return true
+    end
+    return false
+end
+
+local FriendCache = {}
+
+local function isFriend(plr)
+    if not plr or plr == LocalPlayer then return false end
+    local cached = FriendCache[plr.UserId]
+    if cached ~= nil then return cached end
+    -- No cacheado, calcular y guardar
+    local ok, res = pcall(function() return LocalPlayer:IsFriendsWith(plr.UserId) end)
+    FriendCache[plr.UserId] = ok and res or false
+    return FriendCache[plr.UserId]
+end
+
+pcall(function()
+    LocalPlayer.FriendStatusChanged:Connect(function(otherPlayer, newStatus)
+        if otherPlayer and otherPlayer.UserId then
+            FriendCache[otherPlayer.UserId] = (newStatus == Enum.FriendStatus.Friend or newStatus == Enum.FriendStatus.FriendRequestSent)
+        end
+    end)
+end)
+
+local function isTeamIgnored(plr, ignoredTeams)
+    if not plr or not plr.Team then return false end
+    local teamName = plr.Team.Name
+    if type(ignoredTeams) == "table" then
+        if ignoredTeams[teamName] == true then return true end
+        for k, v in pairs(ignoredTeams) do
+            if v == teamName or (k == teamName and v == true) then return true end
+        end
+    elseif type(ignoredTeams) == "string" and ignoredTeams ~= "" and ignoredTeams ~= "None" then
+        return ignoredTeams == teamName
+    end
+    return false
+end
+
+local function isWhitelisted(plr, mode, target)
+    if not plr or plr == LocalPlayer then return false end
+    if not mode or mode == "Disabled" or mode == "Blacklist" then
+        if mode == "Blacklist" then mode = "Ignore Whitelist" else return true end
+    end
+    if mode == "Whitelist" then mode = "Only Whitelist" end
+
+    local name = plr.Name
+    local isSelected = false
+
+    local targetObj = target
+    if (not targetObj or (type(targetObj) == "table" and next(targetObj) == nil)) and GlobalWhitelistTable and next(GlobalWhitelistTable) ~= nil then
+        targetObj = GlobalWhitelistTable
+    end
+
+    if type(targetObj) == "table" then
+        if targetObj[name] == true then
+            isSelected = true
+        else
+            for k, v in pairs(targetObj) do
+                if v == name or (k == name and v == true) then
+                    isSelected = true
+                    break
+                end
+            end
+        end
+    elseif type(targetObj) == "string" and targetObj ~= "" and targetObj ~= "None" and targetObj ~= "Nadie" then
+        isSelected = (targetObj == name or targetObj == "All" or targetObj == "Todos")
+    end
+
+    if mode == "Only Whitelist" then return isSelected end
+    if mode == "Ignore Whitelist" then return not isSelected end
+    return true
+end
+
+local function IsPlayerValidESP(plr)
+    if not plr or plr == LocalPlayer then return false end
+    local E = Config.ESP
+
+    -- Friend Check (bypass total)
+    if E.FriendCheck and isFriend(plr) then
+        return true
+    end
+
+    -- Only Whitelist bypasea Team Checks
+    if E.WhitelistMode == "Only Whitelist" or E.WhitelistMode == "Whitelist" then
+        return isWhitelisted(plr, "Only Whitelist", E.WhitelistTarget)
+    end
+
+    -- Ignore Whitelist
+    if not isWhitelisted(plr, E.WhitelistMode, E.WhitelistTarget) then
+        return false
+    end
+
+    -- Team Check
+    if E.TeamCheck and isSameTeam(plr) then
+        return false
+    end
+
+    -- Ignore Teams
+    if isTeamIgnored(plr, E.IgnoreTeams) then
+        return false
+    end
+
+    return true
 end
 
 task.spawn(function()
@@ -3864,6 +3992,8 @@ task.spawn(function()
         ScreenGui = Instance.new("ScreenGui")
         ScreenGui.Name = "ESPHolder_RATAHUB"
         ScreenGui.ResetOnSpawn = false
+        ScreenGui.DisplayOrder = 5
+        ScreenGui.IgnoreGuiInset = true
         ScreenGui.Parent = parent_gui
     end)
 
@@ -3877,313 +4007,317 @@ task.spawn(function()
         return _Instance
     end
 
-    local function getHealthColor(currentHealth, maxHealth)    
+    local function getHealthColor(currentHealth, maxHealth)
         local ratio = math.clamp(currentHealth / (maxHealth > 0 and maxHealth or 100), 0, 1)
         return Config.ESP.Drawing.Healthbar.GradientRGB1:Lerp(Config.ESP.Drawing.Healthbar.GradientRGB2, ratio)
     end
 
-    local function ESP(plr)
-        if plr == LocalPlayer then return end
+    -- ============================================================
+    -- ESP GLOBAL - Un solo RenderStepped para TODOS los jugadores
+    -- ============================================================
+    local ESPData = {}    -- [plr] = { Name, Distance, Weapon, Box, Outline, FilledBox, Healthbar, BehindHealthbar, Chams, Corners, TracerLine }
 
-        if ScreenGui:FindFirstChild(plr.Name) then
-            pcall(function() ScreenGui[plr.Name]:Destroy() end)
+    local function CreateESPForPlayer(plr)
+        if plr == LocalPlayer then return end
+        if ESPData[plr] then
+            -- Limpiar viejo
+            local old = ESPData[plr]
+            for _, obj in pairs(old) do
+                if typeof(obj) == "Instance" then pcall(function() obj:Destroy() end) end
+            end
+            ESPData[plr] = nil
         end
 
-        local Name = create("TextLabel", {Visible = false, Parent = ScreenGui, Position = UDim2.new(0.5, 0, 0, -11), Size = UDim2.new(0, 100, 0, 20), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, TextColor3 = Color3.fromRGB(255, 255, 255), Font = Enum.Font.Code, TextSize = Config.ESP.FontSize, TextStrokeTransparency = 0, TextStrokeColor3 = Color3.fromRGB(0, 0, 0), RichText = true})
-        local Distance = create("TextLabel", {Visible = false, Parent = ScreenGui, Position = UDim2.new(0.5, 0, 0, 11), Size = UDim2.new(0, 100, 0, 20), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, TextColor3 = Color3.fromRGB(255, 255, 255), Font = Enum.Font.Code, TextSize = Config.ESP.FontSize, TextStrokeTransparency = 0, TextStrokeColor3 = Color3.fromRGB(0, 0, 0), RichText = true})
-        local Weapon = create("TextLabel", {Visible = false, Parent = ScreenGui, Position = UDim2.new(0.5, 0, 0, 31), Size = UDim2.new(0, 100, 0, 20), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, TextColor3 = Color3.fromRGB(255, 255, 255), Font = Enum.Font.Code, TextSize = Config.ESP.FontSize, TextStrokeTransparency = 0, TextStrokeColor3 = Color3.fromRGB(0, 0, 0), RichText = true, Text = "None"})
-        
-        -- Box: BackgroundTransparency = 1 by default so no grey box appears!
+        local Name = create("TextLabel", {Visible = false, Parent = ScreenGui, Position = UDim2.new(0.5, 0, 0, -11), Size = UDim2.new(0, 100, 0, 20), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, TextColor3 = Color3.fromRGB(255, 255, 255), Font = Enum.Font.Code, TextSize = Config.ESP.FontSize, TextStrokeTransparency = 1, TextStrokeColor3 = Color3.fromRGB(0, 0, 0), RichText = true})
+        local Distance = create("TextLabel", {Visible = false, Parent = ScreenGui, Position = UDim2.new(0.5, 0, 0, 11), Size = UDim2.new(0, 100, 0, 20), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, TextColor3 = Color3.fromRGB(255, 255, 255), Font = Enum.Font.Code, TextSize = Config.ESP.FontSize, TextStrokeTransparency = 1, TextStrokeColor3 = Color3.fromRGB(0, 0, 0), RichText = true})
+        local Weapon = create("TextLabel", {Visible = false, Parent = ScreenGui, Position = UDim2.new(0.5, 0, 0, 31), Size = UDim2.new(0, 100, 0, 20), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, TextColor3 = Color3.fromRGB(255, 255, 255), Font = Enum.Font.Code, TextSize = Config.ESP.FontSize, TextStrokeTransparency = 1, TextStrokeColor3 = Color3.fromRGB(0, 0, 0), RichText = true, Text = "None"})
         local Box = create("Frame", {Parent = ScreenGui, BackgroundColor3 = Color3.fromRGB(0, 0, 0), BackgroundTransparency = 1, BorderSizePixel = 0})
         local Outline = create("UIStroke", {Parent = Box, Enabled = false, Transparency = 0, Color = Color3.fromRGB(255, 255, 255), LineJoinMode = Enum.LineJoinMode.Miter, Thickness = 1})
-        
-        local Healthbar = create("Frame", {Parent = ScreenGui, BackgroundColor3 = Color3.fromRGB(255, 255, 255), BackgroundTransparency = 0})
-        local BehindHealthbar = create("Frame", {BorderColor3 = Color3.fromRGB(0, 0, 0), Parent = ScreenGui, ZIndex = -1, BackgroundColor3 = Color3.fromRGB(0, 0, 0), BackgroundTransparency = 0})
-        local Chams = create("Highlight", {Parent = ScreenGui, FillTransparency = 0.5, OutlineTransparency = 0, OutlineColor = Color3.fromRGB(0, 0, 0), DepthMode = Enum.HighlightDepthMode.AlwaysOnTop})
+        local FilledBox = create("Frame", {Parent = ScreenGui, BackgroundColor3 = Config.ESP.FilledBoxesRGB, BackgroundTransparency = 0.75, BorderSizePixel = 0, Visible = false})
+        local Healthbar = create("Frame", {Parent = ScreenGui, BackgroundColor3 = Color3.fromRGB(255, 255, 255), BackgroundTransparency = 0, Visible = false})
+        local BehindHealthbar = create("Frame", {BorderColor3 = Color3.fromRGB(0, 0, 0), Parent = ScreenGui, ZIndex = -1, BackgroundColor3 = Color3.fromRGB(0, 0, 0), BackgroundTransparency = 0, Visible = false})
+        local Chams = create("Highlight", {Parent = ScreenGui, FillTransparency = 0.5, OutlineTransparency = 0, OutlineColor = Config.ESP.Drawing.Chams.OutlineRGB or Color3.fromRGB(0, 162, 255), DepthMode = Enum.HighlightDepthMode.AlwaysOnTop, Enabled = false})
+        local Corners = {}
+        for i = 1, 8 do
+            Corners[i] = create("Frame", {Parent = ScreenGui, BackgroundColor3 = Config.ESP.CornerBoxesRGB, BorderSizePixel = 0, Visible = false})
+        end
+        local TracerLine = create("Frame", {Parent = ScreenGui, BackgroundColor3 = Color3.fromRGB(255, 255, 255), BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, ZIndex = 50})
 
-        -- Corner Boxes: Thickness = 2 for sharp visual alignment
-        local LeftTop = create("Frame", {Parent = ScreenGui, BackgroundColor3 = Config.ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0), BorderSizePixel = 0})
-        local LeftSide = create("Frame", {Parent = ScreenGui, BackgroundColor3 = Config.ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0), BorderSizePixel = 0})
-        local RightTop = create("Frame", {Parent = ScreenGui, BackgroundColor3 = Config.ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0), BorderSizePixel = 0})
-        local RightSide = create("Frame", {Parent = ScreenGui, BackgroundColor3 = Config.ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0), BorderSizePixel = 0})
-        local BottomSide = create("Frame", {Parent = ScreenGui, BackgroundColor3 = Config.ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0), BorderSizePixel = 0})
-        local BottomDown = create("Frame", {Parent = ScreenGui, BackgroundColor3 = Config.ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0), BorderSizePixel = 0})
-        local BottomRightSide = create("Frame", {Parent = ScreenGui, BackgroundColor3 = Config.ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0), BorderSizePixel = 0})
-        local BottomRightDown = create("Frame", {Parent = ScreenGui, BackgroundColor3 = Config.ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0), BorderSizePixel = 0})
+        ESPData[plr] = {
+            Name = Name, Distance = Distance, Weapon = Weapon,
+            Box = Box, Outline = Outline, FilledBox = FilledBox,
+            Healthbar = Healthbar, BehindHealthbar = BehindHealthbar,
+            Chams = Chams, Corners = Corners, TracerLine = TracerLine,
+        }
 
-        -- Tracer Line Frame
-        local TracerLine = create("Frame", {Parent = ScreenGui, BackgroundColor3 = Color3.fromRGB(255, 255, 255), BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5, 0.5), Visible = false})
+        Name.TextSize = Config.ESP.FontSize
+        Distance.TextSize = Config.ESP.FontSize
+        Weapon.TextSize = Config.ESP.FontSize
+        Name.TextColor3 = Config.ESP.NamesRGB
+        Distance.TextColor3 = Config.ESP.DistanceRGB
+        Weapon.TextColor3 = Config.ESP.WeaponRGB
+        FilledBox.BackgroundColor3 = Config.ESP.FilledBoxesRGB
+        for _, c in ipairs(Corners) do c.BackgroundColor3 = Config.ESP.CornerBoxesRGB end
+    end
 
-        if not plr.Character then plr.CharacterAdded:Wait() end
-        local char = plr.Character
-        if not char then return end
-        local Humanoid = char:WaitForChild("Humanoid", 3)
-        local HRP = char:WaitForChild("HumanoidRootPart", 3)
-        if not Humanoid or not HRP then return end
+    local function RemoveESPForPlayer(plr)
+        local data = ESPData[plr]
+        if not data then return end
+        for _, obj in pairs(data) do
+            if typeof(obj) == "Instance" then pcall(function() obj:Destroy() end) end
+        end
+        ESPData[plr] = nil
+    end
 
-        Players_ESP[plr.Name] = {}
-        Players_ESP[plr.Name].RefreshElements = function()
-            pcall(function()
-                if Config.ESP.Font then
-                    if typeof(Config.ESP.Font) == "Font" then
-                        Name.FontFace = Config.ESP.Font
-                        Distance.FontFace = Config.ESP.Font
-                        Weapon.FontFace = Config.ESP.Font
-                    else
-                        Name.Font = Config.ESP.Font
-                        Distance.Font = Config.ESP.Font
-                        Weapon.Font = Config.ESP.Font
-                    end
+    -- Crear para todos los jugadores actuales
+    for _, p in ipairs(Services.Players:GetPlayers()) do
+        if p ~= LocalPlayer then CreateESPForPlayer(p) end
+    end
+
+    Services.Players.PlayerAdded:Connect(function(p)
+        if p ~= LocalPlayer then CreateESPForPlayer(p) end
+    end)
+
+    Services.Players.PlayerRemoving:Connect(function(p)
+        RemoveESPForPlayer(p)
+        if p and p.UserId then
+            FriendCache[p.UserId] = nil
+        end
+    end)
+
+    -- ============ UN SOLO RenderStepped ============
+    local espAccumulator = 0
+    local ESP_UPDATE_RATE = 1 / 30  -- 30 FPS para ESP
+
+    RunService.RenderStepped:Connect(function(dt)
+        espAccumulator = espAccumulator + dt
+        if espAccumulator < ESP_UPDATE_RATE then return end
+        espAccumulator = 0
+
+        local cam = workspace.CurrentCamera
+        if not cam then return end
+
+        if not Config.ESP.Enabled then
+            for _, data in pairs(ESPData) do
+                if data.Name then data.Name.Visible = false end
+                if data.Distance then data.Distance.Visible = false end
+                if data.Weapon then data.Weapon.Visible = false end
+                if data.Box then data.Box.Visible = false end
+                if data.FilledBox then data.FilledBox.Visible = false end
+                if data.Healthbar then data.Healthbar.Visible = false end
+                if data.BehindHealthbar then data.BehindHealthbar.Visible = false end
+                if data.Chams then data.Chams.Enabled = false end
+                if data.TracerLine then data.TracerLine.Visible = false end
+                if data.Corners then
+                    for _, c in ipairs(data.Corners) do c.Visible = false end
                 end
-
-                Name.TextSize = Config.ESP.FontSize
-                Name.TextColor3 = Config.ESP.Drawing.Names.RGB
-                Name.TextStrokeTransparency = Config.ESP.Drawing.Names.Transparency
-
-                Distance.TextStrokeTransparency = Config.ESP.Drawing.Distances.Transparency
-                Distance.TextSize = Config.ESP.FontSize
-                Distance.TextColor3 = Config.ESP.Drawing.Distances.RGB
-                Weapon.TextStrokeTransparency = Config.ESP.Drawing.Weapons.Transparency
-                Weapon.TextSize = Config.ESP.FontSize
-                Weapon.TextColor3 = Config.ESP.Drawing.Weapons.WeaponTextRGB
-            end)
+            end
+            return
         end
 
-        Players_ESP[plr.Name].RefreshElements()
-
-        local Hide2DESP = function()
-            Box.Visible = false
-            Name.Visible = false
-            Distance.Visible = false
-            Weapon.Visible = false
-            Healthbar.Visible = false
-            BehindHealthbar.Visible = false
-            LeftTop.Visible = false
-            LeftSide.Visible = false
-            BottomSide.Visible = false
-            BottomDown.Visible = false
-            RightTop.Visible = false
-            RightSide.Visible = false
-            BottomRightSide.Visible = false
-            BottomRightDown.Visible = false
-            TracerLine.Visible = false
-        end
-
-        local conn
-        conn = RunService.RenderStepped:Connect(function()
-            if not Config.ESP.Enabled or not plr.Parent or not plr.Character or not LocalPlayer or not LocalPlayer.Character then
-                Hide2DESP()
-                Chams.Enabled = false
-                return
+        for plr, data in pairs(ESPData) do
+            -- 1. Verificación rápida (barata)
+            local char = plr.Character
+            if not plr.Parent or not char then
+                if data.Name then data.Name.Visible = false end
+                if data.Distance then data.Distance.Visible = false end
+                if data.Weapon then data.Weapon.Visible = false end
+                if data.Box then data.Box.Visible = false end
+                if data.FilledBox then data.FilledBox.Visible = false end
+                if data.Healthbar then data.Healthbar.Visible = false end
+                if data.BehindHealthbar then data.BehindHealthbar.Visible = false end
+                if data.Chams then data.Chams.Enabled = false end
+                if data.TracerLine then data.TracerLine.Visible = false end
+                for _, c in ipairs(data.Corners) do c.Visible = false end
+                continue
             end
 
-            local c = plr.Character
-            local h = c:FindFirstChildOfClass("Humanoid")
-            local r = c:FindFirstChild("HumanoidRootPart")
+            local h = char:FindFirstChildOfClass("Humanoid")
+            local r = char:FindFirstChild("HumanoidRootPart")
             if not h or not r or h.Health <= 0 then
-                Hide2DESP()
-                Chams.Enabled = false
-                return
+                if data.Name then data.Name.Visible = false end
+                if data.Distance then data.Distance.Visible = false end
+                if data.Weapon then data.Weapon.Visible = false end
+                if data.Box then data.Box.Visible = false end
+                if data.FilledBox then data.FilledBox.Visible = false end
+                if data.Healthbar then data.Healthbar.Visible = false end
+                if data.BehindHealthbar then data.BehindHealthbar.Visible = false end
+                if data.Chams then data.Chams.Enabled = false end
+                if data.TracerLine then data.TracerLine.Visible = false end
+                for _, c in ipairs(data.Corners) do c.Visible = false end
+                continue
             end
 
-            local cam = workspace.CurrentCamera
-            if not cam then Hide2DESP() Chams.Enabled = false return end
-
+            -- 2. Distancia (barata)
             local Dist = (cam.CFrame.Position - r.Position).Magnitude
             if Dist > Config.ESP.MaxDistance then
-                Hide2DESP()
-                Chams.Enabled = false
-                return
+                if data.Name then data.Name.Visible = false end
+                if data.Distance then data.Distance.Visible = false end
+                if data.Weapon then data.Weapon.Visible = false end
+                if data.Box then data.Box.Visible = false end
+                if data.FilledBox then data.FilledBox.Visible = false end
+                if data.Healthbar then data.Healthbar.Visible = false end
+                if data.BehindHealthbar then data.BehindHealthbar.Visible = false end
+                if data.Chams then data.Chams.Enabled = false end
+                if data.TracerLine then data.TracerLine.Visible = false end
+                for _, c in ipairs(data.Corners) do c.Visible = false end
+                continue
             end
 
-            -- -------------------------------------------------------------
-            -- 3D HIGHLIGHT (CHAMS) - Renders independently of 2D screen bounds!
-            -- -------------------------------------------------------------
-            if Config.ESP.Drawing.Chams.Enabled then
-                Chams.Adornee = c
-                Chams.DepthMode = Config.ESP.Drawing.Chams.VisibleCheck and Enum.HighlightDepthMode.Occluded or Enum.HighlightDepthMode.AlwaysOnTop
-                
-                -- Priority 1: Team Color Highlight
-                if Config.ESP.TeamColorHighlight and plr.Team and plr.TeamColor then
-                    Chams.FillColor = plr.TeamColor.Color
-                -- Priority 2: Rainbow Highlight
-                elseif Config.ESP.Drawing.Chams.Thermal then
-                    Chams.FillColor = Color3.fromHSV((tick() * 0.4) % 1, 1, 1)
-                -- Priority 3: Custom Fill Color
+            -- 3. Filtros (caros, solo después de pasar los baratos)
+            if not IsPlayerValidESP(plr) then
+                if data.Name then data.Name.Visible = false end
+                if data.Distance then data.Distance.Visible = false end
+                if data.Weapon then data.Weapon.Visible = false end
+                if data.Box then data.Box.Visible = false end
+                if data.FilledBox then data.FilledBox.Visible = false end
+                if data.Healthbar then data.Healthbar.Visible = false end
+                if data.BehindHealthbar then data.BehindHealthbar.Visible = false end
+                if data.Chams then data.Chams.Enabled = false end
+                if data.TracerLine then data.TracerLine.Visible = false end
+                for _, c in ipairs(data.Corners) do c.Visible = false end
+                continue
+            end
+
+            -- Highlight
+            if Config.ESP.Drawing.Chams.Enabled and Dist < 500 then
+                data.Chams.Adornee = c
+                data.Chams.DepthMode = Config.ESP.Drawing.Chams.VisibleCheck
+                    and Enum.HighlightDepthMode.Occluded
+                    or Enum.HighlightDepthMode.AlwaysOnTop
+
+                local finalColor
+                local finalOutline
+                if Config.ESP.RainbowESP or Config.ESP.Drawing.Chams.Thermal then
+                    finalColor = Color3.fromHSV((tick() * 0.4) % 1, 1, 1)
+                    finalOutline = finalColor
+                elseif Config.ESP.TeamColorHighlight and plr.Team and plr.TeamColor then
+                    finalColor = plr.TeamColor.Color
+                    finalOutline = finalColor
+                elseif Config.ESP.FriendCheck and isFriend(plr) then
+                    finalColor = Color3.fromRGB(0, 255, 120)
+                    finalOutline = finalColor
                 else
-                    Chams.FillColor = Config.ESP.Drawing.Chams.FillRGB
+                    finalColor = Config.ESP.HighlightRGB or Config.ESP.Drawing.Chams.FillRGB
+                    local hh, ss, vv = finalColor:ToHSV()
+                    finalOutline = Color3.fromHSV(hh, math.min(ss + 0.3, 1), math.min(vv + 0.1, 1))
                 end
-                
-                Chams.FillTransparency = Config.ESP.Drawing.Chams.Fill_Transparency / 100
-                Chams.OutlineColor = Config.ESP.Drawing.Chams.OutlineRGB
-                Chams.OutlineTransparency = Config.ESP.Drawing.Chams.Outline_Transparency / 100
-                Chams.Enabled = true
+
+                data.Chams.FillColor = finalColor
+                data.Chams.OutlineColor = finalOutline
+                data.Chams.FillTransparency = Config.ESP.Drawing.Chams.Fill_Transparency / 100
+                data.Chams.OutlineTransparency = 0
+                data.Chams.Enabled = true
             else
-                Chams.Enabled = false
+                data.Chams.Enabled = false
             end
 
-            -- -------------------------------------------------------------
-            -- 2D ESP ELEMENTS (Require Screen Coordinates)
-            -- -------------------------------------------------------------
-            local Pos, OnScreen = cam:WorldToScreenPoint(r.Position)
-
+            -- 2D
+            local Pos, OnScreen = cam:WorldToViewportPoint(r.Position)
             if OnScreen then
                 local scaleFactor = (r.Size.Y * cam.ViewportSize.Y) / (Pos.Z * 2)
-                local w, h_size = math.clamp(3 * scaleFactor, 6, 2000), math.clamp(4.5 * scaleFactor, 8, 3000)
+                local w = math.clamp(3 * scaleFactor, 6, 2000)
+                local h_size = math.clamp(4.5 * scaleFactor, 8, 3000)
 
-                -- 1. CORNER BOXES
+                -- Corner
                 if Config.ESP.Drawing.Boxes.Corner.Enabled then
-                    local cornerColor = (Config.ESP.TeamColorHighlight and plr.Team and plr.TeamColor) and plr.TeamColor.Color or Config.ESP.Drawing.Boxes.Corner.RGB
-                    local cornerTrans = Config.ESP.Drawing.Boxes.Corner.Transparency
+                    local cornerColor = (Config.ESP.TeamColorHighlight and plr.Team and plr.TeamColor)
+                        and plr.TeamColor.Color or Config.ESP.CornerBoxesRGB
                     local cornerW = math.clamp(w / 4, 3, 20)
                     local cornerH = math.clamp(h_size / 4, 3, 20)
-
-                    -- Top-Left
-                    LeftTop.BackgroundColor3 = cornerColor
-                    LeftTop.BackgroundTransparency = cornerTrans
-                    LeftTop.Position = UDim2.new(0, Pos.X - w / 2, 0, Pos.Y - h_size / 2)
-                    LeftTop.Size = UDim2.new(0, cornerW, 0, 2)
-                    LeftTop.Visible = true
-
-                    LeftSide.BackgroundColor3 = cornerColor
-                    LeftSide.BackgroundTransparency = cornerTrans
-                    LeftSide.Position = UDim2.new(0, Pos.X - w / 2, 0, Pos.Y - h_size / 2)
-                    LeftSide.Size = UDim2.new(0, 2, 0, cornerH)
-                    LeftSide.Visible = true
-
-                    -- Top-Right
-                    RightTop.BackgroundColor3 = cornerColor
-                    RightTop.BackgroundTransparency = cornerTrans
-                    RightTop.Position = UDim2.new(0, Pos.X + w / 2 - cornerW, 0, Pos.Y - h_size / 2)
-                    RightTop.Size = UDim2.new(0, cornerW, 0, 2)
-                    RightTop.Visible = true
-
-                    RightSide.BackgroundColor3 = cornerColor
-                    RightSide.BackgroundTransparency = cornerTrans
-                    RightSide.Position = UDim2.new(0, Pos.X + w / 2 - 2, 0, Pos.Y - h_size / 2)
-                    RightSide.Size = UDim2.new(0, 2, 0, cornerH)
-                    RightSide.Visible = true
-
-                    -- Bottom-Left
-                    BottomDown.BackgroundColor3 = cornerColor
-                    BottomDown.BackgroundTransparency = cornerTrans
-                    BottomDown.Position = UDim2.new(0, Pos.X - w / 2, 0, Pos.Y + h_size / 2 - 2)
-                    BottomDown.Size = UDim2.new(0, cornerW, 0, 2)
-                    BottomDown.Visible = true
-
-                    BottomSide.BackgroundColor3 = cornerColor
-                    BottomSide.BackgroundTransparency = cornerTrans
-                    BottomSide.Position = UDim2.new(0, Pos.X - w / 2, 0, Pos.Y + h_size / 2 - cornerH)
-                    BottomSide.Size = UDim2.new(0, 2, 0, cornerH)
-                    BottomSide.Visible = true
-
-                    -- Bottom-Right
-                    BottomRightDown.BackgroundColor3 = cornerColor
-                    BottomRightDown.BackgroundTransparency = cornerTrans
-                    BottomRightDown.Position = UDim2.new(0, Pos.X + w / 2 - cornerW, 0, Pos.Y + h_size / 2 - 2)
-                    BottomRightDown.Size = UDim2.new(0, cornerW, 0, 2)
-                    BottomRightDown.Visible = true
-
-                    BottomRightSide.BackgroundColor3 = cornerColor
-                    BottomRightSide.BackgroundTransparency = cornerTrans
-                    BottomRightSide.Position = UDim2.new(0, Pos.X + w / 2 - 2, 0, Pos.Y + h_size / 2 - cornerH)
-                    BottomRightSide.Size = UDim2.new(0, 2, 0, cornerH)
-                    BottomRightSide.Visible = true
+                    local coords = {
+                        {Pos.X - w/2,           Pos.Y - h_size/2,          cornerW, 2},
+                        {Pos.X - w/2,           Pos.Y - h_size/2,          2,       cornerH},
+                        {Pos.X + w/2 - cornerW, Pos.Y - h_size/2,          cornerW, 2},
+                        {Pos.X + w/2 - 2,       Pos.Y - h_size/2,          2,       cornerH},
+                        {Pos.X - w/2,           Pos.Y + h_size/2 - 2,      cornerW, 2},
+                        {Pos.X - w/2,           Pos.Y + h_size/2 - cornerH, 2,     cornerH},
+                        {Pos.X + w/2 - cornerW, Pos.Y + h_size/2 - 2,      cornerW, 2},
+                        {Pos.X + w/2 - 2,       Pos.Y + h_size/2 - cornerH, 2,     cornerH},
+                    }
+                    for i, d in ipairs(coords) do
+                        local cr = data.Corners[i]
+                        if cr then
+                            cr.BackgroundColor3 = cornerColor
+                            cr.Position = UDim2.fromOffset(d[1], d[2])
+                            cr.Size = UDim2.fromOffset(d[3], d[4])
+                            cr.Visible = true
+                        end
+                    end
                 else
-                    LeftTop.Visible = false
-                    LeftSide.Visible = false
-                    BottomSide.Visible = false
-                    BottomDown.Visible = false
-                    RightTop.Visible = false
-                    RightSide.Visible = false
-                    BottomRightSide.Visible = false
-                    BottomRightDown.Visible = false
+                    for _, cc in ipairs(data.Corners) do cc.Visible = false end
                 end
 
-                -- 2. FILLED & BOUNDING BOXES
-                if Config.ESP.Drawing.Boxes.Filled.Enabled or Config.ESP.Drawing.Boxes.Full.Enabled or Config.ESP.Drawing.Boxes.Bounding.Enabled then
-                    Box.Position = UDim2.new(0, Pos.X - w / 2, 0, Pos.Y - h_size / 2)
-                    Box.Size = UDim2.new(0, w, 0, h_size)
-
-                    if Config.ESP.Drawing.Boxes.Filled.Enabled then
-                        Box.BackgroundColor3 = (Config.ESP.TeamColorHighlight and plr.Team and plr.TeamColor) and plr.TeamColor.Color or Config.ESP.Drawing.Boxes.Filled.RGB
-                        Box.BackgroundTransparency = Config.ESP.Drawing.Boxes.Filled.Transparency
-                    else
-                        Box.BackgroundTransparency = 1
-                    end
-
-                    if Config.ESP.Drawing.Boxes.Bounding.Enabled or Config.ESP.Drawing.Boxes.Full.Enabled then
-                        Outline.Enabled = true
-                        Outline.Color = Config.ESP.Drawing.Boxes.Full.RGB or Color3.fromRGB(255, 255, 255)
-                    else
-                        Outline.Enabled = false
-                    end
-
-                    Box.Visible = true
+                -- Filled
+                if Config.ESP.Drawing.Boxes.Filled.Enabled then
+                    data.FilledBox.Position = UDim2.fromOffset(Pos.X - w/2, Pos.Y - h_size/2)
+                    data.FilledBox.Size = UDim2.fromOffset(w, h_size)
+                    data.FilledBox.BackgroundColor3 = (Config.ESP.TeamColorHighlight and plr.Team and plr.TeamColor)
+                        and plr.TeamColor.Color or Config.ESP.FilledBoxesRGB
+                    data.FilledBox.BackgroundTransparency = Config.ESP.Drawing.Boxes.Filled.Transparency
+                    data.FilledBox.Visible = true
                 else
-                    Box.Visible = false
+                    data.FilledBox.Visible = false
                 end
 
-                -- 3. HEALTH BAR
+                -- Health
                 local health_ratio = math.clamp(h.Health / (h.MaxHealth > 0 and h.MaxHealth or 100), 0, 1)
                 if Config.ESP.Drawing.Healthbar.Enabled then
-                    Healthbar.Position = UDim2.new(0, Pos.X - w / 2 - 6, 0, Pos.Y - h_size / 2 + h_size * (1 - health_ratio))
-                    Healthbar.Size = UDim2.new(0, Config.ESP.Drawing.Healthbar.Width or 2.5, 0, h_size * health_ratio)
-                    Healthbar.BackgroundColor3 = getHealthColor(h.Health, h.MaxHealth)
-                    Healthbar.Visible = true
-
-                    BehindHealthbar.Position = UDim2.new(0, Pos.X - w / 2 - 6, 0, Pos.Y - h_size / 2)
-                    BehindHealthbar.Size = UDim2.new(0, Config.ESP.Drawing.Healthbar.Width or 2.5, 0, h_size)
-                    BehindHealthbar.Visible = true
+                    data.Healthbar.Position = UDim2.new(0, Pos.X - w/2 - 6, 0, Pos.Y - h_size/2 + h_size * (1 - health_ratio))
+                    data.Healthbar.Size = UDim2.new(0, Config.ESP.Drawing.Healthbar.Width or 2.5, 0, h_size * health_ratio)
+                    data.Healthbar.BackgroundColor3 = getHealthColor(h.Health, h.MaxHealth)
+                    data.Healthbar.Visible = true
+                    data.BehindHealthbar.Position = UDim2.new(0, Pos.X - w/2 - 6, 0, Pos.Y - h_size/2)
+                    data.BehindHealthbar.Size = UDim2.new(0, Config.ESP.Drawing.Healthbar.Width or 2.5, 0, h_size)
+                    data.BehindHealthbar.Visible = true
                 else
-                    Healthbar.Visible = false
-                    BehindHealthbar.Visible = false
+                    data.Healthbar.Visible = false
+                    data.BehindHealthbar.Visible = false
                 end
 
-                -- 4. ESP NAMES
+                -- Names
                 if Config.ESP.Drawing.Names.Enabled then
-                    Name.Position = UDim2.new(0, Pos.X, 0, Pos.Y - h_size / 2 - 12)
-                    local isFriend = false
-                    pcall(function()
-                        if LocalPlayer and LocalPlayer:IsFriendsWith(plr.UserId) then
-                            isFriend = true
-                        end
-                    end)
-                    if Config.ESP.Options.Friendcheck and isFriend then
-                        Name.TextColor3 = Config.ESP.Options.FriendcheckRGB or Color3.fromRGB(0, 255, 0)
-                        Name.Text = "(Friend) " .. plr.Name
+                    data.Name.Position = UDim2.new(0, Pos.X, 0, Pos.Y - h_size/2 - 12)
+                    local finalNameColor
+                    if Config.ESP.RainbowESP then
+                        finalNameColor = Color3.fromHSV((tick() * 0.4) % 1, 1, 1)
+                    elseif Config.ESP.FriendCheck and isFriend(plr) then
+                        finalNameColor = Color3.fromRGB(0, 255, 120)
                     else
-                        Name.TextColor3 = Config.ESP.Drawing.Names.RGB or Color3.fromRGB(255, 255, 255)
-                        Name.Text = plr.Name
+                        finalNameColor = Config.ESP.NamesRGB
                     end
-                    Name.Visible = true
+                    data.Name.TextColor3 = finalNameColor
+                    data.Name.Text = plr.Name
+                    data.Name.Visible = true
                 else
-                    Name.Visible = false
+                    data.Name.Visible = false
                 end
 
-                -- 5. ESP DISTANCE
+                -- Distance
                 if Config.ESP.Drawing.Distances.Enabled then
-                    Distance.Position = UDim2.new(0, Pos.X, 0, Pos.Y + h_size / 2 + 6)
-                    Distance.Text = math.floor(Dist) .. " Studs"
-                    Distance.Visible = true
+                    data.Distance.Position = UDim2.new(0, Pos.X, 0, Pos.Y + h_size/2 + 6)
+                    data.Distance.Text = math.floor(Dist) .. " studs"
+                    data.Distance.TextColor3 = Config.ESP.DistanceRGB
+                    data.Distance.Visible = true
                 else
-                    Distance.Visible = false
+                    data.Distance.Visible = false
                 end
 
-                -- 6. ESP WEAPON
+                -- Weapon
                 if Config.ESP.Drawing.Weapons.Enabled then
                     local tool = c:FindFirstChildOfClass("Tool")
-                    Weapon.Position = UDim2.new(0, Pos.X, 0, Pos.Y + h_size / 2 + (Distance.Visible and 18 or 6))
-                    Weapon.Text = tool and tool.Name or "None"
-                    Weapon.Visible = true
+                    data.Weapon.Position = UDim2.new(0, Pos.X, 0, Pos.Y + h_size/2 + (data.Distance.Visible and 18 or 6))
+                    data.Weapon.Text = tool and tool.Name or "None"
+                    data.Weapon.TextColor3 = Config.ESP.WeaponRGB
+                    data.Weapon.Visible = true
                 else
-                    Weapon.Visible = false
+                    data.Weapon.Visible = false
                 end
 
-                -- 7. TRACERS (SNAPLINE)
-                if Config.Silent.Snapline then
+                -- Tracers
+                if Config.ESP.TracersEnabled then
                     local From
-                    local originPos = Config.ESP.Drawing.Distances.Position or "Bottom"
+                    local originPos = Config.ESP.TracerOrigin or "Bottom"
                     if originPos == "Bottom" then
                         From = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y)
                     elseif originPos == "Center" then
@@ -4200,36 +4334,36 @@ task.spawn(function()
                     local lineAngle = math.atan2(To.Y - From.Y, To.X - From.X)
 
                     local tracerColor
-                    if Config.ESP.TeamColorTracers and plr.Team and plr.TeamColor then
-                        tracerColor = plr.TeamColor.Color
-                    elseif Config.ESP.RainbowESP or flags["esp_rainbow_tracer"] then
+                    if Config.ESP.RainbowESP or Config.ESP.RainbowTracer then
                         tracerColor = Color3.fromHSV((tick() * 0.4) % 1, 1, 1)
+                    elseif Config.ESP.TeamColorTracers and plr.Team and plr.TeamColor then
+                        tracerColor = plr.TeamColor.Color
+                    elseif Config.ESP.FriendCheck and isFriend(plr) then
+                        tracerColor = Color3.fromRGB(0, 255, 120)
                     else
-                        tracerColor = Config.Silent.SnaplineColor or Color3.fromRGB(255, 255, 255)
+                        tracerColor = Config.ESP.TracersRGB or Color3.fromRGB(255, 0, 0)
                     end
 
-                    TracerLine.Position = UDim2.new(0, lineCenter.X, 0, lineCenter.Y)
-                    TracerLine.Size = UDim2.new(0, lineDist, 0, 1.5)
-                    TracerLine.Rotation = math.deg(lineAngle)
-                    TracerLine.BackgroundColor3 = tracerColor
-                    TracerLine.Visible = true
+                    data.TracerLine.Position = UDim2.new(0, lineCenter.X, 0, lineCenter.Y)
+                    data.TracerLine.Size = UDim2.new(0, lineDist, 0, 1.5)
+                    data.TracerLine.Rotation = math.deg(lineAngle)
+                    data.TracerLine.BackgroundColor3 = tracerColor
+                    data.TracerLine.Visible = true
                 else
-                    TracerLine.Visible = false
+                    data.TracerLine.Visible = false
                 end
             else
-                Hide2DESP()
+                if data.Name then data.Name.Visible = false end
+                if data.Distance then data.Distance.Visible = false end
+                if data.Weapon then data.Weapon.Visible = false end
+                if data.Box then data.Box.Visible = false end
+                if data.FilledBox then data.FilledBox.Visible = false end
+                if data.Healthbar then data.Healthbar.Visible = false end
+                if data.BehindHealthbar then data.BehindHealthbar.Visible = false end
+                if data.TracerLine then data.TracerLine.Visible = false end
+                for _, cc in ipairs(data.Corners) do cc.Visible = false end
             end
-        end)
-    end
-
-    for _, p in ipairs(Services.Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            task.spawn(ESP, p)
         end
-    end
-
-    Services.Players.PlayerAdded:Connect(function(p)
-        task.spawn(ESP, p)
     end)
 end)
 
@@ -5107,7 +5241,6 @@ secPlayerESP:toggle({
     default = false,
     callback = function(enabled)
         Config.ESP.Enabled = enabled
-        if not enabled then RefreshAllElements() end
     end
 })
 
@@ -5117,16 +5250,15 @@ secPlayerESP:toggle({
     default = false,
     callback = function(enabled)
         Config.ESP.Drawing.Chams.Enabled = enabled
-        RefreshAllElements()
     end
 }):colorpicker({
     flag = "esp_highlight_color",
     color = Color3.fromRGB(119, 120, 255),
     alpha = 0.8,
     callback = function(col, a)
+        Config.ESP.HighlightRGB = col
         Config.ESP.Drawing.Chams.FillRGB = col
         Config.ESP.Drawing.Chams.Fill_Transparency = a * 100
-        RefreshAllElements()
     end
 })
 
@@ -5138,7 +5270,11 @@ secPlayerESP:keybind({
     callback = function()
         if not Config.ESP.Enabled then return end
         Config.ESP.Drawing.Chams.Enabled = not Config.ESP.Drawing.Chams.Enabled
-        RefreshAllElements()
+        if Config.ESP.Drawing.Chams.Enabled then
+            notify("Highlight", "Activado", 1)
+        else
+            notify("Highlight", "Desactivado", 1)
+        end
     end
 })
 
@@ -5148,13 +5284,13 @@ secPlayerESP:toggle({
     default = false,
     callback = function(enabled)
         Config.ESP.Drawing.Boxes.Corner.Enabled = enabled
-        RefreshAllElements()
     end
 }):colorpicker({
     flag = "esp_corner_boxes_color",
     color = Color3.fromRGB(255, 255, 255),
     alpha = 1,
     callback = function(col, a)
+        Config.ESP.CornerBoxesRGB = col
         Config.ESP.Drawing.Boxes.Corner.RGB = col
         Config.ESP.Drawing.Boxes.Corner.Transparency = a
         RefreshAllElements()
@@ -5167,13 +5303,13 @@ secPlayerESP:toggle({
     default = false,
     callback = function(enabled)
         Config.ESP.Drawing.Boxes.Filled.Enabled = enabled
-        RefreshAllElements()
     end
 }):colorpicker({
     flag = "esp_filled_boxes_color",
     color = Color3.fromRGB(0, 0, 0),
     alpha = 0.75,
     callback = function(col, a)
+        Config.ESP.FilledBoxesRGB = col
         Config.ESP.Drawing.Boxes.Filled.RGB = col
         Config.ESP.Drawing.Boxes.Filled.Transparency = a
         RefreshAllElements()
@@ -5186,13 +5322,13 @@ secPlayerESP:toggle({
     default = false,
     callback = function(enabled)
         Config.ESP.Drawing.Names.Enabled = enabled
-        RefreshAllElements()
     end
 }):colorpicker({
     flag = "esp_names_color",
     color = Color3.fromRGB(255, 255, 255),
     alpha = 1,
     callback = function(col, a)
+        Config.ESP.NamesRGB = col
         Config.ESP.Drawing.Names.RGB = col
         Config.ESP.Drawing.Names.Transparency = a
         RefreshAllElements()
@@ -5205,13 +5341,13 @@ secPlayerESP:toggle({
     default = false,
     callback = function(enabled)
         Config.ESP.Drawing.Distances.Enabled = enabled
-        RefreshAllElements()
     end
 }):colorpicker({
     flag = "esp_distance_color",
     color = Color3.fromRGB(255, 255, 255),
     alpha = 1,
     callback = function(col, a)
+        Config.ESP.DistanceRGB = col
         Config.ESP.Drawing.Distances.RGB = col
         Config.ESP.Drawing.Distances.Transparency = a
         RefreshAllElements()
@@ -5224,7 +5360,6 @@ secPlayerESP:toggle({
     default = false,
     callback = function(enabled)
         Config.ESP.Drawing.Healthbar.Enabled = enabled
-        RefreshAllElements()
     end
 })
 
@@ -5234,13 +5369,13 @@ secPlayerESP:toggle({
     default = false,
     callback = function(enabled)
         Config.ESP.Drawing.Weapons.Enabled = enabled
-        RefreshAllElements()
     end
 }):colorpicker({
     flag = "esp_weapon_color",
     color = Color3.fromRGB(119, 120, 255),
     alpha = 1,
     callback = function(col, a)
+        Config.ESP.WeaponRGB = col
         Config.ESP.Drawing.Weapons.WeaponTextRGB = col
         Config.ESP.Drawing.Weapons.Transparency = a
         RefreshAllElements()
@@ -5252,8 +5387,8 @@ secPlayerESP:toggle({
     flag = "esp_rainbow_highlight",
     default = false,
     callback = function(enabled)
+        Config.ESP.RainbowESP = enabled
         Config.ESP.Drawing.Chams.Thermal = enabled
-        RefreshAllElements()
     end
 })
 
@@ -5270,14 +5405,14 @@ secTracers:toggle({
     flag = "esp_tracers_toggle",
     default = false,
     callback = function(enabled)
-        Config.Silent.Snapline = enabled
+        Config.ESP.TracersEnabled = enabled
     end
 }):colorpicker({
     flag = "esp_tracers_color",
-    color = Color3.fromRGB(255, 255, 255),
+    color = Color3.fromRGB(255, 0, 0),
     alpha = 1,
     callback = function(col, a)
-        Config.Silent.SnaplineColor = col
+        Config.ESP.TracersRGB = col
     end
 })
 
@@ -5288,7 +5423,12 @@ secTracers:keybind({
     mode = "Toggle",
     callback = function()
         if not Config.ESP.Enabled then return end
-        Config.Silent.Snapline = not Config.Silent.Snapline
+        Config.ESP.TracersEnabled = not Config.ESP.TracersEnabled
+        if Config.ESP.TracersEnabled then
+            notify("Tracers", "Activado", 1)
+        else
+            notify("Tracers", "Desactivado", 1)
+        end
     end
 })
 
@@ -5298,14 +5438,17 @@ secTracers:dropdown({
     items = {"Bottom", "Center", "Mouse"},
     default = "Bottom",
     callback = function(val)
-        Config.ESP.Drawing.Distances.Position = val
+        Config.ESP.TracerOrigin = val
     end
 })
 
 secTracers:toggle({
     name = "Rainbow Tracer",
     flag = "esp_rainbow_tracer",
-    default = false
+    default = false,
+    callback = function(enabled)
+        Config.ESP.RainbowTracer = enabled
+    end
 })
 
 -- =================================================================
@@ -5328,7 +5471,6 @@ secEspFilters:toggle({
     default = false,
     callback = function(enabled)
         Config.ESP.Drawing.Chams.VisibleCheck = enabled
-        RefreshAllElements()
     end
 })
 
@@ -5366,14 +5508,10 @@ secEspFilters:dropdown({
         "Fantasy", "FredokaOne", "Gotham", "GothamBlack",
         "Minecraftia", "Jura", "Roboto", "RobotoMono", "SourceSans", "Verdana"
     },
-    default = "Plex",
+    default = "Code",
     callback = function(fontName)
-        if fontName == "Pixel" or fontName == "Plex" or fontName == "Minecraftia" or fontName == "Verdana" then
-            Config.ESP.Font = Fonts[fontName]
-        else
-            local ok, enumVal = pcall(function() return Enum.Font[fontName] end)
-            Config.ESP.Font = (ok and enumVal) or Enum.Font.Code
-        end
+        local ok, enumVal = pcall(function() return Enum.Font[fontName] end)
+        Config.ESP.Font = (ok and enumVal) or Enum.Font.Code
         RefreshAllElements()
     end
 })
@@ -5392,30 +5530,34 @@ secTeamFilters:toggle({
     default = false,
     callback = function(enabled)
         Config.ESP.TeamCheck = enabled
-        RefreshAllElements()
     end
 })
 
 secTeamFilters:toggle({
     name = "Friend Check",
     flag = "esp_friend_check",
-    default = false,
+    default = true,
     callback = function(enabled)
-        Config.ESP.Options.Friendcheck = enabled
-        RefreshAllElements()
+        Config.ESP.FriendCheck = enabled
     end
 })
 
 secTeamFilters:toggle({
     name = "Team Color Highlight",
     flag = "esp_team_color_highlight",
-    default = false
+    default = false,
+    callback = function(enabled)
+        Config.ESP.TeamColorHighlight = enabled
+    end
 })
 
 secTeamFilters:toggle({
     name = "Team Color Tracers",
     flag = "esp_team_color_tracers",
-    default = false
+    default = false,
+    callback = function(enabled)
+        Config.ESP.TeamColorTracers = enabled
+    end
 })
 
 secTeamFilters:dropdown({
@@ -5423,7 +5565,14 @@ secTeamFilters:dropdown({
     flag = "esp_ignore_teams",
     width = 90,
     items = {"None", "Others", "Allies"},
-    default = "None"
+    default = "None",
+    callback = function(val)
+        if val == "None" then
+            Config.ESP.IgnoreTeams = {}
+        else
+            Config.ESP.IgnoreTeams = {[val] = true}
+        end
+    end
 })
 
 -- SECCIÓN 3: Whitelist and Sync (Columna Derecha)
@@ -5438,8 +5587,11 @@ secWhitelistSync:dropdown({
     name = "Whitelist Mode",
     flag = "esp_whitelist_mode",
     width = 90,
-    items = {"Blacklist", "Whitelist"},
-    default = "Blacklist"
+    items = {"Disabled", "Ignore Whitelist", "Only Whitelist"},
+    default = "Disabled",
+    callback = function(val)
+        Config.ESP.WhitelistMode = val
+    end
 })
 
 local function getWhitelistPlayerNames()
@@ -5456,13 +5608,23 @@ local function getWhitelistPlayerNames()
     return names
 end
 
+-- Forzar valores iniciales del Highlight para que se vea bien desde el primer uso
+Config.ESP.Drawing.Chams.FillRGB = Config.ESP.HighlightRGB or Color3.fromRGB(119, 120, 255)
+Config.ESP.Drawing.Chams.OutlineRGB = Color3.fromRGB(0, 0, 0)
+Config.ESP.Drawing.Chams.Fill_Transparency = 40
+Config.ESP.Drawing.Chams.Outline_Transparency = 0
+
 local dropdownWhitelistTarget = secWhitelistSync:dropdown({
     name = "Whitelist Target",
     flag = "esp_whitelist_target",
     width = 110,
     multi = true,
     items = getWhitelistPlayerNames(),
-    default = {}
+    default = {},
+    callback = function(selectedTable)
+        Config.ESP.WhitelistTarget = selectedTable
+        GlobalWhitelistTable = selectedTable
+    end
 })
 
 pcall(function()
@@ -5481,19 +5643,28 @@ end)
 secWhitelistSync:toggle({
     name = "Sync with Aimlock",
     flag = "esp_sync_aimlock",
-    default = false
+    default = false,
+    callback = function(enabled)
+        Config.ESP.SyncAimlock = enabled
+    end
 })
 
 secWhitelistSync:toggle({
     name = "Sync with Triggerbot",
     flag = "esp_sync_triggerbot",
-    default = false
+    default = false,
+    callback = function(enabled)
+        Config.ESP.SyncTriggerbot = enabled
+    end
 })
 
 secWhitelistSync:toggle({
     name = "Sync with Silent Aim",
     flag = "esp_sync_silent_aim",
-    default = false
+    default = false,
+    callback = function(enabled)
+        Config.ESP.SyncSilent = enabled
+    end
 })
 
 -- =================================================================
